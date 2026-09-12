@@ -31,6 +31,8 @@
 | low_adoption 检查 | beta | `observe`（仅 warning） | 冷启动守卫：bundle 零 adopted 事件静默返回 | 升级为具体重写建议动作（Phase5 负反馈批次） | `wiki_lint.py:1267-1277,1342` |
 | 反馈驱动生命周期（采纳延寿） | planned | 计划 `observe` 先行 | 延寿被笔记类型新鲜度上限夹住；保留冷启动守卫 | 离线证明「本应延长」分布无错误延寿，再议 enforce | `docs/HL-Mem-调研与借鉴分析.md` A3；公式 `feedback.py:36-37` |
 | 冲突案卷（conflict case） | beta | `enforce`（手动声明，2026-09-12 落地；ADR-0007；不做自动发现） | 案卷不进检索语料、排除通用审计；query_wiki/by_file 命中 claimant 加 `open_conflict` 标注；open 超期（默认 14 天）lint warning | 真实使用中观察误报率与裁决流转时长，再议是否扩展 | ADR-0007、`conflict_case.py`、`tests/test_conflict_case.py` |
+| memory recall（任务记忆检索） | beta | `enforce`（2026-09-12 落地；只读检索，无生命周期副作用） | 内存直算、零持久化；默认只搜本人（含本人 archive），他人须显式 `include_others`；legacy 文件可搜 | 观察 archive 命中率与真实召回需求，再议跨任务全局搜索 | `store.py` search_memories、`tests/test_task_memory_search.py` |
+| 自动压缩驱动（compaction_work） | beta | `enforce`（compaction_due 时 get_task_context 携带待办；2026-09-12 落地） | 载荷无独立上限（受 24KB 压缩阈值间接约束）；submit 由 Agent 显式发起，可逆（原文进 archive），ADR-0002 豁免确认闸门 | 真实使用观察压缩摘要质量与响应体积，再议载荷截断 | `task_manager.py` `_prepare_compaction_payload` |
 
 ## 采集与蒸馏
 

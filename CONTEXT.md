@@ -98,12 +98,14 @@ _Avoid_: 把案卷写成普通 note（污染检索语料）、双向 `conflict_w
 
 **memory recall（任务记忆检索）** — 任务记忆的条目级按需召回（`search_task_memories`），
 与注入路径（`get_task_context` 尾部整取）互补：一个管「开始任务时带什么」，一个管
-「按关键词找回被截断/压缩的旧条目」。条目级颗粒度（`### 日期` 一条一索引记录），
-惰性新鲜度（search 时校验 mtime 重建脏任务），archive 参与召回（压缩与检索正交：
-压缩省注入成本，检索是主动付费的找回）。默认只搜本人，搜索侧隐私姿态不宽于读取侧。
-自动压缩由 get_task_context 携带 compaction_work 驱动，Agent 顺手 submit，无需用户
-确认（ADR-0002 直写语义延伸，可逆操作）。
-_Avoid_: 把任务记忆并进 query_wiki 语料（分轨）、为索引加后台进程（成本不可见）。
+「按关键词找回被截断/压缩的旧条目」。条目级颗粒度（`### 日期` 一条一记录），检索时
+内存直算（永远新鲜、零持久化，不与 wiki 索引互作），archive 参与召回（压缩与检索
+正交：压缩省注入成本，检索是主动付费的找回）。默认只搜本人，搜索侧隐私姿态不宽于
+读取侧。自动压缩由 get_task_context 携带 compaction_work 驱动（与 compact 的
+prepare 同一构造点），Agent 顺手 submit，无需用户确认（ADR-0002 直写语义延伸，
+可逆操作）。
+_Avoid_: 把任务记忆并进 query_wiki 语料（分轨）、为检索持久化索引（wiki 全量重建
+会静默清掉且污染语料统计）、为索引加后台进程（成本不可见）。
 
 ## Key decisions
 
