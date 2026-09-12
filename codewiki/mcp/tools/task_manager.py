@@ -53,9 +53,7 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -709,6 +707,23 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
         include_warm_entries=True,
     )
 
+    # Auto-compaction driver (docs/任务记忆检索与自动压缩设计.md D6): when
+    # compaction is due, carry the PREPARED work inline so the calling agent
+    # cannot miss it — it writes the summary and submits without a user gate
+    # (ADR-0002 extension: compaction is reversible via the archives). The
+    # payload comes from the SAME helper compact_task_memories(mode="prepare")
+    # serves (single source of truth — the two must never drift apart).
+    compaction_work: Optional[Dict[str, Any]] = None
+    if compaction_due:
+        payload = _prepare_compaction_payload(output_dir, task_id)
+        if payload is not None:
+            payload["submit"] = (
+                "compact_task_memories(mode='submit', task_id=..., summary=<按 "
+                "instruction 写的摘要>) — 压缩直写落盘，无需用户确认（原文进 "
+                "memories-archive，可回溯）。"
+            )
+            compaction_work = payload
+
     # Discover related notes by frontmatter task_id. The ``status`` field lets
     # the host agent tell drafts apart from confirmed knowledge when injecting
     # this context (draft → must be labelled "待确认", never cited as settled).
@@ -784,6 +799,7 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
             "memories_total": mem_total,
             "memories_truncated": mem_truncated,
             "compaction_due": compaction_due,
+            **({"compaction_work": compaction_work} if compaction_work else {}),
             "related_notes": related_notes,
             "pending_raw_count": len(pending_raws),
             "pending_raws": pending_payload,
@@ -797,6 +813,7 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
 # --------------------------------------------------------------------------- #
 # Memory compaction (P1 — see docs/任务记忆存储与加载扩展性设计方案.md §5.2)
 # --------------------------------------------------------------------------- #
+
 
 def _compact_instruction(max_chars: int) -> str:
     """Localized compaction instruction.
@@ -846,6 +863,28 @@ def _compact_threshold_state(
     entries.sort(key=lambda oe: _entry_sort_key(oe[1]))
     needed = _compaction_needed(len(entries), hot_bytes)
     return own_path, legacy_path, summaries, entries, hot_bytes, needed
+
+
+def _prepare_compaction_payload(output_dir: Path, task_id: str) -> Optional[Dict[str, Any]]:
+    """Shared prepare payload for compaction work (single source of truth).
+
+    Used by both ``compact_task_memories(mode="prepare")`` and the
+    get_task_context auto-compaction driver (``compaction_work``) — the
+    two must never drift apart. Returns None when compaction is not due.
+    """
+    _own, _leg, summaries, entries, _bytes, needed = _compact_threshold_state(output_dir, task_id)
+    if not needed:
+        return None
+    compress = entries[:-_COMPACTION_KEEP]
+    return {
+        "entries_to_compress": [e for _, e in compress],
+        "existing_summary": "\n\n".join(s for s in summaries if s),
+        "keep_recent": _COMPACTION_KEEP,
+        "summary_max_chars": _COMPACTION_SUMMARY_MAX_CHARS,
+        "summary_heading": _SUMMARY_HEADING,
+        "archive_owners": sorted({owner for owner, _ in compress}),
+        "instruction": _compact_instruction(_COMPACTION_SUMMARY_MAX_CHARS),
+    }
 
 
 def handle_compact_task_memories(arguments: Dict[str, Any], store: SessionStore) -> str:
@@ -915,23 +954,18 @@ def handle_compact_task_memories(arguments: Dict[str, Any], store: SessionStore)
 
     compress = entries[:-_COMPACTION_KEEP]
     keep = entries[-_COMPACTION_KEEP:]
-    existing_summary = "\n\n".join(s for s in summaries if s)
     archive_owners = sorted({owner for owner, _ in compress})
 
     if mode == "prepare":
+        payload = _prepare_compaction_payload(output_dir, task_id)
+        assert payload is not None  # needed=True was checked above
         return json.dumps(
             {
                 "ok": True,
                 "mode": "prepare",
                 "task_id": task_id,
                 "compaction_needed": True,
-                "entries_to_compress": [e for _, e in compress],
-                "existing_summary": existing_summary,
-                "keep_recent": _COMPACTION_KEEP,
-                "summary_max_chars": _COMPACTION_SUMMARY_MAX_CHARS,
-                "summary_heading": _SUMMARY_HEADING,
-                "archive_owners": archive_owners,
-                "instruction": _compact_instruction(_COMPACTION_SUMMARY_MAX_CHARS),
+                **payload,
             },
             ensure_ascii=False,
         )
@@ -1021,3 +1055,59 @@ def handle_compact_task_memories(arguments: Dict[str, Any], store: SessionStore)
         },
         ensure_ascii=False,
     )
+
+
+# --------------------------------------------------------------------------- #
+# search_task_memories (memory recall — docs/任务记忆检索与自动压缩设计.md D2)
+# --------------------------------------------------------------------------- #
+
+
+def handle_search_task_memories(arguments: Dict[str, Any], store: SessionStore) -> str:
+    """Entry-level keyword recall over ONE task's memories.
+
+    The complement of get_task_context's tail injection: answers "which OLD
+    entry (truncated away by max_memories, or already compacted into the
+    archive) said X". In-memory BM25 over the task's own corpus — always
+    fresh, never persisted, never coupled to the wiki search index.
+
+    Privacy mirrors the layered reader: defaults to the current user's own
+    live file + legacy + their archives; ``include_others=true`` opts into
+    other users' memories. Read-only: no usage-heat events, no git sync.
+    """
+    session_id = arguments.get("session_id")
+    session = store.get(session_id) if session_id else None
+    try:
+        output_dir = _resolve_output_dir(session, arguments)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
+    task_id = str(arguments.get("task_id") or "").strip()
+    if not task_id:
+        return json.dumps({"error": "task_id is required."})
+    query = str(arguments.get("query") or "").strip()
+    if not query:
+        return json.dumps({"error": "query is required."})
+    try:
+        max_results = min(20, max(1, int(arguments.get("max_results", 10))))
+    except (TypeError, ValueError):
+        max_results = 10
+
+    result = KnowledgeStore(output_dir).search_memories(
+        task_id,
+        query,
+        uid=_current_user_id(),
+        include_archive=bool(arguments.get("include_archive", True)),
+        include_others=bool(arguments.get("include_others", False)),
+        max_results=max_results,
+    )
+    if "error" in result:
+        return json.dumps(result, ensure_ascii=False)
+    result["ok"] = True
+    archived_hits = sum(1 for r in result["results"] if r.get("archived"))
+    if archived_hits:
+        result["hint"] = (
+            f"{archived_hits} result(s) come from the compaction archive — "
+            "the entry's full text lives in memories-archive/<owner>.md (append-only); "
+            "read that file for the full context around the snippet."
+        )
+    return json.dumps(result, ensure_ascii=False)

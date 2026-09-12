@@ -15,12 +15,12 @@ The SQLite path (AnalysisCache) and the legacy JSON path (wiki_search)
 both sit on this kernel so ranking semantics cannot drift between
 adapters. Constants ``K1``/``B``/``STOPWORDS`` are public API.
 """
+
 from __future__ import annotations
 
 import logging
 import math
 import re
-import time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -343,6 +343,36 @@ def _expand_with_ontology(tokens: List[str], ontology: Dict[str, List[str]]) -> 
                     seen.add(s_lower)
                     result.append(s)
     return result
+
+
+def bm25_score(
+    term_freqs: Dict[str, int],
+    doc_len: int,
+    doc_freqs: Dict[str, int],
+    n_docs: int,
+    avg_doc_len: float,
+    *,
+    k1: float = K1,
+    b: float = B,
+) -> float:
+    """Okapi BM25 score of one document against a query's terms.
+
+    Single canonical scoring formula (kernel's raison d'être: ranking
+    semantics must not drift between consumers). ``term_freqs`` /
+    ``doc_freqs`` are keyed by the query tokens present in the document /
+    corpus respectively. Existing inline copies in cache.search and
+    wiki_search.search predate this helper and are pending migration —
+    new consumers (e.g. KnowledgeStore.search_memories) MUST go through
+    here instead of re-inlining the formula.
+    """
+    dl = doc_len or 1
+    avgdl = avg_doc_len or 1.0
+    score = 0.0
+    for qt, f in term_freqs.items():
+        df = doc_freqs.get(qt, 0)
+        idf = math.log(1 + (n_docs - df + 0.5) / (df + 0.5))
+        score += idf * (f * (k1 + 1)) / (f + k1 * (1 - b + b * dl / avgdl))
+    return score
 
 
 def _build_indexable_text(content: str, page_type: Optional[str] = None) -> str:
@@ -706,7 +736,6 @@ def _usage_context(
     return cfg, usage_map, bool(apply_usage and cfg.get("enabled", True))
 
 
-
 # ---------------------------------------------------------------------------
 # Public interface of the retrieval kernel. The implementation above keeps
 # its historical underscore names (moved verbatim from cache.py); these
@@ -723,10 +752,19 @@ doc_authority = _doc_authority
 usage_context = _usage_context
 
 __all__ = [
-    "B", "K1", "STOPWORDS",
+    "B",
+    "K1",
+    "STOPWORDS",
     "USAGE_RANKING_DEFAULTS",
-    "build_indexable_text", "compute_usage_heat", "doc_authority",
-    "expand_with_ontology", "extract_snippet", "load_ontology",
-    "load_usage_ranking_config", "parse_frontmatter_dict",
-    "tokenize", "usage_context",
+    "bm25_score",
+    "build_indexable_text",
+    "compute_usage_heat",
+    "doc_authority",
+    "expand_with_ontology",
+    "extract_snippet",
+    "load_ontology",
+    "load_usage_ranking_config",
+    "parse_frontmatter_dict",
+    "tokenize",
+    "usage_context",
 ]

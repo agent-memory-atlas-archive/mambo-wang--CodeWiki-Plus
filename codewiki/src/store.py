@@ -264,6 +264,9 @@ SUMMARY_HEADING = "## 早期记忆（摘要）"
 MEMORIES_DIRNAME = "memories"
 ARCHIVE_DIRNAME = "memories-archive"
 LEGACY_MEMORIES_FILENAME = "memories.md"
+# Owner label for the ownerless legacy file and its archive. Cannot collide
+# with a real user_id in practice (sanitized ids derive from email/name).
+_LEGACY_ARCHIVE_OWNER = "legacy"
 RAW_INDEX_NAME = ".index.json"
 
 
@@ -1163,6 +1166,149 @@ class KnowledgeStore:
                 atomic_write(path, existing + format_memory_entry(c, at=at))
             written += 1
         return written
+
+    def search_memories(
+        self,
+        task_id: str,
+        query: str,
+        *,
+        uid: str,
+        include_archive: bool = True,
+        include_others: bool = False,
+        max_results: int = 10,
+    ) -> Dict[str, Any]:
+        """Entry-level BM25 recall over ONE task's memories.
+
+        memory recall (docs/任务记忆检索与自动压缩设计.md): the injection
+        path (``get_task_context``) tail-loads recent entries; this verb
+        answers "which OLD entry said X" — including entries already
+        compacted into the archive. Scores are computed in memory over the
+        task's (small, compaction-bounded) corpus at call time — always
+        fresh by construction, never persisted, never coupled to the wiki
+        search index (whose full-rebuild DELETE+INSERT and global df/avgdl
+        statistics would silently wipe and pollute a persisted copy).
+
+        Privacy mirrors the layered reader: the default scope is the
+        CURRENT user's own live file + legacy + their archives; other
+        users' memories require ``include_others=True`` (search must never
+        be broader than reading).
+        """
+        if not task_id:
+            return {"error": "task_id is required."}
+        if self.find_task(task_id) is None:
+            return {"error": f"Task '{task_id}' does not exist."}
+
+        from codewiki.src.retrieval import extract_snippet, tokenize
+
+        qts: List[str] = []
+        for t in tokenize(query or ""):
+            if t not in qts:
+                qts.append(t)
+        if not qts:
+            return {"error": "query produced no searchable tokens."}
+
+        # ── collect entries (layout knowledge lives here, on the store) ──
+        own_path, legacy_path, other_paths = self.collect_memory_files(task_id, uid)
+        entries: List[Dict[str, Any]] = []
+
+        def _add_file(path: Path, owner: str, archived: bool) -> None:
+            parsed = self.parse_memory_file(path)
+            if parsed is None:
+                return
+            _raw, summary, file_entries, _b = parsed
+            rel = self.relpath(path)
+            if summary and summary.strip():
+                entries.append(
+                    {
+                        "date": None,
+                        "kind": "summary",
+                        "owner": owner,
+                        "archived": archived,
+                        "file": rel,
+                        "text": summary,
+                    }
+                )
+            for e in file_entries:
+                m = _ENTRY_TS_RE.match(e)
+                entries.append(
+                    {
+                        "date": m.group(1) if m else None,
+                        "kind": "entry",
+                        "owner": owner,
+                        "archived": archived,
+                        "file": rel,
+                        "text": e,
+                    }
+                )
+
+        _add_file(own_path, uid, archived=False)
+        _add_file(legacy_path, _LEGACY_ARCHIVE_OWNER, archived=False)
+        if include_others:
+            for p in other_paths:
+                _add_file(p, p.stem, archived=False)
+        if include_archive:
+            _add_file(self.archive_path_for(task_id, uid), uid, archived=True)
+            _add_file(
+                self.archive_path_for(task_id, _LEGACY_ARCHIVE_OWNER),
+                _LEGACY_ARCHIVE_OWNER,
+                archived=True,
+            )
+            if include_others:
+                for p in other_paths:
+                    _add_file(self.archive_path_for(task_id, p.stem), p.stem, archived=True)
+
+        if not entries:
+            return {
+                "task_id": task_id,
+                "query": query,
+                "results": [],
+                "total_matched": 0,
+                "corpus": {"entries": 0, "files": 0, "archived_entries": 0},
+            }
+
+        # ── BM25 over the small in-memory corpus (kernel's canonical
+        # bm25_score — the formula must not drift between consumers) ──
+        from codewiki.src.retrieval import bm25_score
+
+        doc_tokens = [tokenize(e["text"]) for e in entries]
+        avgdl = (sum(len(t) for t in doc_tokens) / len(doc_tokens)) or 1.0
+        n_docs = len(entries)
+        df = {qt: sum(1 for toks in doc_tokens if qt in toks) for qt in qts}
+
+        scored: List[Tuple[float, int]] = []
+        for i, toks in enumerate(doc_tokens):
+            tf = {t: toks.count(t) for t in qts if t in toks}
+            if not tf:
+                continue
+            scored.append((bm25_score(tf, len(toks), df, n_docs, avgdl), i))
+        scored.sort(key=lambda x: (-x[0], x[1]))
+
+        results = []
+        for score, i in scored[: max(1, max_results)]:
+            e = entries[i]
+            results.append(
+                {
+                    "date": e["date"],
+                    "kind": e["kind"],
+                    "owner": e["owner"],
+                    "archived": e["archived"],
+                    "file": e["file"],
+                    "score": round(score, 4),
+                    "snippet": extract_snippet(e["text"], qts),
+                    "est_tokens": -(-len(e["text"]) // 4),  # ceil(chars/4)
+                }
+            )
+        return {
+            "task_id": task_id,
+            "query": query,
+            "results": results,
+            "total_matched": len(scored),
+            "corpus": {
+                "entries": n_docs,
+                "files": len({e["file"] for e in entries}),
+                "archived_entries": sum(1 for e in entries if e["archived"]),
+            },
+        }
 
     # ── notes/ ─────────────────────────────────────────────────────────────
 

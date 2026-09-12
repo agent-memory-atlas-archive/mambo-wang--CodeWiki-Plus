@@ -2913,6 +2913,53 @@ _register(
     mode="thread",
 )
 
+_register(
+    Tool(
+        name="search_task_memories",
+        description=(
+            "Entry-level keyword recall over ONE task's memories — the "
+            "complement of get_task_context's tail injection. Answers 'which "
+            "OLD entry said X', including entries truncated away by "
+            "max_memories and entries already compacted into the archive "
+            "(marked archived=true; full text in memories-archive/<owner>.md). "
+            "In-memory BM25 over the task's own corpus: always fresh, never "
+            "persisted, never part of the query_wiki corpus. Privacy mirrors "
+            "the layered reader: defaults to the current user's own memories "
+            "(live + legacy + archives); include_others=true opts into other "
+            "users' memories. Read-only — no usage-heat events. Use when "
+            "resuming a long task and a detail you need isn't in the recent "
+            "window or the compaction summary."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "Task id (required — single-task scope)."},
+                "query": {"type": "string", "description": "Keywords to recall entries by."},
+                "include_archive": {
+                    "type": "boolean",
+                    "description": "Search compacted entries in memories-archive/ too (default true).",
+                    "default": True,
+                },
+                "include_others": {
+                    "type": "boolean",
+                    "description": "Also search other users' memories (default false — search is never broader than reading).",
+                    "default": False,
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Max entries returned (default 10, max 20).",
+                    "default": 10,
+                },
+                "session_id": {"type": "string", "description": "Optional active session id."},
+                "repo_path": {"type": "string", "description": "Repository path."},
+            },
+            "required": ["task_id", "query"],
+        },
+    ),
+    handler_path="codewiki.mcp.tools.task_manager:handle_search_task_memories",
+    mode="thread",
+)
+
 
 # ===================================================================
 #  Public API
