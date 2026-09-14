@@ -421,41 +421,52 @@ def handle_consolidate_notes(arguments: Dict[str, Any], store: Any) -> str:
         pending = _pending_confirmed_notes(output_dir, limit)
         state = agg.load_state(output_dir)
         cfg = agg.read_config(output_dir)
-        return json.dumps(
-            {
-                "status": "prepared",
-                "mode": "prepare",
-                "counters": {
-                    "notes_since_last_consolidation": int(
-                        state.get("notes_since_last_consolidation") or 0
-                    ),
-                    "consolidation_threshold": cfg["consolidation_threshold"],
-                    "last_consolidation_at": state.get("last_consolidation_at"),
-                },
-                "capacity": capacity,
-                "pending_notes": pending,
-                "pending_total": len(pending),
-                "scenarios_index": scenarios,
-                "system_prompt": _CONSOLIDATE_SYSTEM,
-                "next": (
-                    "(1) Read pending notes (view_repo_file) — metadata.scene groups "
-                    "related ones; (2) read the scene files you plan to UPDATE/MERGE; "
-                    "(3) write blocks with write_doc_file(page_type='scenario'); obey "
-                    "the capacity warning (red=merge first, orange=update only); "
-                    "(4) reject_note fully-absorbed source notes with "
-                    "reason='consolidated into <scene title>'; (5) submit the report "
-                    "— every candidate needs a destination: source_notes for absorbed "
-                    "ones, otherwise report.dispositions=[{file, verdict: deferred|"
-                    "excluded, reason?}] where excluded REQUIRES a reason. Candidates "
-                    "showing disposition='deferred' were already judged once, so weigh "
-                    "the new evidence rather than repeating the old verdict. "
-                    "If this consolidation was triggered by an aggregation_hint "
-                    "reminder, confirm with the user before starting."
+        payload: Dict[str, Any] = {
+            "status": "prepared",
+            "mode": "prepare",
+            "counters": {
+                "notes_since_last_consolidation": int(
+                    state.get("notes_since_last_consolidation") or 0
                 ),
+                "consolidation_threshold": cfg["consolidation_threshold"],
+                "last_consolidation_at": state.get("last_consolidation_at"),
             },
-            indent=2,
-            ensure_ascii=False,
-        )
+            "capacity": capacity,
+            "pending_notes": pending,
+            "pending_total": len(pending),
+            "scenarios_index": scenarios,
+            "system_prompt": _CONSOLIDATE_SYSTEM,
+            "next": (
+                "(1) Read pending notes (view_repo_file) — metadata.scene groups "
+                "related ones; (2) read the scene files you plan to UPDATE/MERGE; "
+                "(3) write blocks with write_doc_file(page_type='scenario'); obey "
+                "the capacity warning (red=merge first, orange=update only); "
+                "(4) reject_note fully-absorbed source notes with "
+                "reason='consolidated into <scene title>'; (5) submit the report "
+                "— every candidate needs a destination: source_notes for absorbed "
+                "ones, otherwise report.dispositions=[{file, verdict: deferred|"
+                "excluded, reason?}] where excluded REQUIRES a reason. Candidates "
+                "showing disposition='deferred' were already judged once, so weigh "
+                "the new evidence rather than repeating the old verdict. "
+                "If this consolidation was triggered by an aggregation_hint "
+                "reminder, confirm with the user before starting."
+            ),
+        }
+        # 负例反哺（design §四）：近期 failure outcome 的 {doc, note} 列表
+        # （30 天窗口、上限 5 条），纯提示——归纳场景块时规避同模式（observe）。
+        try:
+            from codewiki.mcp.tools.telemetry import recent_outcome_failures
+
+            _neg = recent_outcome_failures(output_dir)
+        except Exception:  # 反哺是增益项，绝不阻塞 prepare
+            _neg = []
+        if _neg:
+            payload["negative_examples"] = _neg
+            payload["negative_examples_hint"] = (
+                "以下知识近期被用错（outcome=failure）。归纳场景块时规避同模式；"
+                "失败原因若能归纳为通用约束，写进对应场景块的前置条件。"
+            )
+        return json.dumps(payload, indent=2, ensure_ascii=False)
 
     # ---- mode == "submit" ----
     report = arguments.get("report")

@@ -19,12 +19,21 @@ Event format (one JSON object per line)::
 
     {"t": "hit",     "doc": "notes/x.md", "at": "2026-08-22", "n": 3}
     {"t": "adopted", "doc": "notes/x.md", "at": "2026-08-22T10:05:00", "key": "u1/sess-9"}
+    {"t": "outcome", "doc": "notes/x.md", "task_id": "他山之石",
+     "at": "2026-09-14T11:30:00", "result": "success|failure", "note": "…",
+     "adopted_key": "u1/sess-9"}
 
 - ``hit`` events are aggregated per (user, doc, day) at write time: the
   last line of the user's file is rewritten in place when it already is
   today's hit line for the same doc, so line counts stay bounded.
 - ``adopted`` events are plain appends; idempotency is enforced at
   aggregation time by de-duplicating on ``key`` (``<user>/<session>``).
+- ``outcome`` events (docs/负反馈与经验通道设计方案.md §三) are plain
+  appends too — low-frequency, no same-day merge. ``task_id`` / ``note`` /
+  ``adopted_key`` are optional and omitted when empty; ``adopted_key``
+  links the outcome back to the adoption that preceded it
+  ("引用→结果" association). ``aggregate_usage`` folds ``success`` /
+  ``failure`` counts per doc; ``by_file`` events stay in their own pipe.
 
 Aggregation (``aggregate_usage``) is a pure in-memory fold over both
 telemetry directories, guarded by an mtime snapshot cache: a rescan only
@@ -36,7 +45,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
@@ -273,6 +282,113 @@ def adopted_docs_for_key(output_dir, capture_key: str) -> Set[str]:
     return found
 
 
+def record_outcome(
+    output_dir,
+    doc_path: str,
+    result: str,
+    task_id: str = "",
+    note: str = "",
+    adopted_key: str = "",
+) -> None:
+    """Append an ``outcome`` event (design §三, telemetry third event).
+
+    hit = I saw it, adopted = I cited it, outcome = after using it, did the
+    work succeed? Plain append under the same sidecar lock as the other
+    write paths (low-frequency event, no same-day merge). Optional fields
+    (``task_id`` / ``note`` / ``adopted_key``) are omitted from the event
+    when empty — a minimal event stays one readable line. Callers validate
+    ``result`` ∈ {success, failure}; this writer trusts its inputs like
+    its siblings do.
+    """
+    path = _user_events_path(output_dir, create=True)
+    event: Dict[str, object] = {
+        "t": "outcome",
+        "doc": doc_path,
+        "at": datetime.now().isoformat(timespec="seconds"),
+        "result": result,
+    }
+    if task_id:
+        event["task_id"] = task_id
+    if note:
+        event["note"] = note
+    if adopted_key:
+        event["adopted_key"] = adopted_key
+    from codewiki.src.store import locked
+
+    with locked(path):
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+
+def last_adopted_key_for_doc(output_dir, doc_path: str, keys=None) -> str:
+    """Newest ``adopted`` event key for *doc_path* in the current user's file.
+
+    Read-only helper for the outcome → adoption association (design §三):
+    when the same doc was adopted in the same session/task lineage, the
+    outcome event copies that key so "引用→结果" chains are traceable.
+    ``keys`` (optional set) restricts matching to specific capture keys;
+    an EMPTY set matches nothing (lineage known, no qualifying adoption);
+    ``None`` matches any (doc-level, used when no lineage is known).
+    Newest-first scan; '' when nothing matches.
+    """
+    path = _user_events_path(output_dir, create=False)
+    for line in reversed(_read_lines(path)):
+        try:
+            ev = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if (
+            isinstance(ev, dict)
+            and ev.get("t") == "adopted"
+            and ev.get("doc") == doc_path
+            and isinstance(ev.get("key"), str)
+            and (keys is None or ev["key"] in keys)
+        ):
+            return ev["key"]
+    return ""
+
+
+def recent_outcome_failures(output_dir, days: int = 30, limit: int = 5) -> List[dict]:
+    """Recent ``failure`` outcomes across ALL users, newest-first.
+
+    Consumption-side helper for negative_examples (design §四): the
+    distill/consolidate prepare payloads carry the last *limit* failures
+    inside a *days* window so new knowledge extraction can avoid the same
+    failure pattern. Pure prompt material (observe) — nothing downstream
+    behaves differently. Returns ``[{doc, note, task_id?, at}]``.
+    """
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat(timespec="seconds")
+    rows: List[tuple] = []
+    for d in _telemetry_dirs(output_dir):
+        try:
+            files = sorted(d.glob("*.jsonl"))
+        except OSError:
+            continue
+        for f in files:
+            for line in _read_lines(f):
+                try:
+                    ev = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if not isinstance(ev, dict) or ev.get("t") != "outcome":
+                    continue
+                if ev.get("result") != "failure":
+                    continue
+                doc = ev.get("doc")
+                if not isinstance(doc, str) or not doc:
+                    continue
+                at = str(ev.get("at") or "")
+                if not at or at < cutoff:
+                    continue
+                row: Dict[str, str] = {"doc": doc, "note": str(ev.get("note") or "")}
+                tid = str(ev.get("task_id") or "").strip()
+                if tid:
+                    row["task_id"] = tid
+                rows.append((at, row))
+    rows.sort(key=lambda x: x[0], reverse=True)
+    return [row for _, row in rows[:limit]]
+
+
 # --------------------------------------------------------------------------- #
 # Aggregation (pure in-memory fold + mtime snapshot cache)
 # --------------------------------------------------------------------------- #
@@ -296,10 +412,12 @@ def _dir_snapshot(dirs: List[Path]) -> tuple:
 def aggregate_usage(output_dir) -> Dict[str, dict]:
     """Fold all users' event streams into ``{doc: usage}``.
 
-    Entry shape (T2 §4.2, extended with first_hit/hit_days for wiki_stats)::
+    Entry shape (T2 §4.2, extended with first_hit/hit_days for wiki_stats;
+    success/failure folded from outcome events, design §三)::
 
         {"hits": int, "last_hit": Optional[str], "first_hit": Optional[str],
-         "adopted": int, "adopted_keys": set, "hit_days": set}
+         "adopted": int, "adopted_keys": set, "hit_days": set,
+         "success": int, "failure": int}
 
     - ``hits`` sums every hit line's ``n`` across all users;
     - ``adopted`` counts DISTINCT capture keys (same key replayed in
@@ -344,6 +462,8 @@ def aggregate_usage(output_dir) -> Dict[str, dict]:
                         "first_hit": None,
                         "adopted_keys": set(),
                         "hit_days": set(),
+                        "success": 0,
+                        "failure": 0,
                     },
                 )
                 t = ev.get("t")
@@ -364,6 +484,15 @@ def aggregate_usage(output_dir) -> Dict[str, dict]:
                     k = ev.get("key")
                     if isinstance(k, str) and k:
                         entry["adopted_keys"].add(k)
+                elif t == "outcome":
+                    # Design §三: binary result, no grading — invalid values
+                    # are skipped (an outcome event that can't be classified
+                    # must not pollute either counter).
+                    r = ev.get("result")
+                    if r == "success":
+                        entry["success"] += 1
+                    elif r == "failure":
+                        entry["failure"] += 1
 
     for entry in usage.values():
         entry["adopted"] = len(entry["adopted_keys"])

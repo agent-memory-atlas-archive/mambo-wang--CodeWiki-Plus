@@ -191,6 +191,14 @@ def handle_wiki_stats(
     except Exception:
         confidence = None
 
+    # outcome 采集 (design §三, 消费侧全 observe): success/failure 计数与
+    # outcome_ratio，与 confidence_distribution 并排。零事件 → 不带该段。
+    outcome = None
+    try:
+        outcome = _outcome_summary(usage)
+    except Exception:
+        outcome = None
+
     return json.dumps(
         {
             "total_distinct_queries": total_queries,
@@ -204,6 +212,7 @@ def handle_wiki_stats(
             **({"cold_candidates": cold} if cold else {}),
             **({"promotion_candidates": promotion} if promotion else {}),
             **({"confidence": confidence} if confidence else {}),
+            **({"outcome": outcome} if outcome else {}),
         },
         indent=2,
         ensure_ascii=False,
@@ -260,6 +269,24 @@ def _confidence_distribution(output_dir: Path, usage: Dict[str, Any]) -> Optiona
     if shadow_hits:
         payload["top_shadow_assets"] = shadow_hits[:5]
     return payload
+
+
+def _outcome_summary(usage: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """outcome 采集消费侧（design §三，observe）：跨 doc 汇总 success/failure
+    计数与 outcome_ratio（success / (success+failure)）。零 outcome 事件 →
+    None（wiki_stats 不带该段）。per-doc 计数留在 aggregate_usage 条目里
+    （stats 行可按需扩展，此处只做总览）。
+    """
+    success = sum(int(e.get("success", 0) or 0) for e in usage.values())
+    failure = sum(int(e.get("failure", 0) or 0) for e in usage.values())
+    total = success + failure
+    if not total:
+        return None
+    return {
+        "success": success,
+        "failure": failure,
+        "outcome_ratio": round(success / total, 4),
+    }
 
 
 def _cold_candidates(output_dir: Path) -> Optional[List[Dict[str, Any]]]:

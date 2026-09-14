@@ -2,8 +2,9 @@
 type: task
 task_id: Phase5-资产治理实施（置信分层+负反馈）
 title: Phase5 资产治理实施（置信分层+负反馈）
-status: active
+status: completed
 created_at: 2026-08-21T03:37:29.096274+00:00
+completed_at: 2026-09-14T06:37:47.212123+00:00
 ---
 
 落地 Roadmap Phase 5：资产置信分层（strong/weak/shadow）+ 负反馈闭环（flag_misrecall + 自动降权 + 新鲜度字段）。

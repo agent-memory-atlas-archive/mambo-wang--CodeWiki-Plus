@@ -2,8 +2,9 @@
 type: task
 task_id: 冲突一等对象
 title: 冲突一等对象
-status: active
+status: completed
 created_at: 2026-09-12T00:26:14.917582+00:00
+completed_at: 2026-09-13T13:56:43.539540+00:00
 ---
 
 把「两条 Wiki 笔记矛盾」做成一等对象（ADR-0007，来源：HL-Mem 调研 docs/HL-Mem-调研与借鉴分析.md A1）。

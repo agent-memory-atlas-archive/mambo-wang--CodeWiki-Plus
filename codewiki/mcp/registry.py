@@ -2991,6 +2991,57 @@ _register(
     mode="thread",
 )
 
+_register(
+    Tool(
+        name="report_outcome",
+        description=(
+            "Report how USING a doc turned out: success or failure — the third "
+            "telemetry event after hit (I saw it) and adopted (I cited it). "
+            "Call at the natural end of a task (tests green / failure located), "
+            "the only moment the result can be honestly judged. Binary result, "
+            "no grading; note is an optional one-line context and failure "
+            "reasons are the most valuable part (they feed negative_examples "
+            "in distill/consolidate prepare). Thin telemetry shell: appends one "
+            "event to the caller's jsonl stream, never touches frontmatter, no "
+            "confirm gate. task_id is best-effort: pass it explicitly, or pass "
+            "source_session_id to inherit the session's task binding. "
+            "Consumption is observe-only (aggregate_usage / wiki_stats outcome "
+            "section) — no ranking or confidence side effects."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "doc": {
+                    "type": "string",
+                    "description": "The used doc's path (query_wiki file field shape, e.g. notes/x.md).",
+                },
+                "result": {
+                    "type": "string",
+                    "enum": ["success", "failure"],
+                    "description": "Binary outcome of using the doc. No grading.",
+                },
+                "note": {
+                    "type": "string",
+                    "description": "Optional one-line context. For failures: WHY it went wrong.",
+                },
+                "task_id": {
+                    "type": "string",
+                    "description": "Optional explicit task anchor (else resolved from source_session_id binding).",
+                },
+                "source_session_id": {
+                    "type": "string",
+                    "description": "Optional IDE/source session id — resolves task_id from its binding and links the event to that session's adoption key.",
+                },
+                "session_id": {"type": "string", "description": "Optional active session id."},
+                "repo_path": {"type": "string", "description": "Repository path."},
+            },
+            "required": ["doc", "result"],
+        },
+    ),
+    handler_path="codewiki.mcp.tools.outcome_report:handle_report_outcome",
+    mode="thread",
+)
+
 
 # ===================================================================
 #  Public API

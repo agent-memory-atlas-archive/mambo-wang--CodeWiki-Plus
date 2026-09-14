@@ -559,6 +559,32 @@ class KnowledgeStore:
             return ""
         return str(data.get("task_id") or "").strip() if isinstance(data, dict) else ""
 
+    def session_ids_for_task(self, task_id: str) -> List[str]:
+        """source_session_ids bound to *task_id* (live + consumed tombstones).
+
+        Reverse lookup of the binding index, used by report_outcome to link
+        an outcome event back to the adoption(s) recorded under the same
+        task's sessions (design §三 "同 doc 同 task_id … 抄 key"). Corrupt
+        files are skipped; '' task_id matches nothing.
+        """
+        if not task_id:
+            return []
+        out: List[str] = []
+        subdirs = [self.bindings_dir, self.bindings_dir / _cfg.CONSUMED_BINDINGS_DIR]
+        for d in subdirs:
+            try:
+                files = sorted(d.glob("*.json"))
+            except OSError:
+                continue
+            for bf in files:
+                try:
+                    data = json.loads(bf.read_text(encoding="utf-8"))
+                except (OSError, ValueError, TypeError):
+                    continue
+                if isinstance(data, dict) and str(data.get("task_id") or "").strip() == task_id:
+                    out.append(bf.stem)
+        return out
+
     def clear_bindings_for_task(self, task_id: str) -> int:
         """Delete every binding pointing at *task_id* (delete_task cascade)."""
         cleared = 0

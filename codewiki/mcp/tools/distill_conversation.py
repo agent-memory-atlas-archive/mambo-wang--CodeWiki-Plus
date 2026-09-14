@@ -541,7 +541,6 @@ def _merge_source_into_note(
     # (locked_rmw) — a read outside the lock could lose a concurrent
     # distillation's source_conversations entry.
     from codewiki.src.store import locked_rmw
-    from codewiki.src.frontmatter import parse_frontmatter
 
     def _merge(text: str):
         if not text.startswith("---"):
@@ -1728,6 +1727,23 @@ def handle_distill_conversation(
             from codewiki.mcp import i18n as _i18n
 
             ret["friction_hint"] = _i18n.t("tools.distill_conversation.friction_hint")
+        # 负例反哺（design §四，T8 保留、信号源改 outcome）：近期 failure
+        # outcome 的 {doc, note} 列表（30 天窗口、上限 5 条），纯提示——
+        # 提取新知识时规避同模式，不改变任何提取/归纳行为（observe）。
+        try:
+            from codewiki.mcp.tools.telemetry import recent_outcome_failures
+
+            _neg = recent_outcome_failures(output_dir)
+        except Exception as e:  # 反哺是增益项，绝不阻塞 prepare
+            logger.debug("negative_examples skipped: %s", e)
+            _neg = []
+        if _neg:
+            ret["negative_examples"] = _neg
+            ret["negative_examples_hint"] = (
+                "以下知识近期被用错（outcome=failure）。提取/归纳新知识时规避同模式："
+                "不要产出与这些失败用法相容的结论；若对话内容恰好解释了失败原因，"
+                "优先沉淀为 pitfall/lesson。"
+            )
         return json.dumps(ret, indent=2, ensure_ascii=False)
 
     if mode == "submit":
