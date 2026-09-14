@@ -30,7 +30,6 @@ import json
 import logging
 
 from codewiki.src.store import atomic_write
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -301,6 +300,10 @@ def handle_refresh_doctrine(arguments: Dict[str, Any], store: Any) -> str:
         "metadata:",
         f"  source_scenarios: {json.dumps(scene_files, ensure_ascii=False)}",
         f"  notes_at_refresh: {int(state.get('notes_since_last_doctrine') or 0)}",
+        # Phase5 T1: a refreshed doctrine is the top knowledge layer — it is
+        # human-reviewed via the refresh confirmation flow, so confidence
+        # stays strong across refreshes (never wiped to unstamped).
+        "  confidence_level: strong",
         "---",
     ]
     path = _doctrine_path(output_dir)

@@ -5,7 +5,7 @@ tags:
 - architecture
 - openviking
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   task_id: 他山之石
   related_modules:
   - repowiki
@@ -14,11 +14,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-继续调研.md
   scene: 他山之石增量调研处置
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 01:21:54+00:00
+  at: '2026-09-11 01:21:54+00:00'
 stale_after: '2027-09-11'
 origin: conversation
 verified:

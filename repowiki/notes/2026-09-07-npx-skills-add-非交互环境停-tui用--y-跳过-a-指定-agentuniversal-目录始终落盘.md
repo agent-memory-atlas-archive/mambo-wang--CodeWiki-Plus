@@ -4,19 +4,20 @@ title: npx skills add 非交互环境停 TUI：用 -y 跳过、-a 指定 agent�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - skills
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   severity: medium
   source_ref: conversations/conv-安装-npx-skills-add-tt-a1i-archify-g-技能.md
   scene: 技能安装
-  consolidated_into:
-  - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 02:59:57+00:00
+  at: '2026-09-07 02:59:57+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

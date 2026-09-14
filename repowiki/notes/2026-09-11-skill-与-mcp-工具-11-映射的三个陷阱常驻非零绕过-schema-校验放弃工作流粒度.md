@@ -4,7 +4,7 @@ title: skill 与 MCP 工具 1:1 映射的三个陷阱：常驻非零、绕过 sc
 tags:
 - lesson
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   task_id: Cli能力
   related_modules:
   - skills
@@ -13,11 +13,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-83a270.md
   scene: MCP 暴露面收缩方案设计
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 01:14:03+00:00
+  at: '2026-09-11 01:14:03+00:00'
 stale_after: '2027-03-10'
 origin: conversation
 verified:

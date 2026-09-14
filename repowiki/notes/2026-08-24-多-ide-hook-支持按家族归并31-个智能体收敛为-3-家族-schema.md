@@ -5,19 +5,20 @@ tags:
 - architecture
 - codebuddy
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - hooks
   - registry
   - teamai-cli-调研与借鉴分析
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   severity: medium
   source_ref: conversations/conv-研究一下-https-github.com-Tencent-teamai-cli，看下跟CodeWiki的对比和可借鉴之.md
-  consolidated_into:
-  - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:16:10+00:00
+  at: '2026-08-24 15:16:10+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

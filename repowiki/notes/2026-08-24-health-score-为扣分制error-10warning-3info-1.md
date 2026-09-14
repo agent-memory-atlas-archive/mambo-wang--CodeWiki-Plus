@@ -4,18 +4,19 @@ title: health_score 为扣分制：error-10/warning-3/info-1
 tags:
 - architecture
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   task_id: 产品维护
   related_modules:
   - wiki_lint
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
   severity: medium
   source_ref: conversations/conv-@command-codewiki-增量更新-Wiki.md
-  consolidated_into:
-  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:14:21+00:00
+  at: '2026-08-24 15:14:21+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

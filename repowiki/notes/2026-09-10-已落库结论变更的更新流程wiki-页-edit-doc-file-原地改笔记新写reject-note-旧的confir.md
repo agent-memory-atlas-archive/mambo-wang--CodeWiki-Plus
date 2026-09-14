@@ -4,21 +4,22 @@ title: 已落库结论变更的更新流程：wiki 页 edit_doc_file 原地改�
 tags:
 - procedure
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   related_modules:
   - note
   - doc
   - repowiki
+  - skills/repowiki-conclusion-update/SKILL.md
   severity: medium
   source_ref: conversations/conv-我做方案设计的时候，是否应该把设计方案放到repowiki中呢.md
   scene: 知识库维护 / 结论更新
-  compiled_into:
-  - skills/repowiki-conclusion-update/SKILL.md
+  compiled_into: ''
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:48:19+00:00
+  at: '2026-09-10 08:48:19+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

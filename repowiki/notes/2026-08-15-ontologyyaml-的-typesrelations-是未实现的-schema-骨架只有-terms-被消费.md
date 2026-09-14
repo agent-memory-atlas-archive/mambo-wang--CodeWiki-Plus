@@ -4,16 +4,17 @@ title: ontology.yaml 的 types/relations 是未实现的 schema 骨架，只有 
 tags:
 - architecture
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - cache
   - wiki_search
   source_ref: raw\conv-@d-repos-CodeWiki-CN-repowiki-ontology.yaml-看下这个文件的修改记录，是不是t.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 08:57:52+00:00
-stale_after: 2026-11-13
+  at: '2026-08-15 08:57:52+00:00'
+stale_after: '2026-11-13'
 origin: conversation
 reject_reason: 用户评审未采纳
 author: mambo-wang

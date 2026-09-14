@@ -4,7 +4,7 @@ title: code_routing 代码注入分档的真实规则：纯 boilerplate 文件�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - be
   severity: medium
@@ -14,11 +14,12 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识可信度组仅 2 条，待同类素材积累
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:32:14+00:00
+  at: '2026-09-05 11:32:14+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:

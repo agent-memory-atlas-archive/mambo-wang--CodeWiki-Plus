@@ -4,19 +4,20 @@ title: Mode C 补蒸馏实操教训：submit 空转先重试、弱冲突多为�
 tags:
 - lesson
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - distill
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   severity: medium
   source_ref: conversations/conv-teammate-message-from-team-lead-from-summary-Initial-task-as-2.md
   scene: Mode C 补蒸馏实战
-  consolidated_into:
-  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:05:02+00:00
+  at: '2026-09-07 03:05:02+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

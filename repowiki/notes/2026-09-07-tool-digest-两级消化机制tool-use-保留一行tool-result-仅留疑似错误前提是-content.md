@@ -4,18 +4,19 @@ title: tool_digest 两级消化机制：tool_use 保留一行、tool_result 仅�
 tags:
 - architecture
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - tool-digest
   - capture
   severity: medium
   source_ref: conversations/conv-SKILL-CREATOR需求的PHASE-2是不是还没启动.md
   scene: 对话采集素材保真度
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:01:21+00:00
+  at: '2026-09-07 03:01:21+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:

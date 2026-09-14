@@ -4,16 +4,17 @@ title: _process_llm_output 是蒸馏三种模式的共同落盘路径，改一�
 tags:
 - architecture
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - distill_conversation
-  source_ref: raw\conv-codewiki蒸馏对话.md
-  consolidated_into:
   - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  source_ref: raw\conv-codewiki蒸馏对话.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:13:08+00:00
+  at: '2026-08-15 13:13:08+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

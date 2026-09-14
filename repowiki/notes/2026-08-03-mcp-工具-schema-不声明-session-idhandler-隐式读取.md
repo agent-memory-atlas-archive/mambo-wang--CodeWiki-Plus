@@ -11,16 +11,17 @@ aliases:
 status: stable
 generated:
   by: codewiki
-  at: 2026-08-03 01:32:32+00:00
+  at: '2026-08-03 01:32:32+00:00'
 stale_after: '2027-02-22'
 metadata:
-  date: 2026-08-03
+  date: '2026-08-03'
   related_modules:
   - MCP_Tools
   - MCP_Core
-  related_components: []
-  consolidated_into:
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  related_components: []
+  consolidated_into: ''
+  confidence_level: weak
 verified:
 - by: human:wangbao
   at: '2026-08-25T16:48:20Z'

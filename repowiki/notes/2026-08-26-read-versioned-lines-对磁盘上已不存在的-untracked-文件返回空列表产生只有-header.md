@@ -4,16 +4,17 @@ title: _read_versioned_lines 对磁盘上已不存在的 untracked 文件返回�
 tags:
 - pitfall
 metadata:
-  date: 2026-08-26
+  date: '2026-08-26'
   related_modules:
   - review_changes
-  source_ref: conversations/conv-user_command-commands-codewiki-变更评估与代码评审（修改后）-请对最近代码变更做影响范围评-2.md
-  consolidated_into:
   - wiki/scenarios/代码评审与分析工具方法.md
+  source_ref: conversations/conv-user_command-commands-codewiki-变更评估与代码评审（修改后）-请对最近代码变更做影响范围评-2.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.4.3
-  at: 2026-08-25 17:03:03+00:00
+  at: '2026-08-25 17:03:03+00:00'
 stale_after: '2027-02-22'
 origin: conversation
 verified:

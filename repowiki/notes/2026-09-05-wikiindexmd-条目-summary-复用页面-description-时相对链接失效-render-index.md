@@ -1,11 +1,10 @@
 ---
 type: pitfall
 title: wiki/index.md 条目 summary 复用页面 description 时相对链接失效：_render_index 须按 relpath
-  的 dirname 为重定位裸相对链接
 tags:
 - pitfall
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - wiki_index
   severity: medium
@@ -15,11 +14,12 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:37:48+00:00
+  at: '2026-09-05 11:37:48+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:

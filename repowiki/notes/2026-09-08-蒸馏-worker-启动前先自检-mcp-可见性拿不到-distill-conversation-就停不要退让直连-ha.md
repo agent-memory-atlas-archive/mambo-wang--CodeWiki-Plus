@@ -10,23 +10,23 @@ aliases:
 - subagent MCP 授权
 - distill 残留文件
 metadata:
-  date: 2026-09-08
+  date: '2026-09-08'
   related_modules:
   - mcp
   severity: medium
   root_cause: subagent frontmatter 的 toolsMCP 声明只是意图，不等于运行时授权生效；MCP server 未连接时声明静默失效而非报错，worker
-    误判为「工具不可用就自己想办法」而非「环境故障需上报」。
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:30:18+00:00
+  at: '2026-09-08 05:30:18+00:00'
 stale_after: '2027-03-09'
 verified:
 - by: human:wangbao
   at: '2026-09-10T07:47:26Z'
-source_conversations: ['conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-75d169.md']
-
+source_conversations:
+- conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-75d169.md
 ---
 
 ## 背景

@@ -1,18 +1,30 @@
 ---
 type: pitfall
-title: "git filter-repo 会删除 origin remote 并重写全部 hash，事后表现为「远端凭空消失 + 分支假分叉」"
-tags: ["codewiki", "pitfall"]
-aliases: ["filter-repo 删 remote", "filter-repo 后 push 被拒", "假分叉", "ref-map 反查 clone 来源", "remote 配置消失", "non-fast-forward 误判"]
+title: git filter-repo 会删除 origin remote 并重写全部 hash，事后表现为「远端凭空消失 + 分支假分叉」
+tags:
+- codewiki
+- pitfall
+aliases:
+- filter-repo 删 remote
+- filter-repo 后 push 被拒
+- 假分叉
+- ref-map 反查 clone 来源
+- remote 配置消失
+- non-fast-forward 误判
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   severity: high
-  root_cause: "git filter-repo 的设计行为：为防止把重写后的历史误推到尚未重写的旧历史仓，它会主动移除 remote 配置（含 origin）并重写所有 ref；重写后的提交与远端同名分支失去共同祖先，于是表现为「分支分叉」。"
+  root_cause: git filter-repo 的设计行为：为防止把重写后的历史误推到尚未重写的旧历史仓，它会主动移除 remote 配置（含 origin）并重写所有
+    ref；重写后的提交与远端同名分支失去共同祖先，于是表现为「分支分叉」。
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.9.0, at: 2026-09-11T05:51:16Z }
-stale_after: 2027-03-10
-source_conversations: ['conversations/conv-继续调研-c2bc52.md']
-
+generated:
+  by: codewiki/5.9.0
+  at: '2026-09-11T05:51:16Z'
+stale_after: '2027-03-10'
+source_conversations:
+- conversations/conv-继续调研-c2bc52.md
 ---
 
 ## 背景

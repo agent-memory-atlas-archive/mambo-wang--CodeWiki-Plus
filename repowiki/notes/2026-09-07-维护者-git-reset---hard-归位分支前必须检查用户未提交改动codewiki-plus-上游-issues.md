@@ -8,17 +8,18 @@ tags:
 - github
 - lesson
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - git
   severity: medium
   source_ref: conversations/conv-处理-PR-https-github.com-mambo-wang-CodeWiki-Plus-pull-17.md
   scene: 上游 PR 维护
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:02:48+00:00
+  at: '2026-09-07 03:02:48+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

@@ -4,19 +4,20 @@ title: 同一文件批量并发 replace_in_file 会触发写锁超时（30s）�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - mcp
+  - skills/windows-dev-env/SKILL.md
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-.codebuddy-plans-output_dir-收敛为repo_pat.md
   scene: 批量代码编辑
-  compiled_into:
-  - skills/windows-dev-env/SKILL.md
+  compiled_into: ''
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 02:56:49+00:00
+  at: '2026-09-07 02:56:49+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

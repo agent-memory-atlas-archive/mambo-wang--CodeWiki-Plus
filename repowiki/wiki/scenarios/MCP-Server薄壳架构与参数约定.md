@@ -2,13 +2,12 @@
 type: Scenario
 title: MCP-Server薄壳架构与参数约定
 description: 薄壳分层与隐式 session_id、output_dir 恒为 repo_path 纯函数、E2E 显式传路径、检索预算口径与 check
-  预检、schema required 校验层
 tags:
 - CodeWiki-CN
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:54:38+00:00
-stale_after: 2026-12-07
+  at: '2026-09-08 05:54:38+00:00'
+stale_after: '2026-12-07'
 aliases:
 - MCP-Server薄壳架构与参数约定
 status: stable
@@ -25,6 +24,7 @@ metadata:
   - notes/2026-09-05-检索预算口径打架前门-1200-字符-snippet-300-10-条只-4-条带内容expand-后门-1020000.md
   summary: 补入 output_dir 纯函数收敛、E2E 显式传路径、检索预算口径成体系与 check 预检契约
   heat: 4
+  confidence_level: weak
 ---
 ## 工作场景
 codewiki/mcp/ 的架构分层、工具参数面与检索契约。适用于新增/修改 MCP 工具、重构 server 层、排查参数与路径解析、调检索成本与排序信号、写协议层 E2E 测试。

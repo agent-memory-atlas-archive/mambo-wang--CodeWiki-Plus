@@ -4,18 +4,19 @@ title: patch 已有 frontmatter 路径缺 aliases 默认键
 tags:
 - pitfall
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   task_id: 产品维护
   related_modules:
   - wiki_doc_writer
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
   severity: medium
   source_ref: conversations/conv-@command-codewiki-增量更新-Wiki.md
-  consolidated_into:
-  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:14:16+00:00
+  at: '2026-08-24 15:14:16+00:00'
 stale_after: '2027-02-20'
 origin: conversation
 verified:

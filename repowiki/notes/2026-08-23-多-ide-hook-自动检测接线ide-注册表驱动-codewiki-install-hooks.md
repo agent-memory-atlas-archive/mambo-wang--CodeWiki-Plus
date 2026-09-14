@@ -12,20 +12,21 @@ aliases:
 - IDE 注册表
 - 自动检测 hook
 metadata:
-  date: 2026-08-23
+  date: '2026-08-23'
   task_id: 产品维护
   related_modules:
   - CLI
   - MCP_Prompts
-  related_components:
   - codewiki/cli/utils/ide_config.py
   - codewiki/cli/commands/install_hooks.py
+  related_components: ''
   consolidated_into:
   - wiki/scenarios/IDE-Hook采集链路方法.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.3.0
-  at: 2026-08-23 12:29:40+00:00
+  at: '2026-08-23 12:29:40+00:00'
 stale_after: '2027-08-23'
 verified:
 - by: codewiki/5.3.0

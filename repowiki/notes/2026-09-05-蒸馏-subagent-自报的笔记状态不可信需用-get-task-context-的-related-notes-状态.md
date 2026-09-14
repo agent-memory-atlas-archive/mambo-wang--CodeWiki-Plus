@@ -4,22 +4,23 @@ title: 蒸馏 subagent 自报的笔记状态不可信，需用 get_task_context 
 tags:
 - lesson
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   task_id: 产品维护
   related_modules:
   - distill-conversation
   - task-manager
   - note-writer
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   severity: medium
   source_ref: conversations/conv-@MCP_Tools_DocWriter.md-23-29-这段内容是如何生成和使用的.md
   scene: 知识蒸馏与确认闸门
-  consolidated_into:
-  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:12:14+00:00
+  at: '2026-09-05 11:12:14+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:

@@ -5,17 +5,18 @@ tags:
 - decision
 - openspec
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - 业务级 commit review 工具选型
+  - wiki/scenarios/发布与依赖治理方法.md
   severity: medium
   source_ref: conversations/conv-哪些工具可以针对某次-commit-做业务-review-而不是编码规范的-review.md
-  consolidated_into:
-  - wiki/scenarios/发布与依赖治理方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:21:32+00:00
+  at: '2026-08-24 15:21:32+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

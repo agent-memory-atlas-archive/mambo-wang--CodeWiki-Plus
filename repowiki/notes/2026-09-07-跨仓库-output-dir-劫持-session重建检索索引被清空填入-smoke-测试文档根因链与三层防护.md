@@ -5,7 +5,7 @@ tags:
 - pitfall
 - sessionstore
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 他山之石
   related_modules:
   - cache
@@ -15,12 +15,13 @@ metadata:
   severity: high
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in.md
   scene: 检索索引维护
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.1
-  at: 2026-09-07 01:41:26+00:00
-stale_after: 2027-03-06
+  at: '2026-09-07 01:41:26+00:00'
+stale_after: '2027-03-06'
 origin: conversation
 reject_reason: 用户评审拒绝收录
 ---

@@ -8,18 +8,19 @@ aliases:
 - 栅栏粘连
 - 正文被吞
 metadata:
-  date: 2026-09-12
+  date: '2026-09-12'
   task_id: 冲突一等对象
   related_modules:
   - conflict_case
   - frontmatter
   - note_writer
   severity: medium
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-12 02:18:32+00:00
+  at: '2026-09-12 02:18:32+00:00'
 stale_after: '2027-03-11'
 verified:
 - by: human:mambo-wang

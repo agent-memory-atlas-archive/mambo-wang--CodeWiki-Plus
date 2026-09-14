@@ -7,19 +7,20 @@ tags:
 - valueerror
 - workspacecontext
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - workspace_result
   - capture_conversation
   - distill_conversation
   - knowledge_loop
-  source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in.md
-  consolidated_into:
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:13:50+00:00
+  at: '2026-08-15 13:13:50+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

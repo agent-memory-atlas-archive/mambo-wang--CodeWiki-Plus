@@ -4,7 +4,7 @@ title: 设计文档落盘分工：docs/ 存「正在想的事」(方案/ADR)，r
 tags:
 - decision
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   related_modules:
   - docs
   - repowiki
@@ -12,11 +12,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-我做方案设计的时候，是否应该把设计方案放到repowiki中呢.md
   scene: 落盘分工 / 知识库约定
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:48:15+00:00
+  at: '2026-09-10 08:48:15+00:00'
 stale_after: '2027-09-10'
 origin: conversation
 verified:

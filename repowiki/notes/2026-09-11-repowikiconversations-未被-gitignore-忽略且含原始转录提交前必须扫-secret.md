@@ -5,7 +5,7 @@ tags:
 - github
 - pitfall
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   related_modules:
   - repowiki
   - capture
@@ -13,11 +13,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@command-codewiki-蒸馏对话提取记忆和经验.md
   scene: 蒸馏产物提交推送
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 01:06:04+00:00
+  at: '2026-09-11 01:06:04+00:00'
 stale_after: '2027-03-10'
 origin: conversation
 verified:

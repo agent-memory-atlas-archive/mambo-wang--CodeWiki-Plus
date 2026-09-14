@@ -4,17 +4,18 @@ title: module_tree.json 的 children 是字符串引用而非嵌套对象
 tags:
 - pitfall
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - module_tree
   - analyze_repo
-  source_ref: raw\conv-user_command-commands-codewiki-增量更新-Wiki-请增量更新代码仓库的-Wiki-文档。.md
-  consolidated_into:
   - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  source_ref: raw\conv-user_command-commands-codewiki-增量更新-Wiki-请增量更新代码仓库的-Wiki-文档。.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:14:28+00:00
+  at: '2026-08-15 13:14:28+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

@@ -15,20 +15,21 @@ aliases:
 status: deprecated
 generated:
   by: codewiki/5.2.0
-  at: 2026-08-03 04:46:14+00:00
+  at: '2026-08-03 04:46:14+00:00'
 stale_after: '2026-11-01'
 verified:
 - by: human:mambo-wang
   at: '2026-08-03T04:46:38Z'
 metadata:
-  date: 2026-08-03
+  date: '2026-08-03'
   related_modules:
   - mcp
   - prompt_server
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
   related_components: []
   source_ref: WeKnora prompts_wiki.go (Tencent/WeKnora)
-  consolidated_into:
-  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  consolidated_into: ''
+  confidence_level: shadow
 reject_reason: consolidated into Wiki页面生成约定与数据结构
 author: mambo-wang
 ---

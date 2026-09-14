@@ -4,20 +4,21 @@ title: clone-only 短路路径必须仍写 workspace.json 并询问用户模式
 tags:
 - pitfall
 metadata:
-  date: 2026-08-29
+  date: '2026-08-29'
   task_id: 多仓工作区
   related_modules:
   - workspace_bootstrap
   - init_workspace
+  - wiki/scenarios/多仓工作区初始化与增量分析.md
   severity: medium
   source_ref: conversations/conv-工作区已有部分初始化痕迹（bootstrap.ps1-登记了业务仓、.gitignore-已排除等）时，init_wor.md
   scene: 多仓工作区初始化缺陷修复
-  consolidated_into:
-  - wiki/scenarios/多仓工作区初始化与增量分析.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.5.0
-  at: 2026-08-29 15:03:54+00:00
+  at: '2026-08-29 15:03:54+00:00'
 stale_after: '2027-02-25'
 origin: conversation
 verified:

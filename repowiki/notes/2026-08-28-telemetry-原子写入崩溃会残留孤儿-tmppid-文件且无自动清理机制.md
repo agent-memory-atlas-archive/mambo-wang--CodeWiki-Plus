@@ -6,19 +6,20 @@ tags:
 - memoryerror
 - pitfall
 metadata:
-  date: 2026-08-28
+  date: '2026-08-28'
   task_id: 产品维护
   related_modules:
   - mcp/tools/telemetry
+  - wiki/scenarios/跨进程锁与临时文件治理方法.md
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-repowiki-.meta-telemetry-Administrator.-2.md
   scene: telemetry 原子写入与运维清理
-  consolidated_into:
-  - wiki/scenarios/跨进程锁与临时文件治理方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.5
-  at: 2026-08-28 04:17:10+00:00
+  at: '2026-08-28 04:17:10+00:00'
 stale_after: '2027-03-03'
 origin: conversation
 author: mambo-wang

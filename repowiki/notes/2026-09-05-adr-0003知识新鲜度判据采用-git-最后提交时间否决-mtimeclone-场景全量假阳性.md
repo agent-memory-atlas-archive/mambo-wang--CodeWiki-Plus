@@ -4,7 +4,7 @@ title: ADR-0003：知识新鲜度判据采用 git 最后提交时间，否决 mt
 tags:
 - decision
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - wiki_lint
   severity: high
@@ -14,11 +14,12 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，待与 freshness 相关笔记成组后单立场景
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:33:40+00:00
+  at: '2026-09-05 11:33:40+00:00'
 stale_after: '2027-09-05'
 origin: conversation
 verified:

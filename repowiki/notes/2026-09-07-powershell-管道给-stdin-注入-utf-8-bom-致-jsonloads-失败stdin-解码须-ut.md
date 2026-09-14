@@ -1,24 +1,24 @@
 ---
 type: pitfall
 title: PowerShell 管道给 stdin 注入 UTF-8 BOM 致 json.loads 失败：stdin 解码须 utf-8-sig + lstrip
-  双保险
 tags:
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 他山之石
   related_modules:
   - mcp
   - ide-hook
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   severity: medium
   source_ref: conversations/conv-@settings.json-27-38-是不是有问题，python-m-codewiki.mcp._ide_hook.md
-  consolidated_into:
-  - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 02:56:34+00:00
+  at: '2026-09-07 02:56:34+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

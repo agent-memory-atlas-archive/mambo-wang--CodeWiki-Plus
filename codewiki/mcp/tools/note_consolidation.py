@@ -485,8 +485,7 @@ def handle_consolidate_notes(arguments: Dict[str, Any], store: Any) -> str:
         return json.dumps(
             {
                 "error": (
-                    "report needs a non-empty 'scenarios' list, or a non-empty "
-                    "'dispositions' list."
+                    "report needs a non-empty 'scenarios' list, or a non-empty 'dispositions' list."
                 )
             }
         )
@@ -568,8 +567,10 @@ def handle_consolidate_notes(arguments: Dict[str, Any], store: Any) -> str:
                 meta_updates["heat"] = max(0, int(heat))
             except (TypeError, ValueError):
                 pass
-        if meta_updates:
-            _update_frontmatter_meta(path, meta_updates)
+        # Phase5 T1: a freshly consolidated scene block is agent-authored —
+        # confidence starts weak (verified-on-confirm, same as notes).
+        meta_updates["confidence_level"] = "weak"
+        _update_frontmatter_meta(path, meta_updates)
 
         processed.append(
             {
@@ -610,9 +611,7 @@ def handle_consolidate_notes(arguments: Dict[str, Any], store: Any) -> str:
             continue
         reason = str(entry.get("reason") or "").strip()
         if verdict == "excluded" and not reason:
-            errors.append(
-                {"file": rel, "error": "verdict=excluded requires a non-empty reason"}
-            )
+            errors.append({"file": rel, "error": "verdict=excluded requires a non-empty reason"})
             continue
         npath = _resolve_note_path(output_dir, rel)
         if npath is None:

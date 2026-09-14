@@ -1,25 +1,25 @@
 ---
 type: pitfall
 title: 本仓 Windows/PowerShell 开发环境坑：safe-delete 拦批量删除、pytest basetemp、中文 commit -F、junitxml
-  拿失败清单
 tags:
 - pitfall
 - powershell
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - tests
   - dev-env
+  - skills/windows-dev-env/SKILL.md
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-.codebuddy-plans-output_dir-收敛为repo_pat-2.md
   scene: output_dir 收敛大重构
-  compiled_into:
-  - skills/windows-dev-env/SKILL.md
+  compiled_into: ''
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:04:55+00:00
+  at: '2026-09-07 03:04:55+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

@@ -7,20 +7,21 @@ tags:
 - sessionend
 - sessionstart
 metadata:
-  date: 2026-08-23
+  date: '2026-08-23'
   task_id: 产品维护
   related_modules:
   - task-memory
   - mcp
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   severity: medium
   source_ref: conversations/conv-现在codewiki-plus开启hook机制，支持那些智能体，目前我只知道支持codebuddy-@prompts.p.md
   scene: team-memory-hook 支持范围
-  consolidated_into:
-  - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.3.0
-  at: 2026-08-23 07:40:26+00:00
+  at: '2026-08-23 07:40:26+00:00'
 stale_after: '2027-08-26'
 origin: conversation
 verified:

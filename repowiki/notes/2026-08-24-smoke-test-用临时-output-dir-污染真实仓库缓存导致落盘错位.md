@@ -9,18 +9,18 @@ aliases:
 - analysis_cache
 - output_dir 落错
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - mcp
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: medium
   root_cause: AnalysisCache 按 repo_path 持久化 output_dir，smoke test 复用真实仓库路径 + 临时 output_dir
-    运行 analyze_repo，把临时路径写进仓库缓存；find_or_restore 恢复 session 时优先采用该缓存值。
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 13:55:48+00:00
+  at: '2026-08-24 13:55:48+00:00'
 stale_after: '2027-02-20'
 verified:
 - by: codewiki/5.4.2

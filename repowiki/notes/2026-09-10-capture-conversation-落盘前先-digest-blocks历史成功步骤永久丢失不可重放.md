@@ -4,7 +4,7 @@ title: capture_conversation 落盘前先 digest_blocks：历史成功步骤永�
 tags:
 - architecture
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   task_id: 技能提取
   related_modules:
   - capture
@@ -12,11 +12,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-现在创建技能的整个流程中，是不是只依赖于-@d-repos-CodeWiki-CN-repowiki-wiki-scen.md
   scene: 技能提取 / 采集层
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:43:37+00:00
+  at: '2026-09-10 08:43:37+00:00'
 stale_after: '2027-09-10'
 origin: conversation
 verified:

@@ -1,23 +1,23 @@
 ---
 type: decision
 title: query_wiki P0 改进四项定案（Rev.2 评审定稿）：est_tokens / by_file v1 仅 notes / 新鲜度判据改 git
-  提交时间 / description 契约收尾
 tags:
 - decision
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - query_wiki
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: medium
   source_ref: conversations/conv-对-docs-claude-mem借鉴详细设计方案.md-做拷问式评审（grill）：先派子代理核对方案引用的全部代码事.md
   scene: 检索透明化
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:33:37+00:00
+  at: '2026-09-05 11:33:37+00:00'
 stale_after: '2027-09-05'
 origin: conversation
 verified:

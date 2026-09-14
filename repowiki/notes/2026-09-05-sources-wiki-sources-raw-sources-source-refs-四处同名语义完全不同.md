@@ -5,7 +5,7 @@ tags:
 - codewiki
 - pitfall
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   task_id: 产品维护
   related_modules:
   - evidence
@@ -19,11 +19,12 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: OKF sources 组候选，待该组单立场景
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:13:54+00:00
+  at: '2026-09-05 11:13:54+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:

@@ -7,17 +7,18 @@ tags:
 - lesson
 - liberifatali
 metadata:
-  date: 2026-08-26
+  date: '2026-08-26'
   severity: medium
   consolidated_into:
   - wiki/scenarios/发布与依赖治理方法.md
-  compiled_into:
   - skills/maintain-fork-pr-merge/SKILL.md
+  compiled_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.4.3
-  at: 2026-08-25 16:38:39+00:00
-stale_after: 2027-02-22
+  at: '2026-08-25 16:38:39+00:00'
+stale_after: '2027-02-22'
 author: wandering-bug
 ---
 

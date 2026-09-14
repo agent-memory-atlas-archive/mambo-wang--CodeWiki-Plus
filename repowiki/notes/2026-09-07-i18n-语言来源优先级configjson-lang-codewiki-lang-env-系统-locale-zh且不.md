@@ -4,7 +4,7 @@ title: i18n 语言来源优先级：config.json lang > CODEWIKI_LANG env > 系�
 tags:
 - decision
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 产品维护
   related_modules:
   - mcp
@@ -13,11 +13,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: MCP 国际化
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 06:51:05+00:00
+  at: '2026-09-07 06:51:05+00:00'
 stale_after: '2027-09-10'
 origin: conversation
 verified:

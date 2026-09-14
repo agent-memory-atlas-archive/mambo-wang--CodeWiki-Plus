@@ -4,7 +4,7 @@ title: CODEWIKI_TEAM_MEMORY_HOOK 与 CODEWIKI_RAW_TOOL_DETAIL 不是 skill 自�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   task_id: 技能提取
   related_modules:
   - _ide_hook
@@ -12,11 +12,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-如何启用skill自动编译功能，是有环境变量控制吗？.md
   scene: 技能提取
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 01:28:50+00:00
+  at: '2026-09-11 01:28:50+00:00'
 stale_after: '2027-03-10'
 origin: conversation
 verified:

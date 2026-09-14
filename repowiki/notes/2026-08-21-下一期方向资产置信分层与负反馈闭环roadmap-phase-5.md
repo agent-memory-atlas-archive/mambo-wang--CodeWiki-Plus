@@ -12,17 +12,18 @@ aliases:
 - confidence level
 - negative feedback
 metadata:
-  date: 2026-08-21
+  date: '2026-08-21'
   related_modules:
   - mcp
   - team-memory
-  source_ref: tam-team-memory-practice
-  consolidated_into:
   - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  source_ref: tam-team-memory-practice
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.3.0
-  at: 2026-08-21 02:27:01+00:00
+  at: '2026-08-21 02:27:01+00:00'
 stale_after: '2027-08-26'
 verified:
 - by: human:wangbao

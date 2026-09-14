@@ -4,18 +4,19 @@ title: 引用已有笔记前须检查其 status，deprecated 笔记不应被采�
 tags:
 - pitfall
 metadata:
-  date: 2026-08-29
+  date: '2026-08-29'
   related_modules:
   - wiki_search
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
   severity: medium
   source_ref: conversations/conv-根据-D-repos-CodeWiki-CN-docs-多仓Harness工作区-集中式Wiki布局设计方案.md，结合.md
   scene: 知识检索与引用
-  consolidated_into:
-  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.5.0
-  at: 2026-08-29 15:04:49+00:00
+  at: '2026-08-29 15:04:49+00:00'
 stale_after: '2027-02-25'
 origin: conversation
 verified:

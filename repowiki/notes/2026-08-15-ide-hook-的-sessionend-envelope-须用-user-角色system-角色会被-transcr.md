@@ -5,17 +5,18 @@ tags:
 - pitfall
 - sessionend
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - _ide_hook
   - distill_conversation
-  source_ref: raw\conv-review最近两次提交.md
-  consolidated_into:
   - wiki/scenarios/IDE-Hook采集链路方法.md
+  source_ref: raw\conv-review最近两次提交.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:11:35+00:00
+  at: '2026-08-15 13:11:35+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

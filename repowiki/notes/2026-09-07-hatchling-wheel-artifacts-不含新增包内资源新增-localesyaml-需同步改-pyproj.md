@@ -4,7 +4,7 @@ title: hatchling wheel artifacts 不含新增包内资源，新增 locales/*.yam
 tags:
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 产品维护
   related_modules:
   - mcp
@@ -13,11 +13,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: 打包发版
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 06:50:55+00:00
+  at: '2026-09-07 06:50:55+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

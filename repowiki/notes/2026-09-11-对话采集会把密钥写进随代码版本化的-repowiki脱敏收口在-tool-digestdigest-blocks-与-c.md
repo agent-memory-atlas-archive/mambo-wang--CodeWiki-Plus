@@ -5,16 +5,17 @@ tags:
 - decision
 - github
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   related_modules:
   - MCP_Tools_Knowledge
   severity: medium
   source_ref: conversations/conv-继续调研-c2bc52.md
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 13:01:52+00:00
+  at: '2026-09-11 13:01:52+00:00'
 stale_after: '2027-09-12'
 origin: conversation
 verified:

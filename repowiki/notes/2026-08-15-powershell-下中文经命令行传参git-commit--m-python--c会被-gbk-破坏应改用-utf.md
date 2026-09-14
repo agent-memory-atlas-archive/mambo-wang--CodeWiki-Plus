@@ -5,14 +5,15 @@ tags:
 - powershell
 - workaround
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   source_ref: raw\conv-@d-repos-CodeWiki-CN-repowiki-raw-conv-system_reminder-请注意，当.md
   consolidated_into:
   - wiki/scenarios/发布与依赖治理方法.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 08:57:56+00:00
+  at: '2026-08-15 08:57:56+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:
