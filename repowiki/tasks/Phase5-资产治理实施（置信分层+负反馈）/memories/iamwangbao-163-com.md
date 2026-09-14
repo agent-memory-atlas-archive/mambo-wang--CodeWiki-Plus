@@ -21,3 +21,13 @@ Phase5 批次一（T1-T4 置信骨架）实施完成，在分支 phase5/confiden
 关键语义修正（评审抓出）：draft 保持 weak 可见（[unconfirmed] 前缀语义不变）——shadow 专用于 rejected/misrecalled，初版 draft→shadow 会让 draft 从检索消失，被既有 e2e 测试拦下。frontmatter._parse_block 修了两个坑：嵌套 dict 解析（verification 需要）+ list_key 重置回归，均已加回归锁。流程教训：ruff --fix 会清掉 re-export 的私有名（_resolve_within 致 14 测试断裂）——再导出必须加 noqa 注释说明。
 
 下一批次：T5 flag_misrecall → T6 自动降权+复核清单（新 lint check 记得同步 registry 枚举）→ T8 负例反哺；T7 已独立为新鲜度专项（F1-F3）。合入后注意：迁移后的索引需 build_full_index 刷新才能体现 T2 权重（authority 缓存在索引行）。
+
+### 2026-09-14 15:34
+
+### 2026-09-14（任务关单终报）
+
+Phase5 任务关单：批次一（T1-T4 置信骨架）已合入 develop cad7673；T7 新鲜度 F1-F3 早已实施（零新增字段方案）；批次二 T5/T6/T8 由 docs/负反馈与经验通道设计方案.md 实质取代（2026-09-14 grill 定稿）——T5→report_outcome 遥测采集、T6→lint observe 化身（disputed_assets 预留不实施）、T8→蒸馏 prepare negative_examples（信号源改 outcome failure）。
+
+Experience 通道调研关单，结论：不移植——Episode=task_id、Trace=raw+任务记忆、Policy=scenario，四分之三本仓已有等价物；唯一真缺口是 outcome 维度（reward/outcome_summary），由 telemetry 第三事件类型补（双挂 doc+task_id，成本约为移植 1/10）。「借鉴调研先证伪」又一实例。
+
+新任务「outcome-采集」已建（三批次约 1.5 人日，原排期在发版本之后，2026-09-14 已提前实施完成）。本任务全部完成。
