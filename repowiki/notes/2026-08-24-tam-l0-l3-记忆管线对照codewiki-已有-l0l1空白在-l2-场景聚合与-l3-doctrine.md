@@ -7,19 +7,20 @@ tags:
 - personatrigger
 - sceneextractor
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - consolidate_notes
   - refresh_doctrine
   - 团队记忆融合-L2场景聚合与L3-Doctrine设计方案
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   severity: medium
   source_ref: conversations/conv-调研-TencentDB-Agent-Memory-的记忆机制，分析-CodeWiki-CN-能否借鉴.md
-  consolidated_into:
-  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:22:03+00:00
+  at: '2026-08-24 15:22:03+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

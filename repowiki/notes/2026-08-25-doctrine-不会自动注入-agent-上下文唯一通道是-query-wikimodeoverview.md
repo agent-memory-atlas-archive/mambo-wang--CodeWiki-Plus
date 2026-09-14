@@ -4,16 +4,17 @@ title: doctrine 不会自动注入 Agent 上下文：唯一通道是 query_wiki(
 tags:
 - architecture
 metadata:
-  date: 2026-08-25
+  date: '2026-08-25'
   source_ref: conversations/conv-user_command-commands-codewiki-蒸馏对话提取记忆和经验-把已采集的对话（repowiki.md
   source_conversations:
   - conversations/conv-user_command-commands-codewiki-蒸馏对话提取记忆和经验-把已采集的对话（repowiki-9477de.md
-  consolidated_into:
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 16:30:59+00:00
+  at: '2026-08-24 16:30:59+00:00'
 stale_after: '2027-08-25'
 origin: conversation
 verified:

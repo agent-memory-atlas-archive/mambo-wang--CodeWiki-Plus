@@ -6,8 +6,8 @@ tags:
 - CodeWiki-CN
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:55:03+00:00
-stale_after: 2026-12-07
+  at: '2026-09-08 05:55:03+00:00'
+stale_after: '2026-12-07'
 aliases:
 - IDE-Hook采集链路方法
 status: stable
@@ -23,6 +23,7 @@ metadata:
   - notes/2026-09-07-powershell-管道给-stdin-注入-utf-8-bom-致-jsonloads-失败stdin-解码须-ut.md
   summary: 补入多宿主家族分发变体、MCP 不透传自定义子代理的绕法、hook 防御清单与 stdin BOM 容错
   heat: 4
+  confidence_level: weak
 ---
 ## 工作场景
 IDE hook 采集链路（capture_session_end.py → _ide_hook.py → capture_conversation）、subagent 定义分发与跨 Agent 技能安装。适用于开发/排查 IDE 对话采集、hook 注入引导、多宿主 subagent 与技能分发。

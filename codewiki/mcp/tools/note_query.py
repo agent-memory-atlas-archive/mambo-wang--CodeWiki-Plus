@@ -23,6 +23,7 @@ from codewiki.mcp.tools.note_writer import (
     _note_source_ref,
     _resolve_within,
 )
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +45,6 @@ def _trust_tier(verified) -> str:
 # ---------------------------------------------------------------------------
 #  ingest_note
 # ---------------------------------------------------------------------------
-
 
 
 def _extract_keywords(query: str) -> List[str]:
@@ -441,6 +441,7 @@ def _query_mode_check(
     results: List[Dict[str, Any]] = []
     try:
         from codewiki.mcp.tools.wiki_search import search as bm25_search
+
         # R-05 freshness gate (build-if-missing / three-tier stale check)
         # now lives inside wiki_search.search — the seam's single owner.
         raw = bm25_search(
@@ -922,6 +923,7 @@ def handle_query_wiki(
     coverage = None  # T1: corpus-level query-token coverage (BM25 path only)
     try:
         from codewiki.mcp.tools.wiki_search import search as bm25_search
+
         # R-05 freshness gate (build-if-missing / three-tier stale check)
         # now lives inside wiki_search.search — the seam's single owner.
         raw_results = bm25_search(
@@ -1138,6 +1140,30 @@ def handle_query_wiki(
             r for r in results if r.get("source") != "note" or r.get("task_id", "") == wanted_task
         ]
 
+    # Phase5 T3: confidence exposure + shadow gating. Every note/scenario/doc
+    # result gains a `confidence` field (strong|weak|shadow|"" legacy-unstamped);
+    # by default shadow assets are dropped (they surface only when the caller
+    # explicitly passes include_shadow=true — "reference-only" knowledge must
+    # be opt-in). Legacy assets without confidence_level are never dropped
+    # (pre-migration corpora stay searchable).
+    include_shadow = bool(arguments.get("include_shadow", False))
+    for _r in results:
+        if "confidence" in _r:
+            continue
+        _rp = output_dir / _r.get("file", "")
+        if not _rp.exists():
+            continue
+        try:
+            _fm = _extract_frontmatter_block(_rp.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            continue
+        _meta = _fm.get("metadata") if isinstance(_fm.get("metadata"), dict) else {}
+        _r["confidence"] = (
+            str(_fm.get("confidence_level") or _meta.get("confidence_level") or "").strip().lower()
+        )
+    if not include_shadow:
+        results = [r for r in results if r.get("confidence") != "shadow"]
+
     # ADR-0007 (conflict first-class object): results whose file is a
     # claimant of an OPEN conflict case carry an inline open_conflict marker,
     # so the agent never reads one side of an unresolved contradiction
@@ -1154,7 +1180,6 @@ def handle_query_wiki(
                 _open_conflict_annotated += 1
     except Exception as e:  # annotation must never break the search path
         logger.debug("open-conflict annotation skipped: %s", e)
-
 
     # Build context_package summary
     doc_count = sum(1 for r in results if r["source"] == "doc")
@@ -1290,7 +1315,6 @@ def _record_retrieval_stats(output_dir: Path, query: str, results: List[Dict[str
             telemetry.record_hit(output_dir, str(file_path))
     except Exception as e:
         logger.debug("Failed to record retrieval stats: %s", e)
-
 
 
 def _legacy_keyword_search(

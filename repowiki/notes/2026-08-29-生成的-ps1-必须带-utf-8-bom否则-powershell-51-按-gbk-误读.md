@@ -11,21 +11,21 @@ aliases:
 - PowerShell 编码
 - bootstrap.ps1
 metadata:
-  date: 2026-08-29
+  date: '2026-08-29'
   related_modules:
   - mcp
+  - wiki/scenarios/发布与依赖治理方法.md
   severity: high
   root_cause: 工具写入 .ps1 时使用无 BOM 的 UTF-8，而 Windows PowerShell 5.1 对无 BOM 的 .ps1 按系统
-    ANSI（zh-CN 为 GBK）解码。
-  consolidated_into:
-  - wiki/scenarios/发布与依赖治理方法.md
+  consolidated_into: ''
   compiled_into:
   - skills/windows-dev-env/SKILL.md
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.4.5
-  at: 2026-08-29 07:03:14+00:00
-stale_after: 2027-02-25
+  at: '2026-08-29 07:03:14+00:00'
+stale_after: '2027-02-25'
 author: mambo-wang
 ---
 

@@ -4,18 +4,19 @@ title: ruff 升级规则集变宽导致 CI 大面积红：显式 select 钉住�
 tags:
 - decision
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - pyproject
   - OpenViking借鉴全景路线图
+  - wiki/scenarios/发布与依赖治理方法.md
   severity: high
   source_ref: conversations/conv-合并分支到-develop.md
-  consolidated_into:
-  - wiki/scenarios/发布与依赖治理方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:21:26+00:00
+  at: '2026-08-24 15:21:26+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

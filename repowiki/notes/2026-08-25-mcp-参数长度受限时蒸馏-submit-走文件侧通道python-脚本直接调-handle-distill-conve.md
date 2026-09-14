@@ -4,20 +4,21 @@ title: MCP 参数长度受限时蒸馏 submit 应走 distilled_file 文件侧通
 tags:
 - pitfall
 metadata:
-  date: 2026-08-25
+  date: '2026-08-25'
   task_id: 产品维护
   related_modules:
   - codewiki
   - distill
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   severity: medium
   source_ref: conversations/conv-user_command-commands-codewiki-蒸馏对话提取记忆和经验-把已采集的对话（repowiki-9477de.md
   scene: 蒸馏工作流
-  consolidated_into:
-  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 16:39:13+00:00
+  at: '2026-08-24 16:39:13+00:00'
 stale_after: '2026-10-09'
 origin: conversation
 verified:

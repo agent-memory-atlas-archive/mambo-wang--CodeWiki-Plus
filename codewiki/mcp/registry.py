@@ -968,6 +968,16 @@ _register(
                     "type": "string",
                     "description": "Repository path. Derives output_dir = repo_path/repowiki.",
                 },
+                "confidence_level": {
+                    "type": "string",
+                    "enum": ["strong", "weak", "shadow"],
+                    "description": (
+                        "Phase5 confidence dimension (default: weak — a draft is still "
+                        "visible with its [unconfirmed] prefix; shadow is reserved for "
+                        "rejected/misrecalled assets). Only pass explicitly when the "
+                        "knowledge's verification state is already known."
+                    ),
+                },
                 "scope": {
                     "description": (
                         "Centralized-layout shared-pool scope. Omit to auto-stamp the "
@@ -1134,6 +1144,15 @@ _register(
                     "type": "boolean",
                     "description": "Include ingested notes in search (default: true)",
                 },
+                "include_shadow": {
+                    "type": "boolean",
+                    "description": (
+                        "Include shadow-confidence assets in results (default: false). "
+                        "Shadow = rejected, misrecalled or unverified-draft knowledge; "
+                        "it surfaces only on explicit request. Results carry a "
+                        "`confidence` field (strong|weak|shadow|empty-legacy)."
+                    ),
+                },
                 "include_sources": {
                     "type": "boolean",
                     "description": "Include imported source documents in search (default: true)",
@@ -1234,7 +1253,9 @@ _register(
             "Confirm a draft note, promoting it to stable domain knowledge (OKF v0.2 lifecycle). "
             "Records a verified event ({by, at}) in the note's frontmatter and renews its stale_after date. "
             "Stable notes are returned by query_wiki without the [unconfirmed] annotation. "
-            "Use after a developer reviews and validates an LLM-generated note."
+            "Phase5 confidence: a plain confirm writes confidence_level=weak; passing "
+            "evidence ({test_ref|commit_ref|reviewed_by}) records metadata.verification "
+            "and promotes straight to strong."
         ),
         inputSchema={
             "type": "object",
@@ -1252,6 +1273,15 @@ _register(
                     "description": (
                         "OKF actor id recording who verified the note, e.g. 'human:mambo-wang' "
                         "for a person or 'codewiki/5.2.0' for a tool (default: tool actor id)"
+                    ),
+                },
+                "evidence": {
+                    "type": "object",
+                    "description": (
+                        "Verification evidence — any non-empty member promotes the note "
+                        "to confidence_level=strong and is recorded in metadata.verification. "
+                        "Recognized keys: test_ref (test id/path), commit_ref (commit hash), "
+                        "reviewed_by (reviewer id)."
                     ),
                 },
             },
@@ -2000,8 +2030,7 @@ _register(
                 "reason": {
                     "type": "string",
                     "description": (
-                        "retire only: why the skill is being retired "
-                        "(audit trail; required)."
+                        "retire only: why the skill is being retired (audit trail; required)."
                     ),
                 },
                 "topic": {
@@ -2018,8 +2047,7 @@ _register(
                         "enum": ["scenarios", "notes", "issues"],
                     },
                     "description": (
-                        "prepare only: restrict the returned candidate kinds "
-                        "(default: all three)."
+                        "prepare only: restrict the returned candidate kinds (default: all three)."
                     ),
                 },
                 "limit": {
@@ -2933,7 +2961,10 @@ _register(
         inputSchema={
             "type": "object",
             "properties": {
-                "task_id": {"type": "string", "description": "Task id (required — single-task scope)."},
+                "task_id": {
+                    "type": "string",
+                    "description": "Task id (required — single-task scope).",
+                },
                 "query": {"type": "string", "description": "Keywords to recall entries by."},
                 "include_archive": {
                     "type": "boolean",

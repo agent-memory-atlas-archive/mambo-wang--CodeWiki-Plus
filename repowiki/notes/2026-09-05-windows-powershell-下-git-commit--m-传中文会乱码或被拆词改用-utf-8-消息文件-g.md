@@ -6,17 +6,18 @@ tags:
 - powershell
 - workaround
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-docs-团队知识库支持优化设计方案.md-@d-repos-CodeWiki-3.md
   scene: 发布流程
   consolidated_into:
   - wiki/scenarios/发布与依赖治理方法.md
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:41:29+00:00
+  at: '2026-09-05 11:41:29+00:00'
 stale_after: '2026-10-20'
 origin: conversation
 verified:

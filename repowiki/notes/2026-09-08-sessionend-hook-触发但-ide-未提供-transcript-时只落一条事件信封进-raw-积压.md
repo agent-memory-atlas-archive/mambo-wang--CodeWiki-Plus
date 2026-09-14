@@ -5,18 +5,19 @@ tags:
 - pitfall
 - sessionend
 metadata:
-  date: 2026-09-08
+  date: '2026-09-08'
   related_modules:
   - hooks
   - capture
   severity: medium
   source_ref: conversations/conv-[team-memory]-SessionEnd-hook-fired-but-the-IDE-provided-no.md
   scene: hook 采集
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:09:38+00:00
+  at: '2026-09-08 05:09:38+00:00'
 stale_after: '2027-03-07'
 origin: conversation
 verified:

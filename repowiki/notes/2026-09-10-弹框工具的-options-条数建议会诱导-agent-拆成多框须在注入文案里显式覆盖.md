@@ -11,18 +11,19 @@ aliases:
 - SessionStart 弹框
 - options 条数建议
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   task_id: 产品维护
   related_modules:
   - mcp
   - hooks
   severity: medium
   root_cause: Agent 优先服从工具 schema 的 options 建议条数（2-4），而非注入文案隐含的 UX 预期；且旧文案主动要求了第二步弹框。
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 12:10:27+00:00
+  at: '2026-09-10 12:10:27+00:00'
 stale_after: '2027-03-09'
 verified:
 - by: human:wangbao

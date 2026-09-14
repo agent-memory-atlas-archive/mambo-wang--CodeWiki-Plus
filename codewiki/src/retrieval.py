@@ -489,6 +489,24 @@ _SCENARIO_AUTHORITY = 0.15  # L2 scenario blocks (wiki/scenarios/)
 _DOCTRINE_AUTHORITY = 0.20  # L3 project doctrine (doctrine.md)
 _SOURCE_AUTHORITY = -0.20  # raw/sources/ third-party material
 _AUTHORITY_MIN, _AUTHORITY_MAX = 0.7, 1.3
+# Phase5 T2: confidence dimension (metadata.confidence_level), orthogonal to
+# the OKF status gate — strong floats, shadow sinks. The distill dedup recall
+# is exempted via apply_authority=False upstream, so dedup similarity is NEVER
+# polluted by confidence (T1 migration would otherwise blind conflict
+# detection when old notes drop to shadow).
+_CONFIDENCE_AUTHORITY: Dict[str, float] = {
+    "strong": 0.10,
+    "weak": 0.0,
+    "shadow": -0.30,
+}
+
+
+def _read_confidence_level(fm: Dict[str, Any], meta: Dict[str, Any]) -> str:
+    """confidence_level from frontmatter (metadata fold or top level)."""
+    raw = fm.get("confidence_level")
+    if raw is None:
+        raw = meta.get("confidence_level")
+    return str(raw or "").strip().lower()
 
 
 def _doc_authority(doc_key: str, source: str, content: str = "") -> float:
@@ -497,9 +515,12 @@ def _doc_authority(doc_key: str, source: str, content: str = "") -> float:
     Pure rules, no IO beyond the already-loaded *content*:
     - notes: ``type``/``note_type`` boost (decision > pitfall >
       lesson/architecture > workaround) combined with the OKF ``status``
-      gate (draft -0.25, stable +0.05, deprecated -0.35);
-    - wiki docs: doctrine.md +0.20, scenarios/ pages +0.15;
-    - raw/sources: -0.20 regardless of frontmatter.
+      gate (draft -0.25, stable +0.05, deprecated -0.35) and the Phase5
+      confidence dimension (strong +0.10, weak 0.0, shadow -0.30);
+    - wiki docs: doctrine.md +0.20, scenarios/ pages +0.15 (+ confidence
+      dimension when stamped);
+    - raw/sources: -0.20 regardless of frontmatter (unreviewed third-party
+      material is shadow by nature).
     """
     offset = 0.0
     dk = doc_key.replace("\\", "/").lower()
@@ -522,11 +543,18 @@ def _doc_authority(doc_key: str, source: str, content: str = "") -> float:
         status = str(fm.get("status") or meta.get("status") or "").strip().lower()
         offset += _NOTE_TYPE_AUTHORITY.get(note_type, 0.0)
         offset += _STATUS_AUTHORITY.get(status, 0.0)
+        offset += _CONFIDENCE_AUTHORITY.get(_read_confidence_level(fm, meta), 0.0)
     else:
         if dk.endswith("doctrine.md"):
             offset += _DOCTRINE_AUTHORITY
         elif "/scenarios/" in f"/{dk}":
             offset += _SCENARIO_AUTHORITY
+        # Phase5 T2: scenarios/doctrine carry confidence_level too when
+        # stamped (consolidation writes weak; doctrine migrates to strong).
+        if content:
+            fm = _parse_frontmatter_dict(content)
+            meta = fm.get("metadata") if isinstance(fm.get("metadata"), dict) else {}
+            offset += _CONFIDENCE_AUTHORITY.get(_read_confidence_level(fm, meta), 0.0)
     return max(_AUTHORITY_MIN, min(_AUTHORITY_MAX, 1.0 + offset))
 
 

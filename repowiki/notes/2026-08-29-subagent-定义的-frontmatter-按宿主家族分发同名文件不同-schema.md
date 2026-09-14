@@ -14,19 +14,19 @@ aliases:
 - Qoder subagent 定义
 - subagent MCP 不透传
 metadata:
-  date: 2026-08-29
+  date: '2026-08-29'
   related_modules:
   - ide_config
   - install_hooks
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   severity: medium
   root_cause: 三层宿主差异叠加——frontmatter schema 不同（CodeBuddy 私有字段在 claude 家族解析为空工具集）；tools
-    显式枚举的 mcp__ 限定名不透传给子代理； MCP 服务器连接本身不透传给自定义子代理运行时。
-  consolidated_into:
-  - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.5.0
-  at: 2026-08-29 15:32:23+00:00
+  at: '2026-08-29 15:32:23+00:00'
 stale_after: '2027-02-25'
 verified:
 - by: human:wangbao

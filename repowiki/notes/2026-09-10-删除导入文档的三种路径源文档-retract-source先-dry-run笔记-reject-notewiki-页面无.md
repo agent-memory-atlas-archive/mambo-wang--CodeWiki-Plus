@@ -4,7 +4,7 @@ title: 删除导入文档的三种路径：源文档 retract_source(先 dry_run)
 tags:
 - procedure
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   related_modules:
   - source
   - note
@@ -13,11 +13,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-我做方案设计的时候，是否应该把设计方案放到repowiki中呢.md
   scene: 知识库维护 / 删除资产
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:48:23+00:00
+  at: '2026-09-10 08:48:23+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

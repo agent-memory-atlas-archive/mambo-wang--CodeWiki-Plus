@@ -394,8 +394,12 @@ def _parse_block(lines: List[Tuple[int, str]]) -> Any:
 
     result: Dict[str, Any] = {}
     pending: Optional[str] = None  # key whose block has not materialized yet
+    outer_indent = -1  # indent of the pending key's line (nested-mapping gate)
     list_key: Optional[str] = None  # key currently collecting "- " items
-    for _, s in lines:
+    i = 0
+    n = len(lines)
+    while i < n:
+        indent, s = lines[i]
         if _is_item(s):
             item = _decode_scalar(_item_text(s))
             if list_key is not None:
@@ -403,20 +407,47 @@ def _parse_block(lines: List[Tuple[int, str]]) -> Any:
             elif pending is not None:
                 result[pending] = [item]
                 list_key, pending = pending, None
+            i += 1
             continue
         if pending is not None:
-            result[pending] = ""  # no items came for the empty-value key
-            pending = None
-        list_key = None
+            # The empty-value key is followed by key: value lines — either at
+            # the SAME indent (sibling keys of the enclosing block; the pending
+            # key had an empty value) or DEEPER (a nested mapping under the
+            # pending key, e.g. metadata.verification.{test_ref,...}).
+            if indent <= outer_indent:
+                result[pending] = ""
+                pending = None
+                list_key = None
+                # fall through to process this line as a sibling key
+            else:
+                # Collect the deeper-indented sub-block and recurse.
+                sub: List[Tuple[int, str]] = []
+                j = i
+                while j < n and (lines[j][0] > outer_indent or _is_item(lines[j][1])):
+                    sub.append(lines[j])
+                    j += 1
+                result[pending] = _parse_block(sub)
+                pending = None
+                i = j
+                continue
+        if list_key is not None:
+            # A non-item line closes the open list: list→scalar→list inside
+            # one block must NOT merge into the first list (review-found
+            # regression of the nested-mapping rewrite).
+            list_key = None
         key, sep, val = s.partition(":")
         if not sep or not key.strip():
+            i += 1
             continue
         key = key.strip()
         val = val.strip()
         if val:
             result[key] = _decode_scalar(val)
+            i += 1
         else:
             pending = key
+            outer_indent = indent  # remember where the pending key lives
+            i += 1
     if pending is not None:
         result[pending] = ""
     return result
@@ -513,6 +544,7 @@ def format_frontmatter_value(value: Any) -> str:
 # Write side — generic serializer (architecture review 2026-09, candidate #3)
 # ---------------------------------------------------------------------------
 
+
 def render_frontmatter(data: Dict[str, Any]) -> str:
     """Serialize *data* into a fenced YAML frontmatter block.
 
@@ -556,13 +588,9 @@ def _render_entry(lines: List[str], key: str, value: Any, indent: int) -> None:
             first = True
             for sub_key, sub_val in item.items():
                 if first:
-                    lines.append(
-                        f"{pad}  - {sub_key}: {format_frontmatter_value(sub_val)}"
-                    )
+                    lines.append(f"{pad}  - {sub_key}: {format_frontmatter_value(sub_val)}")
                     first = False
                 else:
-                    lines.append(
-                        f"{pad}    {sub_key}: {format_frontmatter_value(sub_val)}"
-                    )
+                    lines.append(f"{pad}    {sub_key}: {format_frontmatter_value(sub_val)}")
     else:
         lines.append(f"{pad}{k}: {format_frontmatter_value(value)}")

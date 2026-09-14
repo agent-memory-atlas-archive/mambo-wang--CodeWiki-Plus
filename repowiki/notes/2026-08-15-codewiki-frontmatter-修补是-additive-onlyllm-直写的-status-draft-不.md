@@ -1,21 +1,21 @@
 ---
 type: architecture
-title: 'CodeWiki frontmatter 修补是 additive-only：LLM 直写的 status: draft 不会被默认 stable
-  覆盖'
+title: '''CodeWiki frontmatter 修补是 additive-only：LLM 直写的 status: draft 不会被默认 stable'
 tags:
 - architecture
 - codewiki
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - doc_writer
   - frontmatter
   source_ref: raw\conv-D-repos-go-my-harness-repowiki-wiki-modules-生成的wiki还是draft状态.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 08:57:59+00:00
-stale_after: 2026-11-13
+  at: '2026-08-15 08:57:59+00:00'
+stale_after: '2026-11-13'
 origin: conversation
 reject_reason: 用户评审未采纳
 author: mambo-wang

@@ -9,18 +9,19 @@ aliases:
 - 归属丢失
 - task_bindings consumed
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   related_modules:
   - store
   - task-bindings
   - capture-conversation
   - distill-conversation
   source_ref: docs/adr/0006-session-binding-attribution-tombstone.md
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 02:48:35+00:00
+  at: '2026-09-11 02:48:35+00:00'
 stale_after: '2027-09-11'
 verified:
 - by: human:wangbao

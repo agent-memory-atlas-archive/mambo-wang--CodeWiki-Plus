@@ -6,18 +6,19 @@ tags:
 - '375'
 - procedure
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   task_id: 他山之石
   related_modules:
   - docs
   severity: medium
   source_ref: conversations/conv-看一下docs里我们借鉴过的项目，自上次借鉴过后有什么新的合入值得借鉴.md
   scene: 他山之石/增量调研
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 23:00:39+00:00
+  at: '2026-09-10 23:00:39+00:00'
 stale_after: '2027-03-10'
 origin: conversation
 verified:

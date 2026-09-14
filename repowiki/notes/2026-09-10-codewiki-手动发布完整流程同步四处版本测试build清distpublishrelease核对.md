@@ -10,18 +10,19 @@ aliases:
 - release SOP
 - 手动发布流程
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   task_id: 技能提取
   related_modules:
   - release
   - ci
-  compiled_into:
   - skills/windows-python-release/SKILL.md
+  compiled_into: ''
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-10 02:01:17+00:00
+  at: '2026-09-10 02:01:17+00:00'
 stale_after: '2027-03-09'
 verified:
 - by: human:wangbao

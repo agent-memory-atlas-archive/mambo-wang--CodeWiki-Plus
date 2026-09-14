@@ -1,12 +1,11 @@
 ---
 type: architecture
 title: doc_similarity.py：同源判定用正文 shingle 的 MinHash bottom-k sketch Jaccard（SimHash
-  余弦基线非 0，骨架对小文档/模板文档过敏感）
 tags:
 - architecture
 - minhash
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - doc_similarity
   - source_ingest
@@ -17,11 +16,12 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 文档去重单一素材，待与导入闸门笔记成组
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:34:59+00:00
+  at: '2026-09-05 11:34:59+00:00'
 stale_after: '2027-09-05'
 origin: conversation
 verified:

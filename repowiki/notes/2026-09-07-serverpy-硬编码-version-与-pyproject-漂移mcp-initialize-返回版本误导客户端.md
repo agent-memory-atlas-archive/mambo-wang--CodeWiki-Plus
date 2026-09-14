@@ -4,20 +4,21 @@ title: server.py 硬编码 version 与 pyproject 漂移：MCP initialize 返回�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - mcp
   - release
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: medium
   source_ref: conversations/conv-本周改动有点大，请把CODEWIKI-MCP整体测试一遍，重点测试最近一周的改动.md
   scene: MCP 整体测试
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:04:05+00:00
+  at: '2026-09-07 03:04:05+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

@@ -4,18 +4,19 @@ title: Windows 上 locale.getlocale() 返回英文语言名而非 ISO 代码，�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-08
+  date: '2026-09-08'
   related_modules:
   - mcp
   - i18n
   severity: medium
   source_ref: raw\conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: MCP 层 i18n
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:12:03+00:00
+  at: '2026-09-08 05:12:03+00:00'
 stale_after: '2027-03-07'
 origin: conversation
 verified:

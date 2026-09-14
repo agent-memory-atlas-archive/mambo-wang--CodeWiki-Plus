@@ -10,7 +10,7 @@ tags:
 - pitfall
 - powershell
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   task_id: 发版本
   related_modules:
   - release
@@ -18,11 +18,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-发布版本.md
   scene: 发版本 / 发布前清理
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:44:51+00:00
+  at: '2026-09-10 08:44:51+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

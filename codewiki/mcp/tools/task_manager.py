@@ -727,6 +727,9 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
     # Discover related notes by frontmatter task_id. The ``status`` field lets
     # the host agent tell drafts apart from confirmed knowledge when injecting
     # this context (draft → must be labelled "待确认", never cited as settled).
+    # Phase5 T3: shadow-confidence notes (rejected / misrecalled / unverified)
+    # are excluded from task context — context assembly must not feed
+    # reference-only knowledge into a fresh session unawares.
     related_notes: List[Dict[str, str]] = []
     notes_dir = output_dir / "notes"
     if notes_dir.exists():
@@ -736,6 +739,8 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
             except OSError:
                 continue
             if _extract_fm(text, "task_id") != task_id:
+                continue
+            if _extract_fm(text, "confidence_level") == "shadow":
                 continue
             title = _extract_fm(text, "title") or nf.stem
             status = _extract_fm(text, "status") or "stable"

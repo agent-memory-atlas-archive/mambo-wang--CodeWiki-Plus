@@ -4,7 +4,7 @@ title: Server(...) 在 server.py 模块顶层构造，语言初始化必须早�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 产品维护
   related_modules:
   - mcp
@@ -12,11 +12,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: MCP 国际化
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 06:49:15+00:00
+  at: '2026-09-07 06:49:15+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

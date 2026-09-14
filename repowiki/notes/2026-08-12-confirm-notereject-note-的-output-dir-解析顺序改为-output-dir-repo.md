@@ -1,17 +1,22 @@
 ---
 type: decision
-title: "confirm_note/reject_note 的 output_dir 解析顺序改为 output_dir → repo_path → session"
-tags: ["decision"]
+title: confirm_note/reject_note 的 output_dir 解析顺序改为 output_dir → repo_path → session
+tags:
+- decision
 status: deprecated
-generated: { by: codewiki/5.2.2, at: 2026-08-12T11:59:13Z }
-stale_after: 2026-11-10
-
+generated:
+  by: codewiki/5.2.2
+  at: '2026-08-12T11:59:13Z'
+stale_after: '2026-11-10'
 metadata:
-  date: "2026-08-12"
-  origin: "conversation"
+  date: '2026-08-12'
+  origin: conversation
   related_components: []
-  related_modules: ["mcp", "\"\""]
-  source_ref: "raw\\conv-user_command-commands-codewiki-蒸馏对话提取经验-把已采集的对话（repowiki-raw.md"
+  related_modules:
+  - mcp
+  - '""'
+  source_ref: raw\conv-user_command-commands-codewiki-蒸馏对话提取经验-把已采集的对话（repowiki-raw.md
+  confidence_level: shadow
 author: mambo-wang
 ---
 

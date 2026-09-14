@@ -6,7 +6,7 @@ tags:
 - codewiki
 - userpromptsubmit
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   task_id: 产品维护
   related_modules:
   - hook
@@ -14,11 +14,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-docs-articles-CodeWiki-Plus系列13：把知识编译成行.md
   scene: 产品维护 / 技能提示 hook
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:46:50+00:00
+  at: '2026-09-10 08:46:50+00:00'
 stale_after: '2027-09-10'
 origin: conversation
 verified:

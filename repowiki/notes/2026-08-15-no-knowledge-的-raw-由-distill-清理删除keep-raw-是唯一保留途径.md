@@ -4,16 +4,17 @@ title: no_knowledge 的 raw 由 distill 清理删除，keep_raw 是唯一保留�
 tags:
 - pitfall
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - distill_conversation
-  source_ref: raw\conv-使用codewiki-mcp扫描生成的代码wiki为什么status是draft.md
-  consolidated_into:
   - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  source_ref: raw\conv-使用codewiki-mcp扫描生成的代码wiki为什么status是draft.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:16:12+00:00
+  at: '2026-08-15 13:16:12+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

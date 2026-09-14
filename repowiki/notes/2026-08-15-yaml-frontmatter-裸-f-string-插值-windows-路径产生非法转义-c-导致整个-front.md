@@ -1,20 +1,20 @@
 ---
 type: pitfall
 title: YAML frontmatter 裸 f-string 插值 Windows 路径产生非法转义 \c 导致整个 frontmatter 无法解析（OKF
-  §11 违规），字符串字段一律用 json.dumps 转义
 tags:
 - pitfall
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - codewiki/mcp/tools/knowledge_loop.py
   - scripts/migrate_okf.py
   source_ref: raw\conv-https-mp.weixin.qq.com-s-vzBQPjrRDhDfq3U51DBfaQ-看下我们项目符不符合ok.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 09:08:33+00:00
-stale_after: 2026-11-13
+  at: '2026-08-15 09:08:33+00:00'
+stale_after: '2026-11-13'
 origin: conversation
 reject_reason: 用户评审后拒绝全部蒸馏草稿
 author: mambo-wang

@@ -5,7 +5,7 @@ tags:
 - codewiki
 - pitfall
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   task_id: Cli能力
   related_modules:
   - agents_md
@@ -15,11 +15,12 @@ metadata:
   severity: high
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-83a270.md
   scene: AGENTS.md 注入内容精简
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 01:13:07+00:00
+  at: '2026-09-11 01:13:07+00:00'
 stale_after: '2027-03-10'
 origin: conversation
 verified:

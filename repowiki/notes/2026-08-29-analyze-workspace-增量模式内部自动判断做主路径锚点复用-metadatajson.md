@@ -4,20 +4,21 @@ title: analyze_workspace 增量模式：内部自动判断做主路径，锚点�
 tags:
 - decision
 metadata:
-  date: 2026-08-29
+  date: '2026-08-29'
   task_id: 多仓工作区
   related_modules:
   - workspace_analyzer
   - analysis
+  - wiki/scenarios/多仓工作区初始化与增量分析.md
   severity: high
   source_ref: conversations/conv-工作区已有部分初始化痕迹（bootstrap.ps1-登记了业务仓、.gitignore-已排除等）时，init_wor.md
   scene: 多仓工作区增量分析设计
-  consolidated_into:
-  - wiki/scenarios/多仓工作区初始化与增量分析.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.5.0
-  at: 2026-08-29 15:03:52+00:00
+  at: '2026-08-29 15:03:52+00:00'
 stale_after: '2027-08-29'
 origin: conversation
 verified:

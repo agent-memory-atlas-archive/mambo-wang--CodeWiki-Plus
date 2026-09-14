@@ -138,10 +138,10 @@ def test_status_and_task_id_stay_top_level_single_line():
     text = render_frontmatter(
         {"status": "draft", "task_id": "multi-仓工作区", "content_hash": "abc"}
     )
-    lines = [l for l in text.splitlines() if l and not l.startswith("---")]
-    top = [l for l in lines if not l.startswith((" ", "-"))]
-    assert any(l.startswith("status:") for l in top)
-    assert any(l.startswith("task_id:") for l in top)
+    lines = [ln for ln in text.splitlines() if ln and not ln.startswith("---")]
+    top = [ln for ln in lines if not ln.startswith((" ", "-"))]
+    assert any(ln.startswith("status:") for ln in top)
+    assert any(ln.startswith("task_id:") for ln in top)
 
 
 def test_format_value_reserved_words():
@@ -150,3 +150,33 @@ def test_format_value_reserved_words():
     assert format_frontmatter_value("stable") == "stable"
     assert format_frontmatter_value(True) == "true"
     assert format_frontmatter_value(None) == "null"
+
+
+def test_nested_mapping_and_list_scalar_list_in_one_block():
+    """Phase5 T1 found two _parse_block regressions; these lock them.
+
+    1. An empty-value key followed by DEEPER key:value lines must parse as a
+       nested mapping (metadata.verification.{...}), not lift the inner keys.
+    2. Inside one block, list → scalar → list must not merge into the first
+       list (the nested-mapping rewrite broke the list_key reset).
+    """
+    text = (
+        "---\n"
+        "metadata:\n"
+        "  verification:\n"
+        "    test_ref: tests/x.py\n"
+        "    commit_ref: abc123\n"
+        "  note: scalar between lists\n"
+        "  repos:\n"
+        "    - repo-a\n"
+        "  aliases:\n"
+        "    - alias-x\n"
+        "---\n"
+        "正文。\n"
+    )
+    fm, _ = parse_frontmatter(text)
+    meta = fm["metadata"]
+    assert meta["verification"] == {"test_ref": "tests/x.py", "commit_ref": "abc123"}
+    assert meta["note"] == "scalar between lists"
+    assert meta["repos"] == ["repo-a"]
+    assert meta["aliases"] == ["alias-x"]

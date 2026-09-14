@@ -14,19 +14,20 @@ aliases:
 - 对话归档零索引
 - distill-worker 发布
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   task_id: 产品维护
   related_modules:
   - mcp
   - team-memory
   - agents
   - 团队记忆融合-L2场景聚合与L3-Doctrine设计方案
-  consolidated_into:
   - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 02:05:55+00:00
+  at: '2026-08-24 02:05:55+00:00'
 stale_after: '2027-08-24'
 verified:
 - by: codewiki/5.4.2

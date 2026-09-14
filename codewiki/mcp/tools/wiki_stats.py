@@ -8,18 +8,16 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from codewiki.mcp.session import SessionStore
 from codewiki.src.frontmatter import parse_frontmatter
-from codewiki.src.retrieval import STOPWORDS as _STOPWORDS
-from codewiki.mcp.tools.injection_budget import estimate_tokens
 from codewiki.mcp.tools.note_freshness import _freshness_distribution, _note_age_days
 from codewiki.mcp.tools.note_query import _extract_frontmatter_block
 from codewiki.mcp.tools.note_writer import _norm_status
+
 logger = logging.getLogger(__name__)
 
 _PROMOTION_PAGE_TYPES: Dict[str, str] = {}  # filled below from the table
@@ -76,12 +74,18 @@ def handle_wiki_stats(
             _fresh = _freshness_distribution(output_dir)
         except Exception:
             _fresh = None
+        # Phase5 T4: confidence 分布同样不依赖检索统计（北极星指标）。
+        try:
+            _conf = _confidence_distribution(output_dir, {})
+        except Exception:
+            _conf = None
         return json.dumps(
             {
                 "error": "No retrieval stats found. Run query_wiki first to generate stats.",
                 "telemetry_dir": str(output_dir / ".meta" / "telemetry"),
                 **({"aggregation": _agg} if _agg else {}),
                 **({"freshness": _fresh} if _fresh else {}),
+                **({"confidence": _conf} if _conf else {}),
             }
         )
 
@@ -178,6 +182,15 @@ def handle_wiki_stats(
     except Exception:
         promotion = None
 
+    # Phase5 T4: confidence distribution (strong/weak/shadow over notes +
+    # scenarios + doctrine) — strong 占比是 Phase 5 的北极星指标（>60%）；
+    # top_shadow_assets = shadow 里被检索命中最多的前 5（复核升级或退役候选）。
+    confidence = None
+    try:
+        confidence = _confidence_distribution(output_dir, usage)
+    except Exception:
+        confidence = None
+
     return json.dumps(
         {
             "total_distinct_queries": total_queries,
@@ -190,10 +203,63 @@ def handle_wiki_stats(
             **({"freshness": freshness} if freshness else {}),
             **({"cold_candidates": cold} if cold else {}),
             **({"promotion_candidates": promotion} if promotion else {}),
+            **({"confidence": confidence} if confidence else {}),
         },
         indent=2,
         ensure_ascii=False,
     )
+
+
+def _confidence_distribution(output_dir: Path, usage: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Phase5 T4: strong/weak/shadow counts over the knowledge assets, plus
+    the top-retrieved shadow assets (review-or-retire candidates).
+
+    Scans notes/ + wiki/scenarios/ + doctrine.md frontmatter. Assets without
+    a confidence_level count as ``unstamped`` (pre-migration corpora).
+    """
+    from codewiki.src.config import NOTES_DIR, WIKI_DIR
+
+    dist = {"strong": 0, "weak": 0, "shadow": 0, "unstamped": 0}
+    shadow_hits: List[Dict[str, Any]] = []
+
+    targets: List[Path] = []
+    notes_dir = output_dir / NOTES_DIR
+    if notes_dir.is_dir():
+        targets.extend(notes_dir.glob("*.md"))
+    scen_dir = output_dir / WIKI_DIR / "scenarios"
+    if scen_dir.is_dir():
+        targets.extend(scen_dir.glob("*.md"))
+    doctrine = output_dir / WIKI_DIR / "doctrine.md"
+    if doctrine.is_file():
+        targets.append(doctrine)
+
+    for p in sorted(targets):
+        try:
+            fm, _ = parse_frontmatter(p.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            continue
+        if not isinstance(fm, dict):
+            continue
+        meta = fm.get("metadata") if isinstance(fm.get("metadata"), dict) else {}
+        level = (
+            str(fm.get("confidence_level") or meta.get("confidence_level") or "").strip().lower()
+        )
+        if level not in ("strong", "weak", "shadow"):
+            level = "unstamped"
+        dist[level] += 1
+        if level == "shadow":
+            rel = p.relative_to(output_dir).as_posix()
+            hits = int(usage.get(rel, {}).get("hits", 0))
+            shadow_hits.append({"file": rel, "hit_count": hits})
+
+    shadow_hits.sort(key=lambda x: (-x["hit_count"], x["file"]))
+    stamped = dist["strong"] + dist["weak"] + dist["shadow"]
+    payload: Dict[str, Any] = {"distribution": dist}
+    if stamped:
+        payload["strong_ratio"] = round(dist["strong"] / stamped, 4)
+    if shadow_hits:
+        payload["top_shadow_assets"] = shadow_hits[:5]
+    return payload
 
 
 def _cold_candidates(output_dir: Path) -> Optional[List[Dict[str, Any]]]:
@@ -220,7 +286,7 @@ def _cold_candidates(output_dir: Path) -> Optional[List[Dict[str, Any]]]:
     except Exception:
         pass
 
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
     rows = [
         (fp, int(entry.get("hits", 0)), entry.get("last_hit"))
@@ -264,7 +330,6 @@ from codewiki.mcp.tools.note_types import (  # noqa: E402
 _PROMOTION_PAGE_TYPES.update(
     {t: str(spec.get("promote_to") or "") for t, spec in _NT_TABLE.items()}
 )
-
 
 
 def _promotion_candidates(output_dir: Path) -> Optional[List[Dict[str, Any]]]:
@@ -346,5 +411,3 @@ def _promotion_candidates(output_dir: Path) -> Optional[List[Dict[str, Any]]]:
         )
     out.sort(key=lambda x: -x["adopted_count"])
     return out
-
-

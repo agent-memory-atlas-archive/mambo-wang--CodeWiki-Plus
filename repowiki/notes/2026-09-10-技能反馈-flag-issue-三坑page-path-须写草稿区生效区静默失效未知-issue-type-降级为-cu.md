@@ -1,11 +1,10 @@
 ---
 type: pitfall
 title: 技能反馈 flag_issue 三坑：page_path 须写草稿区（生效区静默失效）、未知 issue_type 降级为 custom、无关闭 issue
-  工具
 tags:
 - pitfall
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   task_id: 产品维护
   related_modules:
   - skill
@@ -13,11 +12,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-docs-articles-CodeWiki-Plus系列13：把知识编译成行.md
   scene: 产品维护 / 技能反馈
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:46:53+00:00
+  at: '2026-09-10 08:46:53+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

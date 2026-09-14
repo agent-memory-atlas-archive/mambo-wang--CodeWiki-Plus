@@ -2,13 +2,12 @@
 type: Scenario
 title: Wiki页面生成约定与数据结构
 description: OKF status 分层与 actor、module_tree 遍历、模板包内单源收敛、schema.yaml 聚合阈值、聚合候选 disposition
-  去向
 tags:
 - CodeWiki-CN
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:55:14+00:00
-stale_after: 2026-12-07
+  at: '2026-09-08 05:55:14+00:00'
+stale_after: '2026-12-07'
 aliases:
 - Wiki页面生成约定与数据结构
 status: stable
@@ -21,6 +20,7 @@ metadata:
   - notes/2026-09-07-consolidate-notes-候选-disposition-三值机制未入选笔记不再无声滞留excluded-必填.md
   summary: 补入配置模板包内单源收敛与聚合候选 disposition 三值去向的可审计性机制
   heat: 4
+  confidence_level: weak
 ---
 ## 工作场景
 wiki 页面生成的 OKF/frontmatter 约定、数据结构消费与知识资产治理（模板分发、聚合可审计性）。适用于撰写/修补 wiki 页面、开发实体概念提取、排查 frontmatter 与模块树、配置聚合与模板分发、执行 consolidate_notes。

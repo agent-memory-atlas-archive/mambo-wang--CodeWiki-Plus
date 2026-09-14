@@ -4,7 +4,7 @@ title: confirm/reject 生命周期已从 knowledge_loop.py 拆到 note_lifecycle
 tags:
 - architecture
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - knowledge_loop
   - note_lifecycle
@@ -15,11 +15,12 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:31:51+00:00
+  at: '2026-09-05 11:31:51+00:00'
 stale_after: '2027-09-05'
 origin: conversation
 verified:

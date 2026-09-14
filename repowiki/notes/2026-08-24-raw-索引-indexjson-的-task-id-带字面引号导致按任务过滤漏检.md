@@ -4,19 +4,20 @@ title: raw 索引 .index.json 的 task_id 带字面引号导致按任务过滤�
 tags:
 - pitfall
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   task_id: 产品维护
   related_modules:
   - capture_conversation
   - distill_conversation
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   severity: medium
   source_ref: conversations/conv-@command-codewiki-增量更新-Wiki.md
-  consolidated_into:
-  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:14:19+00:00
+  at: '2026-08-24 15:14:19+00:00'
 stale_after: '2027-02-20'
 origin: conversation
 verified:

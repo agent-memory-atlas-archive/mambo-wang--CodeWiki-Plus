@@ -1,11 +1,10 @@
 ---
 type: pitfall
 title: stamp_evidence 不持久化 repo 身份：centralized 共享产品区引用成员仓证据时 stale_evidence 误报 file
-  disappeared
 tags:
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - evidence
   - workspace
@@ -13,11 +12,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-本周改动有点大，请把CODEWIKI-MCP整体测试一遍，重点测试最近一周的改动.md
   scene: MCP 整体测试
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:04:02+00:00
+  at: '2026-09-07 03:04:02+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

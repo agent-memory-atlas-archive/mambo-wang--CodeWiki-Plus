@@ -12,14 +12,12 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set
 
 from codewiki.mcp.session import SessionStore
-from codewiki.src.frontmatter import parse_frontmatter
-from codewiki.src.retrieval import STOPWORDS as _STOPWORDS
-from codewiki.mcp.tools.injection_budget import estimate_tokens
 from codewiki.mcp.tools.note_freshness import freshness_window_days
 from codewiki.mcp.tools.note_writer import _norm_status, _okf_actor, _slugify, refresh_note_indexes
+
 logger = logging.getLogger(__name__)
 
 
@@ -205,7 +203,6 @@ _FRESHNESS_FALLBACK_WINDOW_DAYS = 90
 _FRESHNESS_FALLBACK_RETRIEVAL_DEFER_DAYS = 60
 
 
-
 def handle_ingest_note(
     arguments: Dict[str, Any],
     store: SessionStore,
@@ -279,6 +276,15 @@ def handle_ingest_note(
     # OKF v0.2 §5.4: write the spec vocabulary (draft|stable|deprecated);
     # legacy values are accepted and normalized for backward compatibility.
     note_status = _norm_status(arguments.get("status", "draft"))
+    # Phase5 T1: confidence dimension at write time. A draft is STILL VISIBLE
+    # with its [unconfirmed] prefix (existing product semantics — shadow is
+    # reserved for rejected/misrecalled assets, not drafts); so ingest starts
+    # weak unless the caller passes an explicit level. (Shadow at ingest would
+    # hide drafts from query_wiki by default and break the draft→confirm
+    # review flow — caught by the existing e2e tests during implementation.)
+    confidence_level = str(arguments.get("confidence_level") or "").strip().lower()
+    if confidence_level not in ("strong", "weak", "shadow"):
+        confidence_level = "weak"
 
     # Auto-match modules if not provided
     auto_matched: List[str] = []
@@ -343,7 +349,7 @@ def handle_ingest_note(
     # OKF §4/§5: producer-private fields fold under ``metadata:`` so the top
     # level only carries OKF-standard keys.  Line-based consumers (wiki_index
     # note date, lint note_clusters) still read them via the indented rows.
-    metadata_lines = [f"  date: {today}"]
+    metadata_lines = [f"  date: {today}", f"  confidence_level: {confidence_level}"]
     # Centralized layout provenance: which member repo produced this note
     # (shared-pool knowledge). "global" omits it; a list writes repos: [...].
     if _scope is None:
@@ -501,5 +507,3 @@ def handle_ingest_note(
 # ---------------------------------------------------------------------------
 #  confirm_note / reject_note (Roadmap 2.2 — knowledge flywheel)
 # ---------------------------------------------------------------------------
-
-

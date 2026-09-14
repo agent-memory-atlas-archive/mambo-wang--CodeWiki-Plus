@@ -6,8 +6,8 @@ tags:
 - CodeWiki-CN
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:54:25+00:00
-stale_after: 2026-12-07
+  at: '2026-09-08 05:54:25+00:00'
+stale_after: '2026-12-07'
 aliases:
 - 对话蒸馏管线与raw暂存区
 status: stable
@@ -20,6 +20,7 @@ metadata:
   - notes/2026-09-07-mode-c-补蒸馏实操教训submit-空转先重试弱冲突多为误报按-store-裁决重提必须带完整正文.md
   summary: 补入 subagent 落盘状态必须独立复核、Mode C 空转重试与冲突裁决重提须带完整正文
   heat: 4
+  confidence_level: weak
 ---
 ## 工作场景
 `distill_conversation` 蒸馏管线与 `repowiki/raw/` 暂存区生命周期，含委托 subagent 补蒸馏的结果验收。适用于改蒸馏逻辑、排查 raw 去向、宿主 agent 执行 Mode C 批量蒸馏、对话归档与溯源设计。

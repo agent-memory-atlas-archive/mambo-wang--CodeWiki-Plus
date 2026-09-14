@@ -6,20 +6,21 @@ tags:
 - powershe
 - powershell
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   related_modules:
   - git
   - env
+  - skills/windows-dev-env/SKILL.md
   severity: medium
   source_ref: conversations/conv-user_command-commands-codewiki-知识聚合（L2-场景块）-知识聚合工作流（团队记忆融合-P.md
   scene: 版本控制 / 提交落盘
-  compiled_into:
-  - skills/windows-dev-env/SKILL.md
+  compiled_into: ''
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:50:02+00:00
+  at: '2026-09-10 08:50:02+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

@@ -4,7 +4,7 @@ title: 用 raw 里的 [tool-error] 测漏检率前，先确认测量通道覆盖
 tags:
 - lesson
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   task_id: 他山之石
   related_modules:
   - capture
@@ -13,11 +13,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-继续调研.md
   scene: 采集覆盖率探测 / 借鉴调研证伪
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 01:21:09+00:00
+  at: '2026-09-11 01:21:09+00:00'
 stale_after: '2027-03-10'
 origin: conversation
 verified:

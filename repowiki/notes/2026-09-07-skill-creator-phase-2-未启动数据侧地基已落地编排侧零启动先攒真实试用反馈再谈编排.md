@@ -6,7 +6,7 @@ tags:
 - codewiki
 - decision
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - skill-creator
   severity: medium
@@ -16,11 +16,12 @@ metadata:
     verdict: excluded
     at: '2026-09-08'
     reason: 一次性项目状态快照（Phase 2 启动与否随时间变化），不是可复用的工作方法
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:01:18+00:00
+  at: '2026-09-07 03:01:18+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:

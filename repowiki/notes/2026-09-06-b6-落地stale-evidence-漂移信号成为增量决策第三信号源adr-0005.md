@@ -4,20 +4,21 @@ title: B6 落地：stale_evidence 漂移信号成为增量决策第三信号源�
 tags:
 - decision
 metadata:
-  date: 2026-09-06
+  date: '2026-09-06'
   related_modules:
   - mcp_tools_analysis
   - evidence
+  - wiki/scenarios/多仓工作区初始化与增量分析.md
   severity: high
   source_ref: conversations/conv-调研-openwiki、deepwiki-open、OpenDeepWiki、deepwiki-rs-四个-DeepWi.md
   scene: 增量更新
-  consolidated_into:
-  - wiki/scenarios/多仓工作区初始化与增量分析.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: local
 generated:
   by: codewiki/5.5.0
-  at: 2026-09-06 08:23:44+00:00
+  at: '2026-09-06 08:23:44+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:

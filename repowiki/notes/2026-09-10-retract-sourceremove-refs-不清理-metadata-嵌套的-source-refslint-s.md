@@ -1,12 +1,11 @@
 ---
 type: pitfall
 title: retract_source(remove_refs) 不清理 metadata 嵌套的 source_refs，lint stale_refs 也漏，且源
-  name 可复用碰撞致派生页残留
 tags:
 - pitfall
 - weknora
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   related_modules:
   - source
   - lint
@@ -14,11 +13,12 @@ metadata:
   severity: medium
   source_ref: conversations/conv-user_command-commands-codewiki-撤回已导入的外部文档-撤回外部文档工作流。当-`inges.md
   scene: 知识库维护 / 撤回源文档
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 08:49:19+00:00
+  at: '2026-09-10 08:49:19+00:00'
 stale_after: '2027-03-09'
 origin: conversation
 verified:

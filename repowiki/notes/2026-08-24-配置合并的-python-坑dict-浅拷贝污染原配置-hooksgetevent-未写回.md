@@ -4,19 +4,20 @@ title: 配置合并的 Python 坑：dict 浅拷贝污染原配置 + hooks.get(ev
 tags:
 - pitfall
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   task_id: 产品维护
   related_modules:
   - cli
   - ide-config
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   severity: medium
   source_ref: conversations/conv-当前项目添加的hook和subagent只支持codebuddy，优化为支持市面上常见的智能体，比如自动检测有.qode.md
-  consolidated_into:
-  - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 03:33:22+00:00
+  at: '2026-08-24 03:33:22+00:00'
 stale_after: '2027-02-20'
 origin: conversation
 verified:

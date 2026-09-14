@@ -4,17 +4,18 @@ title: analyze_repo 增量与依赖图谱的测试并行执行存在时序竞态
 tags:
 - lesson
 metadata:
-  date: 2026-08-26
+  date: '2026-08-26'
   related_modules:
   - change_analysis
   - review_changes
-  source_ref: conversations/conv-@command-codewiki-变更评估与代码评审（修改后）.md
-  consolidated_into:
   - wiki/scenarios/代码评审与分析工具方法.md
+  source_ref: conversations/conv-@command-codewiki-变更评估与代码评审（修改后）.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.4.3
-  at: 2026-08-25 17:02:46+00:00
+  at: '2026-08-25 17:02:46+00:00'
 stale_after: '2027-02-22'
 origin: conversation
 verified:

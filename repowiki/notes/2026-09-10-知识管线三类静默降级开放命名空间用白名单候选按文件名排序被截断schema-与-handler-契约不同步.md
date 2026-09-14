@@ -9,17 +9,18 @@ aliases:
 - 候选截断
 - schema 契约不同步
 metadata:
-  date: 2026-09-10
+  date: '2026-09-10'
   task_id: 技能提取
   related_modules:
   - tool_digest
   - skill_creator
   - registry
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-10 07:46:50+00:00
+  at: '2026-09-10 07:46:50+00:00'
 stale_after: '2027-03-09'
 verified:
 - by: human:wangbao

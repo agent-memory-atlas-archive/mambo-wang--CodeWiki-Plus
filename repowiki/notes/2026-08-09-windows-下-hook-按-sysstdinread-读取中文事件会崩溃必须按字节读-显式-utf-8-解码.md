@@ -1,17 +1,23 @@
 ---
 type: pitfall
-title: "Windows 下 hook 按 sys.stdin.read() 读取中文事件会崩溃，必须按字节读 + 显式 UTF-8 解码"
-tags: ["pitfall"]
+title: Windows 下 hook 按 sys.stdin.read() 读取中文事件会崩溃，必须按字节读 + 显式 UTF-8 解码
+tags:
+- pitfall
 status: deprecated
-generated: { by: codewiki/5.2.1, at: 2026-08-09T08:44:51Z }
-stale_after: 2026-11-07
-
+generated:
+  by: codewiki/5.2.1
+  at: '2026-08-09T08:44:51Z'
+stale_after: '2026-11-07'
 metadata:
-  date: "2026-08-09"
-  origin: "conversation"
+  date: '2026-08-09'
+  origin: conversation
   related_components: []
-  related_modules: ["team-memory", "mcp", "\"\""]
-  source_ref: "raw\\conv-20260808T152648Z.md"
+  related_modules:
+  - team-memory
+  - mcp
+  - '""'
+  source_ref: raw\conv-20260808T152648Z.md
+  confidence_level: shadow
 author: mambo-wang
 ---
 

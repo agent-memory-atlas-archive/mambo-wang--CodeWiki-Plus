@@ -1,11 +1,10 @@
 ---
 type: pitfall
 title: distill_conversation submit 的 distilled 必须是 {conversation_id:{notes,memories}}
-  映射，传裸对象会静默返回 missing_result
 tags:
 - pitfall
 metadata:
-  date: 2026-09-11
+  date: '2026-09-11'
   related_modules:
   - distill
   - mcp
@@ -13,11 +12,12 @@ metadata:
   severity: high
   source_ref: conversations/conv-@command-codewiki-蒸馏对话提取记忆和经验.md
   scene: 对话蒸馏 Mode C 提交
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
-  at: 2026-09-11 01:04:14+00:00
+  at: '2026-09-11 01:04:14+00:00'
 stale_after: '2027-03-10'
 origin: conversation
 verified:

@@ -4,7 +4,7 @@ title: output_dir 是 repo_path 的纯函数：写路径一律布局推导、砍
 tags:
 - decision
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 他山之石
   related_modules:
   - workspace_layout
@@ -12,16 +12,17 @@ metadata:
   - session
   - registry
   - note_query
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: high
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in.md
   scene: MCP 工具参数面设计
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.1
-  at: 2026-09-07 01:41:34+00:00
+  at: '2026-09-07 01:41:34+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:

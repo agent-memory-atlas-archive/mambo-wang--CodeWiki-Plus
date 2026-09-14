@@ -4,19 +4,20 @@ title: 测试多 helper 各写一次 jsonl 会互相全量覆盖，须 append-me
 tags:
 - pitfall
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - tests
   - telemetry
   - teamai-cli-调研与借鉴分析
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: medium
   source_ref: conversations/conv-研究一下-https-github.com-Tencent-teamai-cli，看下跟CodeWiki的对比和可借鉴之.md
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:16:12+00:00
+  at: '2026-08-24 15:16:12+00:00'
 stale_after: '2027-02-20'
 origin: conversation
 verified:

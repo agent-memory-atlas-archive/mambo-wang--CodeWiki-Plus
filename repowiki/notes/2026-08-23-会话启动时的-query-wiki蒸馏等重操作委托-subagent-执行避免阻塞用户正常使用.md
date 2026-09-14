@@ -5,19 +5,20 @@ tags:
 - decision
 - readfile
 metadata:
-  date: 2026-08-23
+  date: '2026-08-23'
   task_id: 产品维护
   related_modules:
   - task_manager
+  - wiki/scenarios/任务记忆系统设计方法.md
   severity: medium
   source_ref: conversations/conv-开始新对话触发选择任务后，会有query_wiki以及蒸馏操作，这些操作可以放到subagent执行吗，别影响用户正常使.md
   scene: 任务记忆/补蒸馏
-  consolidated_into:
-  - wiki/scenarios/任务记忆系统设计方法.md
+  consolidated_into: ''
+  confidence_level: weak
 status: stable
 generated:
   by: codewiki/5.3.0
-  at: 2026-08-23 08:00:48+00:00
+  at: '2026-08-23 08:00:48+00:00'
 stale_after: '2027-08-26'
 origin: conversation
 verified:
