@@ -36,6 +36,9 @@
 | 置信分层（confidence_level） | beta | `enforce`（Phase5 T1，2026-09-13 落地：confirm 写 weak、evidence 升 strong、reject 降 shadow、ingest/consolidation 默认 weak） | draft 保持可见（[unconfirmed] 前缀），shadow 专用于 rejected/misrecalled；迁移脚本幂等回填 | strong 占比 >60%（北极星）；观察 evidence 使用率后再议强制证据 | `note_lifecycle.py`/`note_ingest.py`、`scripts/migrate_confidence.py` |
 | 置信排序叠加 | beta | `enforce`（Phase5 T2：strong +0.10 / weak 0 / shadow −0.30，clamp 0.7-1.3 不变） | distill 去重召回 apply_authority=False 豁免保持（相似度不受置信污染） | 用真实语料验证排序体感，必要时调 clamp | `retrieval.py` `_CONFIDENCE_AUTHORITY`、`tests/test_confidence_lifecycle.py` |
 | shadow 检索门控 | beta | `enforce`（Phase5 T3：query_wiki 默认滤 shadow，include_shadow 显式开启；task_context 排除 shadow） | by_file/mode=check 轻量路径暂不带门控（预检语义）；legacy 未标注资产不受影响 | 观察 shadow 误伤率，再议下潜到全部检索路径 | `note_query.py`、`tests/test_confidence_lifecycle.py` |
+| outcome 采集（使用结果信号） | beta | `enforce`（2026-09-14 落地：report_outcome 遥测薄壳，doc+task_id 双挂，与 hit/adopted 同权免闸门；docs/负反馈与经验通道设计方案.md §三） | 采集侧无确认闸门（遥测非落盘知识，ADR-0002 同理）；task_id 尽力写（显式参数 > source_session_id 绑定）；adopted 关联只在同任务谱系内抄 key（跨任务不挂） | 消费全 observe（aggregate_usage success/failure + wiki_stats outcome_ratio + 负例反哺提示）；观察信号量攒够再议 disputed_assets lint | `outcome_report.py`、`telemetry.py` record_outcome、`tests/test_outcome_telemetry.py` |
+| 负例反哺（negative_examples） | beta | `observe`（纯提示；2026-09-14 落地，设计文档 §四） | distill/consolidate prepare 携带近 30 天 failure outcome 的 {doc, note}（上限 5 条）+ 规避提示语；不改变任何提取/归纳行为 | 检索侧反哺（query_wiki 加 failure 标注）不实施——数据未攒够前不动消费端排序 | `distill_conversation.py` prepare、`note_consolidation.py` prepare、`telemetry.py` recent_outcome_failures |
+| disputed_assets（消费预留） | planned | `off`（check 未实施；T6 观察化身后备，设计文档 §五） | 预留判据：failure ≥ 阈值（建议 2）且 success=0 且跨 ≥2 任务（独立失败才算数）；若未来升 enforce 走 confidence_level=shadow 通道 | outcome failure 数据攒够后再议是否实施 | 设计文档 §五 |
 
 ## 采集与蒸馏
 

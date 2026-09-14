@@ -107,6 +107,18 @@ prepare 同一构造点），Agent 顺手 submit，无需用户确认（ADR-0002
 _Avoid_: 把任务记忆并进 query_wiki 语料（分轨）、为检索持久化索引（wiki 全量重建
 会静默清掉且污染语料统计）、为索引加后台进程（成本不可见）。
 
+**outcome（使用结果信号）** — telemetry 第三事件类型（与 hit「看到」、adopted「引用」
+并列）：用了某条知识之后任务结果是 success 还是 failure，双挂 doc（哪个知识）+
+task_id（哪次任务经历）。采集是遥测不是落盘知识——免确认闸门（ADR-0002 同理）、
+不碰 frontmatter；Agent 在任务自然收尾时经 `report_outcome` 顺手报（唯一能诚实
+判断成败的时点），adopted 关联只在同任务谱系内抄 key（跨任务不挂）。消费全
+observe：aggregate_usage/wiki_stats 的 success/failure 聚合、蒸馏 prepare 的
+negative_examples 提示；自动降权不实施（小数据下误伤率高，升 enforce 需数据
+说话，disputed_assets 预留判据见设计文档 §五）。失败的一句话 note 比失败本身
+值钱（蒸馏反哺的原料）。
+_Avoid_: 多档 result 分级（伪精度）、任务中途自报误用（Agent 判不了）、未攒数据
+就影响排序或生命周期。
+
 ## Key decisions
 
 - [ADR-0001 — 任务记忆保持 Markdown，不迁移 JSONL](adr/0001-task-memory-stays-markdown.md)（2026-08-24）
