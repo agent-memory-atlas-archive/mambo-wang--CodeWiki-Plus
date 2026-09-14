@@ -33,6 +33,9 @@
 | 冲突案卷（conflict case） | beta | `enforce`（手动声明，2026-09-12 落地；ADR-0007；不做自动发现） | 案卷不进检索语料、排除通用审计；query_wiki/by_file 命中 claimant 加 `open_conflict` 标注；open 超期（默认 14 天）lint warning | 真实使用中观察误报率与裁决流转时长，再议是否扩展 | ADR-0007、`conflict_case.py`、`tests/test_conflict_case.py` |
 | memory recall（任务记忆检索） | beta | `enforce`（2026-09-12 落地；只读检索，无生命周期副作用） | 内存直算、零持久化；默认只搜本人（含本人 archive），他人须显式 `include_others`；legacy 文件可搜 | 观察 archive 命中率与真实召回需求，再议跨任务全局搜索 | `store.py` search_memories、`tests/test_task_memory_search.py` |
 | 自动压缩驱动（compaction_work） | beta | `enforce`（compaction_due 时 get_task_context 携带待办；2026-09-12 落地） | 载荷无独立上限（受 24KB 压缩阈值间接约束）；submit 由 Agent 显式发起，可逆（原文进 archive），ADR-0002 豁免确认闸门 | 真实使用观察压缩摘要质量与响应体积，再议载荷截断 | `task_manager.py` `_prepare_compaction_payload` |
+| 置信分层（confidence_level） | beta | `enforce`（Phase5 T1，2026-09-13 落地：confirm 写 weak、evidence 升 strong、reject 降 shadow、ingest/consolidation 默认 weak） | draft 保持可见（[unconfirmed] 前缀），shadow 专用于 rejected/misrecalled；迁移脚本幂等回填 | strong 占比 >60%（北极星）；观察 evidence 使用率后再议强制证据 | `note_lifecycle.py`/`note_ingest.py`、`scripts/migrate_confidence.py` |
+| 置信排序叠加 | beta | `enforce`（Phase5 T2：strong +0.10 / weak 0 / shadow −0.30，clamp 0.7-1.3 不变） | distill 去重召回 apply_authority=False 豁免保持（相似度不受置信污染） | 用真实语料验证排序体感，必要时调 clamp | `retrieval.py` `_CONFIDENCE_AUTHORITY`、`tests/test_confidence_lifecycle.py` |
+| shadow 检索门控 | beta | `enforce`（Phase5 T3：query_wiki 默认滤 shadow，include_shadow 显式开启；task_context 排除 shadow） | by_file/mode=check 轻量路径暂不带门控（预检语义）；legacy 未标注资产不受影响 | 观察 shadow 误伤率，再议下潜到全部检索路径 | `note_query.py`、`tests/test_confidence_lifecycle.py` |
 
 ## 采集与蒸馏
 
