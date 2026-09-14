@@ -360,17 +360,16 @@ def bm25_score(
     Single canonical scoring formula (kernel's raison d'être: ranking
     semantics must not drift between consumers). ``term_freqs`` /
     ``doc_freqs`` are keyed by the query tokens present in the document /
-    corpus respectively. Existing inline copies in cache.search and
-    wiki_search.search predate this helper and are pending migration —
-    new consumers (e.g. KnowledgeStore.search_memories) MUST go through
-    here instead of re-inlining the formula.
+    corpus respectively. The idf term carries the ``max(0.0, ...)`` clamp
+    the legacy inline copies had (the Okapi variant is never negative, but
+    the clamp keeps exact behavioural parity with the pre-migration paths).
     """
     dl = doc_len or 1
     avgdl = avg_doc_len or 1.0
     score = 0.0
     for qt, f in term_freqs.items():
         df = doc_freqs.get(qt, 0)
-        idf = math.log(1 + (n_docs - df + 0.5) / (df + 0.5))
+        idf = max(0.0, math.log((n_docs - df + 0.5) / (df + 0.5) + 1.0))
         score += idf * (f * (k1 + 1)) / (f + k1 * (1 - b + b * dl / avgdl))
     return score
 
