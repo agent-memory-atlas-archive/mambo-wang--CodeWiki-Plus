@@ -353,12 +353,7 @@ def _cleanup_event_file(path: Optional[str]) -> None:
 
 def _event_name(event: Dict[str, Any]) -> str:
     """Lower-cased hook event name (several IDEs spell the key differently)."""
-    raw = (
-        event.get("hook_event_name")
-        or event.get("hookEventName")
-        or event.get("event")
-        or ""
-    )
+    raw = event.get("hook_event_name") or event.get("hookEventName") or event.get("event") or ""
     return str(raw).strip().lower()
 
 

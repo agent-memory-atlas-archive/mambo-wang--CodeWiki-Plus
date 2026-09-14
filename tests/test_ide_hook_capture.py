@@ -714,10 +714,14 @@ def test_filename_collision_appends_suffix(tmp_path):
 
     conv = [{"role": "user", "content": "重复的开场白"}, {"role": "assistant", "content": "回答"}]
     _json.loads(
-        _cap.handle_capture_conversation({"repo_path": str(out.parent), "conversation": conv}, _Store())
+        _cap.handle_capture_conversation(
+            {"repo_path": str(out.parent), "conversation": conv}, _Store()
+        )
     )
     _json.loads(
-        _cap.handle_capture_conversation({"repo_path": str(out.parent), "conversation": conv}, _Store())
+        _cap.handle_capture_conversation(
+            {"repo_path": str(out.parent), "conversation": conv}, _Store()
+        )
     )
     # Second capture supersedes the first (same source_session empty) — but here
     # neither has source_session_id, so they are both written. Ensure distinct.
@@ -737,7 +741,11 @@ def test_tool_digest_keeps_calls_and_success_tails():
     lines = digest_blocks(
         [
             {"type": "thinking", "text": "internal"},
-            {"type": "tool-call", "toolName": "Bash", "args": {"command": "git push origin develop"}},
+            {
+                "type": "tool-call",
+                "toolName": "Bash",
+                "args": {"command": "git push origin develop"},
+            },
             {"type": "tool-result", "text": "Everything up-to-date"},
             {"type": "text", "text": "pushed"},
         ]
@@ -760,7 +768,11 @@ def test_tool_digest_keeps_error_excerpts():
                 "type": "tool-result",
                 "text": "error: Unknown option '--no-dev'. Did you mean '--no-group dev'?\nexit code 2",
             },
-            {"type": "tool-call", "toolName": "Bash", "args": {"command": "uv sync --no-group dev"}},
+            {
+                "type": "tool-call",
+                "toolName": "Bash",
+                "args": {"command": "uv sync --no-group dev"},
+            },
             {"type": "tool-result", "text": "Installed 42 packages"},
         ]
     )
@@ -776,7 +788,9 @@ def test_tool_digest_is_error_flag_and_budget():
     from codewiki.src.tool_digest import digest_blocks
 
     # is_error flag alone promotes the excerpt even without fingerprints
-    lines = digest_blocks([{"type": "tool-result", "is_error": True, "text": "weird failure shape"}])
+    lines = digest_blocks(
+        [{"type": "tool-result", "is_error": True, "text": "weird failure shape"}]
+    )
     assert lines and lines[0].startswith("[tool-error: weird failure shape")
 
     # long payloads are clipped, not dumped wholesale

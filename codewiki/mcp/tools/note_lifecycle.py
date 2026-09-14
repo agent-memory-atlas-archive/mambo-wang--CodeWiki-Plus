@@ -88,9 +88,7 @@ def handle_confirm_note(arguments: Dict[str, Any], store: SessionStore) -> str:
     if isinstance(evidence, dict):
         _known = ("test_ref", "commit_ref", "reviewed_by")
         verification = {
-            k: str(v)
-            for k, v in evidence.items()
-            if k in _known and str(v or "").strip()
+            k: str(v) for k, v in evidence.items() if k in _known and str(v or "").strip()
         }
         unknown = set(evidence) - set(_known)
         if unknown:

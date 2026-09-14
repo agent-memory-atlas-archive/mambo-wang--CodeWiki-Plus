@@ -75,9 +75,7 @@ def _write_raw(repo: Path, cid: str, body: str = "user: hi\nassistant: hello") -
 
 def _outcome(od: Path, args: dict) -> dict:
     store = SessionStore()
-    return json.loads(
-        handle_report_outcome({"repo_path": str(od.parent), **args}, store)
-    )
+    return json.loads(handle_report_outcome({"repo_path": str(od.parent), **args}, store))
 
 
 # --------------------------------------------------------------------------- #
@@ -104,8 +102,12 @@ class TestReportOutcome:
         KnowledgeStore(od).write_binding("sess-1", "任务A")
         r = _outcome(
             od,
-            {"doc": "notes/x.md", "result": "failure", "source_session_id": "sess-1",
-             "note": "锁语义照抄反而死锁"},
+            {
+                "doc": "notes/x.md",
+                "result": "failure",
+                "source_session_id": "sess-1",
+                "note": "锁语义照抄反而死锁",
+            },
         )
         assert r["task_id"] == "任务A"
         ev = _events(od, user_id())[0]
@@ -117,8 +119,12 @@ class TestReportOutcome:
         KnowledgeStore(od).write_binding("sess-1", "任务A")
         r = _outcome(
             od,
-            {"doc": "notes/x.md", "result": "success",
-             "task_id": "显式任务", "source_session_id": "sess-1"},
+            {
+                "doc": "notes/x.md",
+                "result": "success",
+                "task_id": "显式任务",
+                "source_session_id": "sess-1",
+            },
         )
         assert r["task_id"] == "显式任务"
 
@@ -262,14 +268,10 @@ class TestNegativeExamplesInPrepare:
     def test_distill_prepare_carries_negative_examples(self, tmp_path):
         repo, od = _make_repo(tmp_path)
         _write_raw(repo, "neg-1")
-        record_outcome(
-            od, "notes/x.md", "failure", task_id="任务A", note="照抄锁语义导致死锁"
-        )
+        record_outcome(od, "notes/x.md", "failure", task_id="任务A", note="照抄锁语义导致死锁")
         store = SessionStore()
         out = json.loads(
-            distill.handle_distill_conversation(
-                {"repo_path": str(repo), "mode": "prepare"}, store
-            )
+            distill.handle_distill_conversation({"repo_path": str(repo), "mode": "prepare"}, store)
         )
         assert out["status"] == "prepared"
         assert out["negative_examples"] == [
@@ -283,9 +285,7 @@ class TestNegativeExamplesInPrepare:
         record_outcome(od, "notes/x.md", "success")
         store = SessionStore()
         out = json.loads(
-            distill.handle_distill_conversation(
-                {"repo_path": str(repo), "mode": "prepare"}, store
-            )
+            distill.handle_distill_conversation({"repo_path": str(repo), "mode": "prepare"}, store)
         )
         assert "negative_examples" not in out
 
@@ -294,9 +294,7 @@ class TestNegativeExamplesInPrepare:
         record_outcome(od, "notes/x.md", "failure", note="归因错了一层")
         store = SessionStore()
         out = json.loads(
-            cons.handle_consolidate_notes(
-                {"repo_path": str(repo), "mode": "prepare"}, store
-            )
+            cons.handle_consolidate_notes({"repo_path": str(repo), "mode": "prepare"}, store)
         )
         assert out["status"] == "prepared"
         assert out["negative_examples"][0]["doc"] == "notes/x.md"
@@ -306,9 +304,7 @@ class TestNegativeExamplesInPrepare:
         repo, od = _make_repo(tmp_path)
         store = SessionStore()
         out = json.loads(
-            cons.handle_consolidate_notes(
-                {"repo_path": str(repo), "mode": "prepare"}, store
-            )
+            cons.handle_consolidate_notes({"repo_path": str(repo), "mode": "prepare"}, store)
         )
         assert "negative_examples" not in out
 

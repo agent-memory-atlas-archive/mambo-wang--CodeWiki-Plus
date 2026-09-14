@@ -287,10 +287,20 @@ def test_prepare_aggregates_open_issues_per_skill(tmp_path):
         {
             "skill": "target-skill",
             "issues": [
-                {"id": "id1", "issue_type": "custom", "description": "issue on skills/target-skill/SKILL.md",
-                 "severity": "warning", "updated_at": "2026-09-02T00:00:00"},
-                {"id": "id2", "issue_type": "custom", "description": "issue on skills/target-skill/SKILL.md",
-                 "severity": "warning", "updated_at": "2026-09-02T00:00:00"},
+                {
+                    "id": "id1",
+                    "issue_type": "custom",
+                    "description": "issue on skills/target-skill/SKILL.md",
+                    "severity": "warning",
+                    "updated_at": "2026-09-02T00:00:00",
+                },
+                {
+                    "id": "id2",
+                    "issue_type": "custom",
+                    "description": "issue on skills/target-skill/SKILL.md",
+                    "severity": "warning",
+                    "updated_at": "2026-09-02T00:00:00",
+                },
             ],
         }
     ]

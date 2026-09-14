@@ -66,7 +66,9 @@ def test_digest_blocks_keeps_command_skeleton():
         {
             "type": "tool-call",
             "name": "execute_command",
-            "input": {"command": f"cd d:/repo; $env:UV_PUBLISH_TOKEN='{PYPI}'; uv publish dist/x.tar.gz"},
+            "input": {
+                "command": f"cd d:/repo; $env:UV_PUBLISH_TOKEN='{PYPI}'; uv publish dist/x.tar.gz"
+            },
         }
     ]
     joined = "\n".join(digest_blocks(blocks))

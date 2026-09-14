@@ -256,9 +256,7 @@ def test_note_material_hint_points_at_notes_source():
         kind="note",
         note_type="procedure",
     )
-    hint = sm.build_skill_hint(
-        "material", {"file": "notes/a.md", "kind": "note", "score": score}
-    )
+    hint = sm.build_skill_hint("material", {"file": "notes/a.md", "kind": "note", "score": score})
     msg = hint["skill_hint"]["message"]
     assert "笔记" in msg
     assert 'sources=["notes"]' in msg
@@ -282,9 +280,7 @@ def _mk_repo(tmp_path: Path, skills: dict[str, str] | None = None) -> Path:
 def _run_hook(repo: Path, event: dict, tmp_path: Path, capsys) -> str:
     event_file = tmp_path / "event.json"
     event_file.write_text(json.dumps(event, ensure_ascii=False), encoding="utf-8")
-    code = hook.main(
-        ["--enable", "--conversation", str(event_file), "--repo-path", str(repo)]
-    )
+    code = hook.main(["--enable", "--conversation", str(event_file), "--repo-path", str(repo)])
     assert code == 0
     return capsys.readouterr().out
 

@@ -68,7 +68,9 @@ _ENV_ASSIGN_PATTERNS: List[Tuple[str, "re.Pattern[str]"]] = [
     (
         "env-assign",
         re.compile(
-            r"(?i)(\$env:)(?P<name>" + _SECRET_ASSIGN_NAME + r")\s*=\s*['\"]?(?P<value>[^\s'\"&|;]{8,})"
+            r"(?i)(\$env:)(?P<name>"
+            + _SECRET_ASSIGN_NAME
+            + r")\s*=\s*['\"]?(?P<value>[^\s'\"&|;]{8,})"
         ),
     ),
 ]

@@ -124,18 +124,44 @@ _SUCCESS_LINE_MAX = 120
 # forever.
 _READ_ONLY_TOOL_NAMES = frozenset(
     {
-        "read", "read_file", "readfile", "read_file", "view", "view_file",
-        "view_repo_file", "cat", "show", "open",
-        "search", "search_content", "searchcontent", "search_file",
-        "searchfile", "grep", "rg", "glob", "find", "codebase_search",
-        "list", "list_dir", "listdir", "ls", "tree", "dir",
-        "fetch", "web_fetch", "webfetch", "web_search", "websearch",
+        "read",
+        "read_file",
+        "readfile",
+        "read_file",
+        "view",
+        "view_file",
+        "view_repo_file",
+        "cat",
+        "show",
+        "open",
+        "search",
+        "search_content",
+        "searchcontent",
+        "search_file",
+        "searchfile",
+        "grep",
+        "rg",
+        "glob",
+        "find",
+        "codebase_search",
+        "list",
+        "list_dir",
+        "listdir",
+        "ls",
+        "tree",
+        "dir",
+        "fetch",
+        "web_fetch",
+        "webfetch",
+        "web_search",
+        "websearch",
     }
 )
 
 
 def _is_read_only_tool(name: str) -> bool:
     return (name or "").strip().lower() in _READ_ONLY_TOOL_NAMES
+
 
 # Runtime escape hatch (a runaway capture still needs a kill switch). Both
 # capture paths share this module and the IDE hook cannot read schema.yaml
@@ -149,6 +175,7 @@ _OFF_VALUES = frozenset({"0", "off", "false", "no", "none"})
 def detail_enabled() -> bool:
     """Whether successful tool results are kept (default: yes)."""
     return (os.environ.get(_ENV_DETAIL) or "").strip().lower() not in _OFF_VALUES
+
 
 # Error fingerprints for result classification (case-insensitive substring).
 _ERROR_FINGERPRINTS = (
@@ -197,7 +224,9 @@ def _clip(s: str, limit: int) -> str:
 def digest_tool_call_block(block: Dict[str, Any]) -> str:
     """Compress a tool-invocation block into one ``[tool: …]`` line."""
     name = block.get("name") or block.get("toolName") or block.get("tool_name") or "?"
-    payload = block.get("input") or block.get("arguments") or block.get("args") or block.get("params")
+    payload = (
+        block.get("input") or block.get("arguments") or block.get("args") or block.get("params")
+    )
     detail = _first_param_line(payload)
     line = f"[tool: {name}" + (f" · {detail}" if detail else "") + "]"
     return _clip(line, _TOOL_LINE_MAX)
@@ -218,9 +247,7 @@ def digest_tool_result_block(block: Dict[str, Any], tool_name: str = "") -> str:
         is_err = False
     content = block.get("content") or block.get("text") or block.get("result") or ""
     if isinstance(content, list):
-        content = " ".join(
-            p.get("text", "") for p in content if isinstance(p, dict)
-        )
+        content = " ".join(p.get("text", "") for p in content if isinstance(p, dict))
     if not isinstance(content, str):
         content = str(content) if content else ""
     content = content.strip()
@@ -240,9 +267,7 @@ def digest_tool_result_block(block: Dict[str, Any], tool_name: str = "") -> str:
 
 
 def _tool_name(block: Dict[str, Any]) -> str:
-    return str(
-        block.get("name") or block.get("toolName") or block.get("tool_name") or ""
-    )
+    return str(block.get("name") or block.get("toolName") or block.get("tool_name") or "")
 
 
 def _is_low_signal_tool(name: str) -> bool:

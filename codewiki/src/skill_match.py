@@ -220,9 +220,7 @@ def score_skill_material(
         worth = bool((procedural or cmd_hits >= cmd_threshold) and not already_compiled)
     else:
         worth = bool(
-            cmd_hits >= cmd_threshold
-            and not already_compiled
-            and notes_refs >= min_note_refs
+            cmd_hits >= cmd_threshold and not already_compiled and notes_refs >= min_note_refs
         )
     return {
         "kind": kind,
@@ -261,7 +259,7 @@ def build_skill_hint(kind: str, payload: Dict[str, Any]) -> Dict[str, Any]:
                 "score": payload.get("score"),
                 "message": (
                     f"适用技能草稿 `{name}`：{description}\n"
-                    f"如需启用：skill_creator(mode=\"install\", name=\"{name}\")\n"
+                    f'如需启用：skill_creator(mode="install", name="{name}")\n'
                     "（需你确认后执行；我不会自动 install）"
                 ),
             }
@@ -287,7 +285,7 @@ def build_skill_hint(kind: str, payload: Dict[str, Any]) -> Dict[str, Any]:
                 "message": (
                     f"{label} `{rel}` {detail}，"
                     "读起来像可执行的行为指令而非参考知识，可能值得编译成技能。\n"
-                    f"如需评估：skill_creator(mode=\"prepare\", sources=[\"{sources_arg}\"])\n"
+                    f'如需评估：skill_creator(mode="prepare", sources=["{sources_arg}"])\n'
                     "（需你确认后执行；我不会自动编译）"
                 ),
             }

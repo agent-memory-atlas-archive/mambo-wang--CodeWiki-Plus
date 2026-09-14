@@ -287,11 +287,10 @@ def _load_knowledge_overview(repo_path: str) -> str:
             return ""
         recent = [p.name[:-3] for p in notes[:3]]
         lines = [
-            "【知识库提示】本仓库有 repowiki 知识库"
-            f"（{len(notes)} 条笔记），改文件/做设计前先查：",
+            f"【知识库提示】本仓库有 repowiki 知识库（{len(notes)} 条笔记），改文件/做设计前先查：",
             "- 改某文件前：query_wiki(by_file=<路径>) 查该文件的历史决策与教训；",
             "- 主题检索：query_wiki(mode='check') 先轻量预检，再全文检索（结果带 est_tokens 成本）；",
-            f"- 最新笔记：{ '；'.join(recent) }",
+            f"- 最新笔记：{'；'.join(recent)}",
         ]
         return "\n".join(lines)
     except OSError:

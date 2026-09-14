@@ -1484,7 +1484,9 @@ def prompt_catalog() -> list[dict[str, Any]]:
                     "resources.catalog.argument",
                     name=arg_name,
                     scope=_i18n.t(
-                        "resources.catalog.optional" if not required else "resources.catalog.required"
+                        "resources.catalog.optional"
+                        if not required
+                        else "resources.catalog.required"
                     ),
                     description=_i18n.t("prompts." + meta["name"] + ".args." + arg_name),
                 )
@@ -1497,7 +1499,6 @@ def prompt_catalog() -> list[dict[str, Any]]:
 
 def register(server):
     """Register prompt handlers on the given MCP Server instance."""
-    from mcp.types import Prompt, PromptArgument
 
     @server.list_prompts()
     async def list_prompts() -> list:

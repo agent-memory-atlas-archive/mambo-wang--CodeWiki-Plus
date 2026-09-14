@@ -52,9 +52,7 @@ def handle_report_outcome(arguments: Dict[str, Any], store: SessionStore) -> str
     else:
         rp = arguments.get("repo_path")
         if not rp:
-            return json.dumps(
-                {"error": "repo_path is required (or pass an active session)."}
-            )
+            return json.dumps({"error": "repo_path is required (or pass an active session)."})
         from codewiki.mcp.tools.workspace_layout import default_output_dir
 
         output_dir = default_output_dir(Path(rp).expanduser().resolve())

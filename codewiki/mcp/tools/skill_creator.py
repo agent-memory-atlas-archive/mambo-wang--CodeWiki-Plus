@@ -244,9 +244,7 @@ def _scan_skills(output_dir: Path) -> List[Dict[str, Any]]:
                 "status": str(fm.get("status") or "draft"),
                 "description": str(fm.get("description") or ""),
                 "summary": str(meta.get("summary") or "")[:_SUMMARY_CHARS],
-                "source_refs": [
-                    _norm_rel(str(r), output_dir) for r in refs if str(r).strip()
-                ],
+                "source_refs": [_norm_rel(str(r), output_dir) for r in refs if str(r).strip()],
             }
         )
     return out
@@ -346,9 +344,7 @@ def _candidate_notes(
             from codewiki.src.skill_match import score_skill_material
 
             worth = bool(
-                score_skill_material(body, kind="note", note_type=ntype).get(
-                    "worth_compiling"
-                )
+                score_skill_material(body, kind="note", note_type=ntype).get("worth_compiling")
             )
         except Exception:  # advisory only — a scoring failure must not filter
             worth = False
@@ -417,9 +413,7 @@ def _skill_capacity(live_count: int) -> Dict[str, Any]:
     }
 
 
-def _conflict_precheck(
-    topic: Optional[str], skills: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+def _conflict_precheck(topic: Optional[str], skills: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Jaccard(>0.6) conflict pre-check of *topic* against existing skills."""
     if not (topic or "").strip():
         return {
@@ -541,14 +535,12 @@ def _validate_entry(
     if action == "created" and path.is_file():
         return _err(
             "name_conflict",
-            f"skills/{name}/SKILL.md already exists; use action='updated' "
-            "(or retire + re-create).",
+            f"skills/{name}/SKILL.md already exists; use action='updated' (or retire + re-create).",
         )
     if action == "updated" and not path.is_file():
         return _err(
             "not_found",
-            f"skills/{name}/SKILL.md not found; action='updated' requires an "
-            "existing draft.",
+            f"skills/{name}/SKILL.md not found; action='updated' requires an existing draft.",
         )
 
     return (
@@ -566,9 +558,7 @@ def _validate_entry(
     )
 
 
-def _render_skill_doc(
-    fm: Dict[str, Any], body: str
-) -> str:
+def _render_skill_doc(fm: Dict[str, Any], body: str) -> str:
     from codewiki.src.frontmatter import render_frontmatter
 
     return render_frontmatter(fm) + "\n" + body + "\n"
@@ -791,9 +781,7 @@ def _mode_retire(arguments: Dict[str, Any], output_dir: Path) -> str:
     if not name:
         return json.dumps({"error": "retire requires 'name' and 'reason'."})
     if not reason:
-        return json.dumps(
-            {"error": "retire requires 'reason' (audit trail, design §4.1)."}
-        )
+        return json.dumps({"error": "retire requires 'reason' (audit trail, design §4.1)."})
     draft = _skills_dir(output_dir) / name / "SKILL.md"
     if not draft.is_file():
         return json.dumps({"error": f"draft skills/{name}/SKILL.md not found."})
@@ -878,8 +866,10 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
 
     mode = str(arguments.get("mode") or "prepare").lower()
     if mode in ("install", "retire"):
-        return _mode_install(arguments, output_dir) if mode == "install" else _mode_retire(
-            arguments, output_dir
+        return (
+            _mode_install(arguments, output_dir)
+            if mode == "install"
+            else _mode_retire(arguments, output_dir)
         )
     if mode not in ("prepare", "submit"):
         return json.dumps(
@@ -898,23 +888,17 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
         if isinstance(raw_sources, str):
             raw_sources = [raw_sources]
         if isinstance(raw_sources, list):
-            mapped = {
-                _KIND_ALIASES.get(str(s).strip().lower()) for s in raw_sources
-            } - {None}
+            mapped = {_KIND_ALIASES.get(str(s).strip().lower()) for s in raw_sources} - {None}
             if mapped:
                 kinds = mapped
 
         skills = _scan_skills(output_dir)
         absorbed = _absorbed_paths(skills)
         scenarios, scen_avail = (
-            _candidate_scenarios(output_dir, absorbed, limit)
-            if "scenarios" in kinds
-            else ([], 0)
+            _candidate_scenarios(output_dir, absorbed, limit) if "scenarios" in kinds else ([], 0)
         )
         notes, note_avail = (
-            _candidate_notes(output_dir, absorbed, limit)
-            if "notes" in kinds
-            else ([], 0)
+            _candidate_notes(output_dir, absorbed, limit) if "notes" in kinds else ([], 0)
         )
         scen_trunc = scen_avail > len(scenarios)
         note_trunc = note_avail > len(notes)
@@ -938,8 +922,7 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
                 },
                 "open_issues_by_skill": open_issues,
                 "skills_index": [
-                    {k: s[k] for k in ("name", "file", "status", "summary")}
-                    for s in skills
+                    {k: s[k] for k in ("name", "file", "status", "summary")} for s in skills
                 ],
                 "conflict_precheck": conflict,
                 "capacity": capacity,
@@ -996,7 +979,9 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
     seen_names: Set[str] = set()
     for entry in entries:
         if not isinstance(entry, dict):
-            errors.append({"name": "<invalid>", "rule": "entry_invalid", "message": "not an object"})
+            errors.append(
+                {"name": "<invalid>", "rule": "entry_invalid", "message": "not an object"}
+            )
             continue
         err, values = _validate_entry(entry, output_dir)
         if err:

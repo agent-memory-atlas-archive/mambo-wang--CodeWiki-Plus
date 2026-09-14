@@ -394,8 +394,7 @@ def _parse_frontmatter(path: Path) -> Dict[str, str]:
         return {}
     fm, _ = parse_frontmatter(text)
     return {
-        k: v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
-        for k, v in fm.items()
+        k: v if isinstance(v, str) else json.dumps(v, ensure_ascii=False) for k, v in fm.items()
     }
 
 
@@ -1854,9 +1853,7 @@ def handle_distill_conversation(
                     if not score.get("worth_compiling"):
                         continue
                     try:
-                        rel = str(
-                            Path(nf).resolve().relative_to(Path(output_dir).resolve())
-                        )
+                        rel = str(Path(nf).resolve().relative_to(Path(output_dir).resolve()))
                     except ValueError:
                         rel = f"notes/{Path(nf).name}"
                     material_hint = build_skill_hint(
