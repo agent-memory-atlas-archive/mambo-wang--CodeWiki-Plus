@@ -12,8 +12,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-[team-memory]-SessionEnd-hook-fired-but-the-IDE-provided-no.md
   scene: hook 采集
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
@@ -23,6 +23,8 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-08T05:28:21Z'
+reject_reason: 被 notes/2026-09-16-移除事件信封落盘无-transcript-的-hook-生命周期事件一律-no-op仅-stderr-诊断.md
+  取代：事件信封落盘路径已整体移除，SessionEnd 无 transcript 时不再写 raw（磁盘零写入、仅 stderr 诊断），原结论『raw 里出现空信封属预期行为、蒸馏时直接跳过』方向已反转
 ---
 
 ## Background
