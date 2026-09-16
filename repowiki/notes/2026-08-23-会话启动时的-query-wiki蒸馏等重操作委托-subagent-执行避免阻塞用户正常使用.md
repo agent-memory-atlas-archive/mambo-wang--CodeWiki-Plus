@@ -33,13 +33,15 @@ author: mambo-wang
 
 ## Decision
 
-将补蒸馏等重操作委托 subagent 执行：创建 `.codebuddy/agents/distill-worker.md`（project 级、agentic 模式，授权 ReadFile + codewiki MCP），主 Agent 在检测到 pending_raw_count > 0 时用 Task 工具 spawn 它后台执行 Mode C 蒸馏（prepare → 逐条 read_file 提取 → submit），主 Agent 不等蒸馏完成，直接开始回答用户提问；在自然停顿点拉取结果并向用户展示待确认项。
+将补蒸馏等重操作委托 subagent 执行：创建 `.codebuddy/agents/distill-worker.md`（project 级、agentic 模式，授权 codewiki MCP），主 Agent 在检测到 pending_raw_count > 0 时用 Task 工具 spawn 它执行 Mode C 蒸馏（prepare → 逐条 read_file 提取 → submit）；在自然停顿点拉取结果并向用户展示待确认项。
+
+> **2026-09-16 更新（本条的下述两处细节已被取代）**：① 授权方式改为 `mcpServers: [codewiki]`——原写法 `tools: ReadFile` 是白名单会把 MCP 工具一起挡掉，`toolsMCP` 又是非官方字段无效，两者叠加导致 worker「0 tool uses 空转」；② 执行方式由「后台不阻塞」改为**阻塞式、先记忆后回答**——主 Agent 必须等 worker 返回并重新 `get_task_context` 后才回答用户。「委托 subagent 执行」这一主结论仍然有效。
 
 ## Rationale
 
 - 上下文隔离：raw 原文在 subagent 独立上下文消化，主会话只留摘要级信息。
-- 不阻塞：spawn 后主 Agent 立即返回用户问题，蒸馏后台完成。
-- 权限最小化 + 评审闸门分离：subagent 仅授权 ReadFile + codewiki MCP，且不执行 confirm_note/confirm_task_memories——正式落盘必须由主 Agent 与用户确认。
+- ~~不阻塞：spawn 后主 Agent 立即返回用户问题，蒸馏后台完成。~~ **已被取代（2026-09-16）**：改为阻塞式、先记忆后回答——先蒸馏落记忆、再回答用户，避免"回答时记忆还是旧的"。
+- 权限边界 + 评审闸门分离：subagent 授权 codewiki MCP（`mcpServers`），且不执行 confirm_note/reject_note——笔记草稿的正式落盘必须由主 Agent 与用户确认（任务记忆由 `distill_conversation` 直写落盘，无需确认——ADR-0002）。
 
 ## 相关文档
 

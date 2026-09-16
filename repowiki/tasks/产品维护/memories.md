@@ -5,7 +5,7 @@
 【已落地决策与实现】
 - 任务记忆绑定机制：capture_conversation 的 task_id 依赖绑定文件消费，已加 _resolve_task_from_binding 回退逻辑（绑定存在即盖章，不校验任务 status）+ task_source 字段；task_bindings 为一次性消费凭证，supersede 继承旧 task_id。后续可选：若需「只认 active 任务」，在回退逻辑里查 tasks/.index.json 的 status。
 - SessionStart hook 强化：task_session_start.py 新增「硬性执行顺序」（会话第一动作必须是任务关联弹框）并直接把 active 任务标题+task_id 注入 additionalContext；codewiki/hooks 源副本与 .codebuddy/hooks 项目副本同步维护。
-- 补蒸馏委托 subagent：创建 .codebuddy/agents/distill-worker.md，hook 启用时自动从 codewiki/agents/distill-worker.md 权威版本拷贝到项目；AGENTS.md/prompts.py/README 同步措辞；不阻塞主 Agent 回答。
+- 补蒸馏委托 subagent：创建 .codebuddy/agents/distill-worker.md，hook 启用时自动从 codewiki/agents/distill-worker.md 权威版本拷贝到项目；AGENTS.md/prompts.py/README 同步措辞；不阻塞主 Agent 回答。→ **2026-09-16 更新**：执行方式改为**阻塞式、先记忆后回答**（worker 返回后重新 get_task_context 再回答用户）；授权方式为 `mcpServers: [codewiki]`（勿写 `tools:` 白名单，会挡掉 MCP 工具）。
 - 多 IDE hook 自动检测接线（v5.4.0）：CodeBuddy/Qoder/Claude Code 三类 IDE，codewiki install-hooks + IDE 注册表驱动；已发 PyPI 与 GitHub Release。
 - README 措辞：hook 采集仅接线支持 CodeBuddy（.codebuddy/settings.json）；_ide_hook.py 已做 CodeBuddy/Claude-Code 事件载荷兼容。
 - 蒸馏工具链修复：capture_conversation _unq 提升模块级、_rebuild_index 与 pending_raws_by_task 去引号（修 .index.json task_id 带字面引号 bug）；lint_wiki 新增 fix=true 自愈过期索引；_okf_patch_defaults 补 aliases 默认键并 backfill。
@@ -14,7 +14,7 @@
 
 【未决/待办】
 - 文档质量审计（lint_wiki checks=all）曾被任务引导打断，用户明确搁置（「不用」），后续如需可重新发起。
-- 待验证：distill-worker.md frontmatter（toolsMCP、agentic 模式）依赖 IDE 对 subagent 定义的解析，需在新会话观察 hook 是否成功把蒸馏委托出去。
+- 待验证：distill-worker.md frontmatter（toolsMCP、agentic 模式）依赖 IDE 对 subagent 定义的解析，需在新会话观察 hook 是否成功把蒸馏委托出去。→ **2026-09-16 已定案**：`toolsMCP` 非官方字段、静默无效，且 `tools: ReadFile` 白名单挡掉全部 MCP 工具，二者叠加导致 worker「0 tool uses 空转」；现改为 `mcpServers: [codewiki]` 并省略 `tools` 行。修复须落回随包源变体（`codewiki/agents/*.md`）+ 守门测试，只修 `.codebuddy/agents/` 副本会被 install-hooks 覆盖打回。
 - 安全：推送时发现对话归档含 PyPI token 已脱敏 amend；建议吊销 token、删除 raw 中的 token、清理 scripts/ 临时文件。
 
 【历史坑/约定】

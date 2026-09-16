@@ -635,7 +635,7 @@
 {"t": "hit", "doc": "notes/2026-09-11-agentsmd-约-79-内容由生成器托管直接编辑文件会被-install-hooks-冲掉持久改动必须改模板或常量.md", "at": "2026-09-16", "n": 5}
 {"t": "hit", "doc": "notes/2026-09-10-弹框工具的-options-条数建议会诱导-agent-拆成多框须在注入文案里显式覆盖.md", "at": "2026-09-16", "n": 3}
 {"t": "hit", "doc": "notes/2026-08-25-doctrine-不会自动注入-agent-上下文唯一通道是-query-wikimodeoverview.md", "at": "2026-09-16", "n": 3}
-{"t": "hit", "doc": "notes/2026-08-23-distill-worker-subagent-定义随包发布hook-启用时自动拷贝到项目-codebuddyagent.md", "at": "2026-09-16", "n": 6}
+{"t": "hit", "doc": "notes/2026-08-23-distill-worker-subagent-定义随包发布hook-启用时自动拷贝到项目-codebuddyagent.md", "at": "2026-09-16", "n": 7}
 {"t": "hit", "doc": "notes/2026-08-25-untracked-新文件不在分析图谱内review-changes-changed-sources-切片为空.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-08-25-review-changes-全轴-prepare-单次调用易挂起mcp-通道卡住.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-07-userpromptsubmit-的-ide-hook---enable-是-draft-技能提示通道advisory只.md", "at": "2026-09-16", "n": 3}
@@ -652,7 +652,7 @@
 {"t": "hit", "doc": "notes/2026-09-05-frontmatter-的-sources-是采样锚点不能当作文档覆盖率声明.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "wiki/modules/RouteExtractors.md", "at": "2026-09-16", "n": 2}
 {"t": "hit", "doc": "wiki/modules/AnalyzerModels.md", "at": "2026-09-16", "n": 1}
-{"t": "hit", "doc": "wiki/scenarios/IDE-Hook采集链路方法.md", "at": "2026-09-16", "n": 1}
+{"t": "hit", "doc": "wiki/scenarios/IDE-Hook采集链路方法.md", "at": "2026-09-16", "n": 2}
 {"t": "hit", "doc": "notes/2026-09-11-skill-自动编译不存在全仓只有-hint-通道没有任何环境变量开关.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-08-23-hook-采集机制仅正式接线-codebuddyreadme-措辞用仅接线支持.md", "at": "2026-09-16", "n": 2}
 {"t": "hit", "doc": "notes/2026-08-26-fork-来源的-pr-与目标分支冲突时的维护者合入流程merge-tree-探测-worktree-push-fork.md", "at": "2026-09-16", "n": 1}
@@ -663,13 +663,16 @@
 {"t": "hit", "doc": "wiki/modules/MCP_Server.md", "at": "2026-09-16", "n": 2}
 {"t": "hit", "doc": "notes/2026-08-26-build-后端-setuptoolshatchling-迁移后-wheel-内容会变化需对比文件清单而非只看能否安装.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-08-26-handle-query-wiki-在-session-存在时每次查询都全量重建检索索引.md", "at": "2026-09-16", "n": 1}
-{"t": "hit", "doc": "wiki/modules/MCP_Prompts.md", "at": "2026-09-16", "n": 3}
+{"t": "hit", "doc": "wiki/modules/MCP_Prompts.md", "at": "2026-09-16", "n": 4}
 {"t": "hit", "doc": "wiki/queries/skill-creator设计方案.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "wiki/modules/MCP_Tools_Quality.md", "at": "2026-09-16", "n": 1}
-{"t": "hit", "doc": "wiki/scenarios/对话蒸馏管线与raw暂存区.md", "at": "2026-09-16", "n": 1}
-{"t": "hit", "doc": "notes/2026-09-07-skill-candidate-hint-设计裁决进展蒸馏session-start-双提醒按主题去抖容量硬顶静音后台静.md", "at": "2026-09-16", "n": 1}
+{"t": "hit", "doc": "wiki/scenarios/对话蒸馏管线与raw暂存区.md", "at": "2026-09-16", "n": 3}
+{"t": "hit", "doc": "notes/2026-09-07-skill-candidate-hint-设计裁决进展蒸馏session-start-双提醒按主题去抖容量硬顶静音后台静.md", "at": "2026-09-16", "n": 2}
 {"t": "hit", "doc": "notes/2026-09-11-repowikiconversations-未被-gitignore-忽略且含原始转录提交前必须扫-secret.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-08-29-登记业务仓后不自动生成-wiki必须等用户显式要求.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-10-技能编译素材以笔记为主场景为辅笔记保留完整步骤序列场景是聚合压缩产物.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-05-confirmreject-生命周期已从-knowledge-looppy-拆到-note-lifecyclepy202.md", "at": "2026-09-16", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-08-sessionend-hook-触发但-ide-未提供-transcript-时只落一条事件信封进-raw-积压.md", "at": "2026-09-16", "n": 1}
+{"t": "hit", "doc": "notes/2026-09-08-蒸馏-worker-启动前先自检-mcp-可见性拿不到-distill-conversation-就停不要退让直连-ha.md", "at": "2026-09-16", "n": 1}
+{"t": "hit", "doc": "wiki/scenarios/任务记忆系统设计方法.md", "at": "2026-09-16", "n": 2}
+{"t": "hit", "doc": "notes/2026-08-23-会话启动时的-query-wiki蒸馏等重操作委托-subagent-执行避免阻塞用户正常使用.md", "at": "2026-09-16", "n": 2}

@@ -40,7 +40,7 @@ IDE hook 采集链路（capture_session_end.py → _ide_hook.py → capture_conv
 6. 配置合并用 `copy.deepcopy`；`hooks.get(event, [])` 取值后必须写回。
 7. hook 采集机制仅正式接线 CodeBuddy（底层已兼容 Claude Code），README 用「仅接线支持」措辞；扩展只需生成对应 settings.json 注册同一批 wrapper。
 8. distill-worker.md 权威版本存 `codewiki/agents/`（随包发布），hook 启用时自动拷贝到 `.codebuddy/agents/`；pyproject package-data 须声明 `"agents/*.md"`。
-9. **多宿主分发按家族发变体**：CodeBuddy 认 `tools: ReadFile` + `toolsMCP` 等私有字段，claude 家族（Qoder/Claude Code/Gemini CLI）认 `name/description` + 可选 tools，喂错家族解析出空工具集直接拒绝加载；目标文件名恒定，变体缺失回退默认源（降级不断线）。同名 ≠ 同 schema，同 schema ≠ 同权限模型，两层都要实测。
+9. **多宿主分发按家族发变体**：CodeBuddy 变体用 `mcpServers: [codewiki]` 授权 MCP（**勿写 `tools:` 白名单**——写了就只给列表内的工具、MCP 工具全被挡掉；**勿用 `toolsMCP`**——非官方字段、静默无效），claude 家族（Qoder/Claude Code/Gemini CLI）认 `name/description` + 可选 tools，喂错家族解析出空工具集直接拒绝加载；目标文件名恒定，变体缺失回退默认源（降级不断线）。同名 ≠ 同 schema，同 schema ≠ 同权限模型，两层都要实测。改定义必须改随包源变体（`codewiki/agents/*.md`）并加源变体守门测试——只修 `.codebuddy/agents/` 已装副本会被 install-hooks 强制覆盖打回。
 10. **MCP 不透传自定义子代理**：claude 家族变体省略 tools 行（继承最稳），不要枚举 `mcp__` 限定名；确需 MCP 时改 spawn 宿主**内置** general-purpose 子代理、以 distill-worker.md 正文当剧本。验证用子代理自己的 `mcp_list`；改完定义必须新开会话（subagent 注册表是启动时快照）。
 11. **hook 防御清单**：规则单事实源 + 运行时读取注入（不硬编码拷贝）；`requireSibling()` 校验兄弟模块形状、缺失降级；stdin 加 watchdog + unref 防挂起；按首个完整 JSON 触发而非等 EOF（Windows 管道 close 延迟）；hook 永不非零退出；fail-open 优先；per-session 状态而非全局标志；SessionStart 对 compact/resume 也重注入（防压缩后行为漂移）+ UserPromptSubmit 每轮轻提醒。
 12. **stdin 解码一律 `utf-8-sig` + `lstrip("\ufeff")`**（PowerShell 管道可能注入多个 BOM）；验证 hook 优先用 `--conversation <file>` 文件方式而非管道。

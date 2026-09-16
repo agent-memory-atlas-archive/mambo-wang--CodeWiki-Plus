@@ -35,7 +35,7 @@
 
 ## 2026-09-10 第二刀已落地：Task memory 段精简 + 剧本外移（改生成器）
 
-- `codewiki/mcp/prompts.py:40` `_TASK_MEMORY_AGENTS_SECTION` 3,286 → 836 字符（-74.6%）。保留 5 条运行时铁律（弹框只弹一次/一框列全、set_session_task 绑定、get_task_context、补蒸馏委托 subagent 不阻塞、草稿须 confirm_note 而记忆直写 ADR-0002）；存储布局与实现约束外移到同文件 `_prompt_task_workflow`（MCP prompt `task-workflow`）新增段，内容不丢；AGENTS.md 段尾加 `get_prompt(name="task-workflow")` 指针。
+- `codewiki/mcp/prompts.py:40` `_TASK_MEMORY_AGENTS_SECTION` 3,286 → 836 字符（-74.6%）。保留 5 条运行时铁律（弹框只弹一次/一框列全、set_session_task 绑定、get_task_context、补蒸馏委托 subagent（现为阻塞式先记忆后回答）、草稿须 confirm_note 而记忆直写 ADR-0002）；存储布局与实现约束外移到同文件 `_prompt_task_workflow`（MCP prompt `task-workflow`）新增段，内容不丢；AGENTS.md 段尾加 `get_prompt(name="task-workflow")` 指针。
 - 联动：该常量同时被 prompts.py 两处安装/卸载指令引用，一处改全处生效，无第二真相。
 - 本仓库 AGENTS.md 已刷新：10,175 → **6,473 字符（-36.4%）**；upsert 第一次 True（替换）、第二次 False（幂等）。
 - 全量 pytest：924 passed, 2 skipped。
