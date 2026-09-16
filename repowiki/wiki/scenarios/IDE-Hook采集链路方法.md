@@ -47,7 +47,7 @@ IDE hook 采集链路（capture_session_end.py → _ide_hook.py → capture_conv
 13. **非交互装技能**：`npx skills add` 加 `-y` 跳过 TUI、`-a codebuddy` 指定 agent；Universal 目录 `~/.agents/skills/` 始终落盘（TUI 未完成也已安装）；纯 SKILL.md 技能可直接复制到 `~/.codebuddy/skills/<id>/`，新会话生效（无 hook 时档位状态不持久化，压缩后可能漂移需重说一次）。
 
 ## 判断逻辑
-- transcript 噪声只保留 user/assistant；SessionEnd envelope 用 user 角色（system 会被静默丢弃）。
+- transcript 噪声只保留 user/assistant；hook 无 transcript 的生命周期事件（SessionEnd/Stop/PreCompact）一律 no-op，只留 stderr 诊断、不落盘（事件信封路径已移除）。
 - 注入系统三类失效：规则漂移（两处拷贝/被压缩剪掉）、进程脆弱（缺文件/管道延迟）、资源浪费（全量注入超预算）——防御要逐条对应。
 - 多宿主分发不能假设宿主能力一致，按家族裁剪而非共用一份。
 

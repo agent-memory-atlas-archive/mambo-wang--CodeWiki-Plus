@@ -1,16 +1,33 @@
 ---
 type: decision
-title: "移除事件信封落盘：无 transcript 的 hook 生命周期事件一律 no-op（仅 stderr 诊断）"
-tags: ["decision", "precompact", "sessionend"]
-aliases: ["事件信封", "envelope 落盘", "SessionEnd 无 transcript", "hook 采集降级 no-op"]
+title: 移除事件信封落盘：无 transcript 的 hook 生命周期事件一律 no-op（仅 stderr 诊断）
+tags:
+- decision
+- precompact
+- sessionend
+aliases:
+- 事件信封
+- envelope 落盘
+- SessionEnd 无 transcript
+- hook 采集降级 no-op
 metadata:
   date: 2026-09-16
-  confidence_level: weak
-  related_modules: ["hooks", "mcp", "capture"]
-status: draft
+  confidence_level: strong
+  related_modules:
+  - hooks
+  - mcp
+  - capture
+  verification:
+    test_ref: tests/test_ide_hook_capture.py::test_envelope_does_not_supersede_full_transcript
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-16T13:08:20Z }
-stale_after: 2027-09-16
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-16 13:08:20+00:00
+stale_after: '2027-09-16'
+verified:
+- by: human:wangbao
+  at: '2026-09-16T13:09:02Z'
 ---
 
 ## 背景
