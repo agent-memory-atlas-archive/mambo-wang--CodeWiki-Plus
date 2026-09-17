@@ -35,7 +35,7 @@ author: mambo-wang
 
 将补蒸馏等重操作委托 subagent 执行：创建 `.codebuddy/agents/distill-worker.md`（project 级、agentic 模式，授权 codewiki MCP），主 Agent 在检测到 pending_raw_count > 0 时用 Task 工具 spawn 它执行 Mode C 蒸馏（prepare → 逐条 read_file 提取 → submit）；在自然停顿点拉取结果并向用户展示待确认项。
 
-> **2026-09-16 更新（本条的下述两处细节已被取代）**：① 授权方式改为 `mcpServers: [codewiki]`——原写法 `tools: ReadFile` 是白名单会把 MCP 工具一起挡掉，`toolsMCP` 又是非官方字段无效，两者叠加导致 worker「0 tool uses 空转」；② 执行方式由「后台不阻塞」改为**阻塞式、先记忆后回答**——主 Agent 必须等 worker 返回并重新 `get_task_context` 后才回答用户。「委托 subagent 执行」这一主结论仍然有效。
+> **2026-09-16 更新（本条的下述两处细节已被取代）**：① 授权方式改为 `mcpServers: [codewiki]`——原写法 `tools: ReadFile` 是白名单会把 MCP 工具一起挡掉，`toolsMCP` 又是非官方字段无效，两者叠加导致 worker「0 tool uses 空转」；② 执行方式由「后台不阻塞」改为**阻塞式、先记忆后回答**——主 Agent 必须等 worker 返回并重新 `get_task_context` 后才回答用户。「委托 subagent 执行」这一主结论仍然有效。参见 `notes/2026-09-16-补蒸馏改为阻塞式先记忆后回答worker-返回后重新-get-task-context-再回答用户.md`、`notes/2026-09-16-修-subagenthook-定义只改已装副本会被-install-hooks-覆盖打回必须改随包源变体并加源变体守门测.md`。
 
 ## Rationale
 

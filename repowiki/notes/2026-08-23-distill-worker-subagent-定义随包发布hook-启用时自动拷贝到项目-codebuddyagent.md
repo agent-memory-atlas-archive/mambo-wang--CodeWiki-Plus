@@ -49,4 +49,4 @@ subagent 定义与 hook 脚本同属「启用即部署」的配套资源，与 `
 
 - `prompts.py` 语法 OK；`tests/test_task_session_start.py` 4 个测试全部通过；无 lint 错误。
 - ~~待验证点：`distill-worker.md` 的 frontmatter（`toolsMCP` 字段名、agentic 模式下 Task 工具是否能直接 spawn）依赖 IDE 对 subagent 定义的解析，需在下次新会话观察 hook 是否成功把蒸馏委托出去；若解析方式有差异只需调整该文件 frontmatter 字段名，不影响其他改动。~~
-- **已验证（2026-09-16）**：`toolsMCP` 是**非官方字段、静默无效**，且 `tools: ReadFile` 白名单会把 MCP 工具一并挡掉——两者叠加正是 worker「0 tool uses 空转」的根因。现写法改为 `mcpServers: [codewiki]` 并省略 `tools` 行。另注：修复必须改随包源变体（`codewiki/agents/*.md`），只改 `.codebuddy/agents/` 已装副本会被 `install-hooks` 强制覆盖打回。详见 `notes/2026-09-08-蒸馏-worker-启动前先自检-mcp-可见性拿不到-distill-conversation-就停不要退让直连-ha.md`。
+- **已验证（2026-09-16）**：`toolsMCP` 是**非官方字段、静默无效**，且 `tools: ReadFile` 白名单会把 MCP 工具一并挡掉——两者叠加正是 worker「0 tool uses 空转」的根因。现写法改为 `mcpServers: [codewiki]` 并省略 `tools` 行。另注：修复必须改随包源变体（`codewiki/agents/*.md`），只改 `.codebuddy/agents/` 已装副本会被 `install-hooks` 强制覆盖打回。详见 `notes/2026-09-08-蒸馏-worker-启动前先自检-mcp-可见性拿不到-distill-conversation-就停不要退让直连-ha.md`。修复丢失的完整机制（覆盖拷贝 + 测试固化 + 文档假事实）见 `notes/2026-09-16-修-subagenthook-定义只改已装副本会被-install-hooks-覆盖打回必须改随包源变体并加源变体守门测.md`。

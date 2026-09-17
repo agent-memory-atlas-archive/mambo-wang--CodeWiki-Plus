@@ -111,7 +111,7 @@ subagent 定义与 hook 脚本同属「启用即部署」的配套资源，与 `
 
 - `prompts.py` 语法 OK；`tests/test_task_session_start.py` 4 个测试全部通过；无 lint 错误。
 - ~~待验证点：`distill-worker.md` 的 frontmatter（`toolsMCP` 字段名、agentic 模式下 Task 工具是否能直接 spawn）依赖 IDE 对 subagent 定义的解析，需在下次新会话观察 hook 是否成功把蒸馏委托出去；若解析方式有差异只需调整该文件 frontmatter 字段名，不影响其他改动。~~
-- **已验证（2026-09-16）**：`toolsMCP` 非官方字段、静默无效；`tools: ReadFile` 白名单会挡掉全部 MCP 工具——两者叠加导致 worker「0 tool uses 空转」。现改为 `mcpServers: [codewiki]` 且省略 `tools` 行。
+- **已验证（2026-09-16）**：`toolsMCP` 非官方字段、静默无效；`tools: ReadFile` 白名单会挡掉全部 MCP 工具——两者叠加导致 worker「0 tool uses 空转」。现改为 `mcpServers: [codewiki]` 且省略 `tools` 行。修复必须落回随包源变体并加守门测试，见 `notes/2026-09-16-修-subagenthook-定义只改已装副本会被-install-hooks-覆盖打回必须改随包源变体并加源变体守门测.md`。
 
 ## 相关文档
 
