@@ -997,6 +997,7 @@ def _process_llm_output(
     dedup: str = "suppress",
     conflict_policy: str = "auto_suppress",
     drop_raw: bool = False,
+    skip_memories: bool = False,
 ) -> Dict[str, Any]:
     """Deterministic half of distillation.
 
@@ -1020,6 +1021,9 @@ def _process_llm_output(
     meta = _parse_frontmatter(raw_path)
     link_to = _unquote_fm(meta.get("link_to", ""))
     task_id = _unquote_fm(meta.get("task_id", ""))
+    # 原料标记去重（ADR-0008）：该会话任务记忆已由主动沉淀通道直写，蒸馏只产
+    # 草稿笔记、跳过任务记忆生成。规则写在工具层（确定性），跳过时响应显式声明。
+    active_settle = str(meta.get("active_settle", "")).lower() == "true"
 
     notes = _parse_llm_notes(llm_output)
     produced: List[Dict[str, Any]] = []
@@ -1173,6 +1177,12 @@ def _process_llm_output(
         # can surface task-scoped knowledge. Omitted for taskless conversations.
         if task_id:
             ingest_args["task_id"] = task_id
+        # Session provenance (traceability): carry the IDE-side session id from
+        # the raw capture's frontmatter onto the distilled note so the note can
+        # be traced back to the originating session (note → session → task).
+        source_session = _unquote_fm(meta.get("source_session", ""))
+        if source_session:
+            ingest_args["source_session"] = source_session
         result = json.loads(handle_ingest_note(ingest_args, store))
         note_file = result.get("note_path") or result.get("note_file")
         # Add origin: conversation to the draft note frontmatter (traceability)
@@ -1194,7 +1204,15 @@ def _process_llm_output(
     # retrieval-indexed knowledge base). Only meaningful when the raw file
     # carries a task_id. Ghost task_id (task deleted after capture) is
     # tolerated — the writer skips silently.
-    memories = _parse_llm_memories(llm_output) if task_id else []
+    # ADR-0008：见原料标记则整段跳过记忆直写（确定性去重，笔记路径不受影响）。
+    # 通道互斥（ADR-0009）：主动沉淀是任务记忆的默认通道；补蒸馏路径
+    # （task_id 过滤的 catch-up）默认 skip_memories=true 只产经验笔记，
+    # 显式 skip_memories=false 恢复双轨。跳过不静默：响应显式声明原因。
+    memories = (
+        []
+        if (active_settle or skip_memories)
+        else _parse_llm_memories(llm_output)
+    )
     memories_written = 0
     if task_id and memories:
         from codewiki.mcp.tools.task_manager import append_task_memories_direct
@@ -1279,6 +1297,11 @@ def _process_llm_output(
         "archived_raw": archived_to,
         "keep_raw": keep_raw,
     }
+    # 跳过不静默（ADR-0008）：见标记跳记忆时以字段显式声明原因。
+    if active_settle:
+        ret["memories_skipped_reason"] = "active_settle"
+    elif skip_memories:
+        ret["memories_skipped_reason"] = "skip_memories"
     if conflicts:
         ret["conflicts"] = conflicts
         ret["conflict_next"] = (
@@ -1303,6 +1326,7 @@ async def _distill_one(
     note_type_override: Optional[str] = None,
     related_modules_override: Optional[List[str]] = None,
     dedup: str = "suppress",
+    skip_memories: bool = False,
 ) -> Dict[str, Any]:
     """Distill a single raw conversation file into draft note(s) (modes A/B)."""
     built = _build_distill_input(raw_path)
@@ -1323,6 +1347,7 @@ async def _distill_one(
         note_type_override,
         related_modules_override,
         dedup,
+        skip_memories=skip_memories,
     )
 
 
@@ -1465,6 +1490,7 @@ def _background_run(
     job_id: str,
     note_type_override: Optional[str],
     related_modules_override: Optional[List[str]],
+    skip_memories: bool = False,
 ) -> None:
     import asyncio
 
@@ -1495,7 +1521,13 @@ def _background_run(
                 },
             )
             res = await _distill_one(
-                p, llm, output_dir, store, note_type_override, related_modules_override
+                p,
+                llm,
+                output_dir,
+                store,
+                note_type_override,
+                related_modules_override,
+                skip_memories=skip_memories,
             )
             results.append(res)
         return results
@@ -1720,6 +1752,17 @@ def handle_distill_conversation(
                 "prefer extending/referencing them over emitting a near-duplicate."
             ),
         }
+        # 通道互斥（ADR-0009）：补蒸馏路径（task_id 过滤）固定只产经验笔记，
+        # 任务记忆由主动沉淀通道直写——提前告知提取方，省去无效的 memories
+        # 生成与随后的确定性丢弃。
+        if task_filter:
+            ret["skip_memories"] = True
+            ret["memories_note"] = (
+                "Task memories for these captures are handled by the active-settle "
+                "channel (add_task_memory direct writes). Extract notes ONLY — "
+                "memories you emit here will be deterministically dropped "
+                "(memories_skipped_reason=skip_memories)."
+            )
         # K-line hint (additive key — existing consumers unaffected). Only
         # surfaced when at least one pending conversation shows friction.
         if any(c.get("friction_score", 0) >= 20 for c in captures):
@@ -1785,6 +1828,8 @@ def handle_distill_conversation(
             # P1: Mode C 启用两段式去重——弱冲突笔记挂起等待 agent 用
             # dedup_action 裁决（agent 即 LLM，精判零成本）；raw 文件在全部
             # 裁决完成前保留，不标记 distilled。
+            # 通道互斥（ADR-0009）：补蒸馏路径（task_id 过滤）固定只产经验
+            # 笔记，任务记忆归主动沉淀通道直写。
             res = _process_llm_output(
                 p,
                 llm_output,
@@ -1794,6 +1839,7 @@ def handle_distill_conversation(
                 related_ov,
                 conflict_policy="hold",
                 drop_raw=bool(arguments.get("drop_raw", False)),
+                skip_memories=bool(task_filter),
             )
             res["conversation_id"] = key
             results.append(res)
@@ -1884,7 +1930,15 @@ def handle_distill_conversation(
         )
         t = threading.Thread(
             target=_background_run,
-            args=(targets, output_dir, store, job_id, note_type_ov, related_ov),
+            args=(
+                targets,
+                output_dir,
+                store,
+                job_id,
+                note_type_ov,
+                related_ov,
+                bool(task_filter),
+            ),
             daemon=True,
         )
         t.start()

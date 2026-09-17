@@ -94,11 +94,14 @@ def test_backlog_injects_catchup_instruction(tmp_path):
     assert "3 条" in ctx  # 2 x task-one + 1 unbound
     assert "任务 task-one: 2 条" in ctx
     assert "未关联任务: 1 条" in ctx
-    # Distillation is delegated to a subagent, not run inline by the main agent.
+    # Distillation is delegated to an async subagent, not run inline by the
+    # main agent; the agent answers immediately and re-pulls context at the
+    # next natural pause point.
     assert "蒸馏 worker" in ctx
     assert "distill-worker.md" in ctx
-    assert "不阻塞回答" in ctx
-    assert "自然停顿点" in ctx
+    assert "异步" in ctx
+    assert "阻塞式" not in ctx
+    assert "重新 get_task_context" in ctx
     assert 'distill_conversation(mode="prepare", task_id=<绑定的任务id>)' in ctx
     # ADR-0002: task memories are direct-written by distillation — only the
     # note draft gate remains in the injected instructions.

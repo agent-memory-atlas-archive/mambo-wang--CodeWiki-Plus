@@ -2,9 +2,9 @@
 IDE wiring utilities for CodeWiki hooks/subagents.
 
 将任务记忆 hook/subagent 接线从「仅支持 CodeBuddy」扩展为支持市面上常见的
-智能体（Qoder、Claude Code）。用户触发创建/启用 hook 时，自动检测项目根目录
-存在哪些智能体配置目录（.codebuddy/.qoder/.claude/.gemini），检测到哪些就为哪些生成
-对应 hook 注册与 subagent 定义。
+智能体（Qoder、Claude Code、TRAE）。用户触发创建/启用 hook 时，自动检测项目根目录
+存在哪些智能体配置目录（.codebuddy/.qoder/.claude/.gemini/.trae），检测到哪些就为哪些
+生成对应 hook 注册与 subagent 定义。
 
 核心设计：IDE 注册表（IDE_SPECS）驱动。IDE 差异（配置目录、settings.json、
 agents 子目录、是否拷贝 distill-worker）收敛为数据表，新增一个 IDE 只需加一行。
@@ -23,13 +23,21 @@ from typing import Optional
 
 from codewiki.cli.utils.errors import FileSystemError
 from codewiki.cli.utils.fs import safe_write
+from codewiki.mcp.tools.hook_registry import (
+    active_settle_of,
+    get_agent,
+    inject_file_of,
+    wiring_of,
+)
 from codewiki.mcp.prompts import (
+    _ACTIVE_SETTLE_END,
+    _ACTIVE_SETTLE_START,
     _QWENWORK_CAPTURE_END,
-    _QWENWORK_CAPTURE_SECTION,
     _QWENWORK_CAPTURE_START,
     _TASK_MEMORY_AGENTS_END,
     _TASK_MEMORY_AGENTS_SECTION,
     _TASK_MEMORY_AGENTS_START,
+    _active_settle_section,
 )
 
 # ---------------------------------------------------------------------------
@@ -38,17 +46,22 @@ from codewiki.mcp.prompts import (
 # 每个 IDE 的配置目录、settings.json 文件名、agents 子目录、是否拷贝 distill-worker。
 # 新增一个 IDE 只需在此加一行，CLI 命令与 prompt 自动获得支持。
 #
-# 两种接线模式：
-#   - wiring: "hook"（默认）：IDE 支持 shell hook 事件（SessionStart/SessionEnd
+# 两种接线档位（单一来源 = codewiki/hooks.yaml 注册表，见
+# docs/接线档位选择设计方案.md §3.5；本表不含档位字段，接线前经
+# hook_registry.wiring_of() 查注册表，解析顺序 agent > family > 默认）：
+#   - "hook"（默认档）：IDE 支持 shell hook 事件（SessionStart/SessionEnd
 #     携带 transcript_path 经 stdin 调脚本）——拷脚本、写 settings.json、拷 agent。
-#   - wiring: "prompt"：宿主无 shell hook 机制，靠上下文注入 + Agent 中介执行
+#   - "prompt"：宿主无 shell hook 机制，靠上下文注入 + Agent 中介执行
 #     （如千问办公：AGENTS.md 自动加载等价 SessionStart；会话捕获由 Agent 按协议
 #     调 MCP 工具完成）——只 upsert AGENTS.md 协议段，无 dir/settings/拷贝，
 #     且不参与仓库目录自动检测（无仓库标记，仅显式 --ide 触发）。
 #
 # agent_file（可选）：subagent 定义源文件名。各宿主的 subagent frontmatter
-# schema 不同——CodeBuddy 认 `tools: ReadFile` + `toolsMCP`；把 CodeBuddy 版
-# 喂给 claude 家族（Qoder/Claude Code/Gemini CLI）会解析出空工具集、subagent
+# schema 不同——CodeBuddy 变体用 `mcpServers: [codewiki]` 声明 MCP 授权；
+# **勿写 `tools:` 白名单**（写了就只给列表里的工具，MCP 工具全被挡在外面）；
+# **勿用 `toolsMCP`**（非官方字段、静默无效）——两者叠加会让 worker 以
+# 「0 tool uses 空转」告终（2026-09-11 实测定案）。把 CodeBuddy 版喂给
+# claude 家族（Qoder/Claude Code/Gemini CLI）会解析出空工具集、subagent
 # 不可用。claude 家族变体省略 tools 行（继承全部工具，含 MCP）——实测 Qoder
 # 下显式枚举 `mcp__<server>__<tool>` 不透传给子代理，缺省继承更稳。
 # 缺省（如 codebuddy）拷贝 AGENT_FILE；安装后的目标文件名始终是 AGENT_FILE。
@@ -80,8 +93,29 @@ IDE_SPECS: dict[str, dict] = {
         "copy_agent": True,
         "agent_file": "distill-worker.claude.md",
     },
+    # TRAE 家族差异（官方 Hook 规范 docs.trae.cn，2026-09 真机核验）：
+    #   - 配置是独立的 .trae/hooks.json（顶层 {"version": 1, "hooks": {...}}），
+    #     不是 claude 家族的 settings.json；
+    #   - 无 SessionEnd 事件——Stop 在每轮 Query 结束触发且不携带
+    #     transcript_path（仅 last_assistant_message），hook 采集无正文可采
+    #     （_ide_hook.py 仅 stderr 诊断、不落盘；对话捕获依赖 AGENTS.md
+    #     「会话收尾轮」norm 由 Agent 中介采集补漏）；
+    #   - matcher 仅对 PreToolUse/PostToolUse/Notification 有效，注册
+    #     SessionStart/Stop/UserPromptSubmit 时不写 matcher 字段。
+    # SessionStart/UserPromptSubmit 的事件载荷与 claude 家族兼容
+    # （含 hookSpecificOutput.additionalContext 注出格式），脚本零改动。
+    "trae": {
+        "dir": ".trae",
+        "settings": "hooks.json",
+        "agents_dir": "agents",
+        "copy_agent": True,
+        "agent_file": "distill-worker.claude.md",
+        "format": "trae",
+    },
+    # qwenwork 无仓库标记目录（dir: None，不参与自动检测）；档位
+    # （prompt）与主动沉淀叠加（on）不在本表表达，以
+    # codewiki/hooks.yaml 注册表为单源（wiring_of / active_settle_of）。
     "qwenwork": {
-        "wiring": "prompt",
         "dir": None,
     },
 }
@@ -154,7 +188,7 @@ def _resolve_pkg_sources() -> Path:
 def detect_ide_dirs(repo: str) -> list[str]:
     """扫描项目根目录，返回已存在的 IDE 配置目录对应的 IDE 名称列表。
 
-    存在 `.codebuddy/.qoder/.claude/.gemini` 中哪些目录就检测到哪些 IDE——
+    存在 `.codebuddy/.qoder/.claude/.gemini/.trae` 中哪些目录就检测到哪些 IDE——
     即「用户用了哪些智能体就为哪些接线」。prompt 模式（千问办公）在仓库
     无标记目录，不参与自动检测，仅显式 ``--ide qwenwork`` 触发。
     """
@@ -166,8 +200,13 @@ def detect_ide_dirs(repo: str) -> list[str]:
     ]
 
 
-def merge_settings_json(existing: Optional[dict], start_cmd: str, end_cmd: str) -> dict:
-    """幂等合并 CodeWiki 的 hook 注册到现有 settings.json 配置。
+def merge_settings_json(
+    existing: Optional[dict],
+    start_cmd: str,
+    end_cmd: str,
+    spec: Optional[dict] = None,
+) -> dict:
+    """幂等合并 CodeWiki 的 hook 注册到现有 settings.json / hooks.json 配置。
 
     保留 existing 中全部既有键；对 hooks.SessionStart/SessionEnd/UserPromptSubmit
     数组按 command 去重后合并 CodeWiki 注册项，避免重复注册。历史旧格式条目
@@ -176,33 +215,58 @@ def merge_settings_json(existing: Optional[dict], start_cmd: str, end_cmd: str) 
     UserPromptSubmit（advisory 技能提示）走常量命令 ``PROMPT_HOOK_CMD``——
     ``python -m`` 入口不含路径，无从迁移；matcher 空串 = 每条指令都过匹配器，
     由脚本内部 containment 阈值把关。返回合并结果，由调用方原子写回。
+
+    传入 IDE_SPECS 条目 ``spec``（``format: "trae"``）时启用 TRAE 家族差异：
+    顶层补 ``version: 1``（TRAE hooks.json 的 schema 版本）；SessionEnd 注册
+    映射为 Stop（TRAE 无 SessionEnd 事件，Stop 每轮 Query 结束触发且无
+    transcript，_ide_hook 仅 stderr 诊断、不落盘——对话捕获由 AGENTS.md
+    「会话收尾轮」norm 承担）；三个注册项不写 matcher（TRAE matcher 仅对
+    PreToolUse/PostToolUse/Notification 有效，省略 = 匹配全部）。
     """
     merged = copy.deepcopy(existing) if existing else {}
+    trae = bool(spec and spec.get("format") == "trae")
+    if trae:
+        # TRAE hooks.json 顶层结构 {"version": 1, "hooks": {...}}
+        merged.setdefault("version", 1)
     hooks = merged.get("hooks")
     if not isinstance(hooks, dict):
         hooks = {}
         merged["hooks"] = hooks
 
-    registrations = [
-        ("SessionStart", "startup", start_cmd, 15),
-        ("SessionEnd", "other", end_cmd, 30),
-        # matcher 空串：UserPromptSubmit 的匹配对象是用户指令文本，空串 =
-        # 每条都触发（区别于 SessionStart 的 "startup" 只匹配会话启动）。
-        # 同步执行（IDE 要等 stdout 的 hookSpecificOutput），timeout 10 足够。
-        ("UserPromptSubmit", "", PROMPT_HOOK_CMD, 10),
-    ]
+    if trae:
+        registrations = [
+            # TRAE 无 SessionEnd：Stop 每轮 Query 结束触发，无 transcript_path，
+            # _ide_hook 仅 stderr 诊断、不落盘（对话捕获走 Agent 收尾 norm）。
+            ("SessionStart", None, start_cmd, 15),
+            ("Stop", None, end_cmd, 30),
+            ("UserPromptSubmit", None, PROMPT_HOOK_CMD, 10),
+        ]
+    else:
+        registrations = [
+            ("SessionStart", "startup", start_cmd, 15),
+            ("SessionEnd", "other", end_cmd, 30),
+            # matcher 空串：UserPromptSubmit 的匹配对象是用户指令文本，空串 =
+            # 每条都触发（区别于 SessionStart 的 "startup" 只匹配会话启动）。
+            # 同步执行（IDE 要等 stdout 的 hookSpecificOutput），timeout 10 足够。
+            ("UserPromptSubmit", "", PROMPT_HOOK_CMD, 10),
+        ]
     for event, matcher, command, timeout in registrations:
         if event not in hooks or not isinstance(hooks[event], list):
             hooks[event] = []
         entries = hooks[event]
-        # 找到同 matcher 的注册项，复用而非追加，避免同事件同 matcher 的重复块
+        # 找到同 matcher 的注册项，复用而非追加，避免同事件同 matcher 的重复块。
+        # matcher 为 None（trae 格式不写 matcher）时复用第一个条目——TRAE 的
+        # matcher 对这三个事件本就无效，复用可兼容用户手抄的带 matcher 历史
+        # 条目，避免同命令注册两遍被 IDE 双重触发。
         target: Optional[dict] = None
         for entry in entries:
-            if isinstance(entry, dict) and entry.get("matcher") == matcher:
+            if not isinstance(entry, dict):
+                continue
+            if matcher is None or entry.get("matcher") == matcher:
                 target = entry
                 break
         if target is None:
-            target = {"matcher": matcher, "hooks": []}
+            target = {"matcher": matcher, "hooks": []} if matcher is not None else {"hooks": []}
             entries.append(target)
         inner = target.get("hooks")
         if not isinstance(inner, list):
@@ -246,6 +310,134 @@ def _relative_hook_suffix(command: str) -> str:
     return command[m.start(1) :]
 
 
+def unwire_hook_registration(repo: str, ide: str) -> bool:
+    """换档清理（设计方案 §3.10）：移除配置文件中属于 CodeWiki 的 hook 注册条目。
+
+    ``hook → prompt`` 换档时调用。只删 command 命中我们相对脚本后缀的条目
+    （复用 ``_relative_hook_suffix`` 口径，归一化路径分隔符后 endswith 匹配，
+    兼容历史绝对路径/反斜杠/``$*_PROJECT_DIR`` 旧格式条目）与常量命令
+    ``PROMPT_HOOK_CMD``（``python -m`` 入口无路径，按整串归一化后相等匹配）；
+    他人条目与 settings 其他键一律原样保留（沿用 ``merge_settings_json`` 的
+    preserve-all 契约）。
+
+    **绝不整段清空 ``hooks`` 键**：只从命中的条目内部摘除我们的命令；某条目
+    内命令被删空才移除该条目，某事件数组被删空才移除该事件键，全部事件键
+    都删空才移除 ``hooks`` 键本身——每一步都只因我们自己的条目消失而发生。
+
+    配置文件不存在 / 无 ``hooks`` 键 / 无我们的条目 → 无操作返回 False
+    （重跑幂等：第二次不产生任何写入）。返回是否发生了变更。
+    """
+    spec = IDE_SPECS.get(ide)
+    if not spec or not spec.get("dir"):
+        return False
+    settings_path = Path(repo) / spec["dir"] / spec["settings"]
+    if not settings_path.is_file():
+        return False
+    try:
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise IdeWiringError(f"Cannot parse {settings_path}: {e}")
+    if not isinstance(data, dict):
+        return False
+    hooks = data.get("hooks")
+    if not isinstance(hooks, dict):
+        return False
+
+    def norm(cmd: Optional[str]) -> str:
+        # Windows 下反斜杠/正斜杠等价，与 merge_settings_json 的去重口径一致
+        return (cmd or "").replace("\\", "/")
+
+    # 我们的命令特征：两个相对脚本后缀 + 常量 PROMPT_HOOK_CMD
+    suffixes = [
+        s
+        for s in (
+            _relative_hook_suffix(START_HOOK_CMD.format(ide_dir=spec["dir"])),
+            _relative_hook_suffix(END_HOOK_CMD.format(ide_dir=spec["dir"])),
+        )
+        if s
+    ]
+    prompt_cmd = norm(PROMPT_HOOK_CMD)
+
+    def is_ours(cmd) -> bool:
+        if not isinstance(cmd, str):
+            return False
+        c = norm(cmd)
+        return c == prompt_cmd or any(c.endswith(s) for s in suffixes)
+
+    changed = False
+    for event in list(hooks.keys()):
+        entries = hooks[event]
+        if not isinstance(entries, list):
+            continue
+        new_entries = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                new_entries.append(entry)
+                continue
+            inner = entry.get("hooks")
+            if not isinstance(inner, list):
+                new_entries.append(entry)
+                continue
+            kept = [h for h in inner if not (isinstance(h, dict) and is_ours(h.get("command")))]
+            if len(kept) == len(inner):
+                # 未命中我们的命令：条目原样保留（他人条目零改动）
+                new_entries.append(entry)
+                continue
+            changed = True
+            if kept:
+                # 混合条目：只摘除我们的命令，他人命令原样保留
+                entry["hooks"] = kept
+                new_entries.append(entry)
+            # kept 为空：条目内全是我们自己的命令 → 整条移除
+        if new_entries:
+            hooks[event] = new_entries
+        else:
+            # 事件数组被删空（原本只有我们的条目）→ 移除该事件键
+            del hooks[event]
+    if changed and not hooks:
+        # 所有事件键都因移除我们的条目而消失 → hooks 键本身也还原掉
+        del data["hooks"]
+    if not changed:
+        return False
+    try:
+        safe_write(
+            settings_path,
+            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+        )
+    except FileSystemError as e:
+        raise IdeWiringError(str(e))
+    return True
+
+
+def clean_hook_artifacts(repo: str, ide: str) -> list[str]:
+    """``--clean``：删除我们拷入目标项目的物理产物（设计方案 §3.10）。
+
+    删除 ``<config_dir>/hooks/`` 下我们的 ``.py`` 脚本（``HOOK_FILES``，
+    即与注册命令相对脚本后缀同名的文件）与 ``agents`` 目录下的
+    ``distill-worker.md``；仍只删匹配我们产物名的文件，他人文件一律不动。
+    目录本身保留（可能还放着别人的东西）。不带 ``--clean`` 时不调用本函数，
+    脚本保留可复用（换回 hook 档时强制覆盖拷贝会刷新）。返回被删除文件的
+    仓库相对路径列表。
+    """
+    spec = IDE_SPECS.get(ide)
+    if not spec or not spec.get("dir"):
+        return []
+    repo_path = Path(repo)
+    ide_dir = repo_path / spec["dir"]
+    removed: list[str] = []
+    hooks_dir = ide_dir / "hooks"
+    for name in HOOK_FILES:
+        target = hooks_dir / name
+        if target.is_file():
+            target.unlink()
+            removed.append(str(target.relative_to(repo_path)))
+    agent_file = ide_dir / spec["agents_dir"] / AGENT_FILE
+    if agent_file.is_file():
+        agent_file.unlink()
+        removed.append(str(agent_file.relative_to(repo_path)))
+    return removed
+
+
 def upsert_agents_section(agents_path: Path) -> bool:
     """把任务记忆会话引导段写入 AGENTS.md（幂等）。
 
@@ -258,19 +450,48 @@ def upsert_agents_section(agents_path: Path) -> bool:
     )
 
 
-def upsert_qwenwork_protocol(agents_path: Path) -> bool:
-    """把千问办公捕获协议段写入 AGENTS.md（幂等，独立标记块）。
+def upsert_active_settle_protocol(
+    agents_path: Path, ide: str, active_settle: Optional[bool] = None
+) -> bool:
+    """按主动沉淀生效值 upsert/删除 CODEWIKI-ACTIVE-SETTLE 块（渲染开关 + 一次性迁移）。
 
-    只动 `<!-- CODEWIKI-QWENWORK:START -->` 到 `<!-- CODEWIKI-QWENWORK:END -->`
-    之间的标记块。与 TEAM-MEMORY-TASK 块相互独立：协议段是 QwenWork 专属
-    （prompt 接线模式的产物），不随多 IDE 共享引导段的 upsert 被替换。
+    泛化取代旧 ``upsert_qwenwork_protocol``（旧 CODEWIKI-QWENWORK 块，设计方案 §3.9）：
+
+    - **渲染开关**：生效值为 on 才渲染（upsert）新块。生效值解析：显式传入的
+      ``active_settle`` 布尔（CLI ``--active-settle`` 覆盖）> 注册表
+      ``active_settle_of(ide)`` 默认（传 None 时）。
+    - **显式 off（覆盖为 False）**：删除新块与遗留旧块（叠加切换清理，
+      设计方案 §3.10）；**默认 off**（未显式传入且注册表默认 false）则不渲染、
+      也不删除——混合档位仓库多宿主共享同一注入文件，一个宿主的默认 off
+      不能抹掉另一宿主 on 已写入的块（互不覆盖）。
+    - **一次性迁移**：upsert 时发现旧 CODEWIKI-QWENWORK 块 → 整体删除后写
+      新块，仓库内不再残留旧标记。
+    - **宿主专属小节**：新块正文第 ③ 节按注册表 ``agents[].protocol`` 追加
+      （qwenwork 的会话历史 API 小节由旧块正文迁移而来，信息不丢）。
+
+    只动两个协议块的标记区间，块外内容一律不改。返回是否发生了变更。
     """
-    return _upsert_marker_block(
-        agents_path,
-        _QWENWORK_CAPTURE_START,
-        _QWENWORK_CAPTURE_END,
-        _QWENWORK_CAPTURE_SECTION,
-    )
+    explicit = active_settle is not None
+    settle = bool(active_settle) if explicit else active_settle_of(ide)
+    if not settle:
+        if not explicit:
+            # 默认 off：不渲染也不删除（保护混合档位仓库里其他宿主的块）
+            return False
+        removed = _remove_marker_block(agents_path, _ACTIVE_SETTLE_START, _ACTIVE_SETTLE_END)
+        # 遗留旧块一并清理（只删我们自己的标记块）
+        removed = (
+            _remove_marker_block(agents_path, _QWENWORK_CAPTURE_START, _QWENWORK_CAPTURE_END)
+            or removed
+        )
+        return removed
+
+    # on：一次性迁移（旧 QWENWORK 块存在则整体删除），再 upsert 新块
+    agent = get_agent(ide) or {}
+    protocol = str(agent.get("protocol") or "")
+    section = _active_settle_section(protocol)
+    migrated = _remove_marker_block(agents_path, _QWENWORK_CAPTURE_START, _QWENWORK_CAPTURE_END)
+    changed = _upsert_marker_block(agents_path, _ACTIVE_SETTLE_START, _ACTIVE_SETTLE_END, section)
+    return migrated or changed
 
 
 def _upsert_marker_block(agents_path: Path, start: str, end: str, section: str) -> bool:
@@ -293,38 +514,135 @@ def _upsert_marker_block(agents_path: Path, start: str, end: str, section: str) 
     return True
 
 
-def install_for_ide(repo: str, ide: str) -> dict:
+def _remove_marker_block(agents_path: Path, start: str, end: str) -> bool:
+    """通用标记块删除：整块删除（含 START/END 标记本身）；块外内容不动。
+
+    块不存在或文件不存在 → 无操作返回 False。只在删除的块**自身边界**上收敛
+    空行（与 upsert 追加时留的 ``\\n\\n`` 前缀对称：块存在时恰好还原到块追加
+    前的空行数量），不折叠文件其余部分的空行结构。
+    """
+    if not agents_path.exists():
+        return False
+    text = agents_path.read_text(encoding="utf-8")
+    start_idx = text.find(start)
+    end_idx = text.find(end)
+    if start_idx == -1 or end_idx == -1 or end_idx <= start_idx:
+        return False
+    after_idx = end_idx + len(end)
+    # 边界收敛：块前方若有≥2 个换行（含 upsert 追加留的空行）吃掉一个；
+    # 块后方紧跟的换行一并带走。
+    strip_start = start_idx
+    if start_idx >= 2 and text[start_idx - 2 : start_idx] == "\n\n":
+        strip_start -= 1
+    if after_idx < len(text) and text[after_idx] == "\n":
+        after_idx += 1
+    new_text = text[:strip_start] + text[after_idx:]
+    if new_text == text:
+        return False
+    safe_write(agents_path, new_text)
+    return True
+
+
+def install_for_ide(
+    repo: str,
+    ide: str,
+    mode: str = "auto",
+    active_settle: Optional[bool] = None,
+    clean: bool = False,
+    inject_file: Optional[str] = None,
+) -> dict:
     """为单个 IDE 执行接线全流程，返回接线结果摘要。
 
-    hook 模式（默认）：
+    档位解析（见 docs/接线档位选择设计方案.md §3.6）：
+    - ``mode="auto"``（默认）：按注册表 ``wiring_of(ide)`` 判定，与今日行为一致；
+    - ``mode="hook"`` / ``mode="prompt"``：CLI 显式指定的档位。非法组合
+      （prompt 家族宿主 + hook 档）由 CLI 层硬报错，这里兜底抛错不静默降级。
+
+    叠加解析：``active_settle=None`` 时用注册表 ``active_settle_of(ide)``
+    默认值；显式 True/False 为 CLI 覆盖。CODEWIKI-ACTIVE-SETTLE 块由
+    ``upsert_active_settle_protocol`` 按生效值渲染开关：生效 on 才渲染
+    （并一次性迁移旧 CODEWIKI-QWENWORK 块），显式 off 删除两块；默认 off
+    （注册表默认且未覆盖）不渲染也不删除（混合档位仓库互不覆盖）。
+
+    ``clean``：换档清理开关，仅在 prompt 档（unwire 路径）生效——额外删除
+    ``<config_dir>/`` 下我们的物理产物（hook 脚本与 distill-worker.md，
+    ``clean_hook_artifacts``）；默认不带时脚本保留，换回 hook 档可直接复用
+    （设计方案 §3.10）。hook 档是强制覆盖拷贝，``clean`` 无意义、被忽略。
+
+    ``inject_file``：注入文件路径（相对仓库根），默认注册表 ``inject_file_of(ide)``。
+
+    hook 档：
     1. 从 codewiki 包内源副本强制拷贝 hook 脚本到 `<repo>/.<ide>/hooks/`，
        拷贝 distill-worker.md 到 `<repo>/.<ide>/agents/`（best-effort）
-    2. 合并写入 `<repo>/.<ide>/settings.json` 的 SessionStart/SessionEnd 注册
-    3. 向 `<repo>/AGENTS.md` upsert 任务记忆引导段（多 IDE 共享一份，幂等）
+    2. 合并写入 hook 注册：claude 家族写 `<repo>/.<ide>/settings.json`
+       （SessionStart/SessionEnd/UserPromptSubmit）；trae 家族写
+       `<repo>/.trae/hooks.json`（顶层 version: 1，SessionStart/Stop/
+       UserPromptSubmit，不写 matcher）
+    3. 向注入文件（默认 `<repo>/AGENTS.md`）upsert 任务记忆引导段
+       （多 IDE 共享一份，幂等）
 
-    prompt 模式（千问办公）：无 shell hook 机制，仅向 `<repo>/AGENTS.md`
-    upsert 任务记忆引导段 + QwenWork 捕获协议段（两个独立标记块，幂等）。
-    AGENTS.md 由千问办公作为项目上下文自动加载，等价于 SessionStart 注入；
-    会话捕获由 Agent 按协议段执行。
+    prompt 档（千问办公，或 ``--mode prompt`` 指定）：无目录/脚本/注册，
+    只动注入文件——upsert 任务记忆引导段 + QwenWork 捕获协议段（两个独立
+    标记块，幂等）。注入文件由宿主作为项目上下文自动加载，等价于
+    SessionStart 注入；会话捕获由 Agent 按协议段执行。
     """
     repo_path = Path(repo)
     if ide not in IDE_SPECS:
         raise IdeWiringError(f"Unknown IDE: {ide!r}. Supported: {', '.join(IDE_SPECS)}")
     spec = IDE_SPECS[ide]
 
-    if spec.get("wiring") == "prompt":
-        # prompt 模式：只写 AGENTS.md（引导段 + 专属协议段），无目录/脚本/注册。
-        agents_changed = upsert_agents_section(repo_path / "AGENTS.md")
-        protocol_changed = upsert_qwenwork_protocol(repo_path / "AGENTS.md")
+    # 档位：hooks.yaml 注册表为单源（agent > family > 默认 "hook"）；
+    # auto 按注册表判定，显式 mode 已在 CLI 层校验过合法性。
+    registry_wiring = wiring_of(ide)
+    if mode == "auto":
+        wiring = registry_wiring
+    elif mode in ("hook", "prompt"):
+        wiring = mode
+    else:
+        raise IdeWiringError(f"Unknown wiring mode: {mode!r}. One of: hook, prompt, auto")
+    # 兜底校验：prompt 家族宿主没有 shell hook 机制，不允许 hook 档
+    # （与 CLI 校验一致；不静默降级为 prompt）。
+    if wiring == "hook" and registry_wiring == "prompt":
+        raise IdeWiringError(
+            f"{ide} has no shell-hook mechanism (prompt family); "
+            "wire it with mode='prompt'."
+        )
+    # 叠加：None = 注册表默认；显式布尔 = CLI 覆盖
+    settle = active_settle_of(ide) if active_settle is None else bool(active_settle)
+    # 注入文件：显式覆盖 > 注册表解析（默认 AGENTS.md）。--inject-file 可能
+    # 指向尚不存在的子目录（如 docs/），先建父目录再写。
+    inject_path = repo_path / (inject_file or inject_file_of(ide))
+    inject_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if wiring == "prompt":
+        # prompt 档：只写注入文件（引导段 + 主动沉淀协议段），无目录/脚本/注册。
+        # 协议段由 active_settle 生效值做渲染开关：on 才渲染（并把遗留的旧
+        # CODEWIKI-QWENWORK 块一次性迁移为新块）；显式 off 删除；默认 off
+        # 不渲染也不删除（混合档位仓库互不覆盖）。
+
+        # 换档清理（设计方案 §3.10）：hook → prompt 必须移除我们此前写入的
+        # hook 注册条目——只删 command 命中相对脚本后缀（或常量
+        # PROMPT_HOOK_CMD）的条目，他人条目与 settings 其他键原样保留；
+        # 条目本就不存在时为无操作（幂等，第二次跑不产生写入）。
+        unwired = unwire_hook_registration(repo, ide)
+        # --clean：额外删除我们拷入的物理产物（脚本 + distill-worker.md）；
+        # 不带 --clean 时产物保留，换回 hook 档可复用（强制覆盖拷贝会刷新）。
+        cleaned = clean_hook_artifacts(repo, ide) if clean else []
+        agents_changed = upsert_agents_section(inject_path)
+        protocol_changed = upsert_active_settle_protocol(inject_path, ide, active_settle)
         return {
             "ide": ide,
             "dir": None,
             "wiring": "prompt",
+            "active_settle": settle,
             "copied": [],
             "settings_written": False,
             "settings_changed": False,
             "agents_changed": agents_changed or protocol_changed,
             "protocol_changed": protocol_changed,
+            "unwired": unwired,
+            "cleaned": cleaned,
+            "clean": clean,
         }
 
     pkg = _resolve_pkg_sources()
@@ -361,7 +679,7 @@ def install_for_ide(repo: str, ide: str) -> dict:
             shutil.copy2(src, dst)
             copied.append(str(dst.relative_to(repo_path)))
 
-    # 2. 合并 settings.json（保留无关配置、按 command 去重、原子写回）
+    # 2. 合并 settings.json / hooks.json（保留无关配置、按 command 去重、原子写回）
     settings_path = ide_dir / spec["settings"]
     existing: Optional[dict] = None
     if settings_path.exists():
@@ -373,7 +691,7 @@ def install_for_ide(repo: str, ide: str) -> dict:
     # （见 START_HOOK_CMD / END_HOOK_CMD 注释）
     start_cmd = START_HOOK_CMD.format(ide_dir=spec["dir"])
     end_cmd = END_HOOK_CMD.format(ide_dir=spec["dir"])
-    merged = merge_settings_json(existing, start_cmd, end_cmd)
+    merged = merge_settings_json(existing, start_cmd, end_cmd, spec=spec)
     settings_changed = merged != existing
     try:
         safe_write(
@@ -383,14 +701,28 @@ def install_for_ide(repo: str, ide: str) -> dict:
     except FileSystemError as e:
         raise IdeWiringError(str(e))
 
-    # 3. AGENTS.md 引导段 upsert（多 IDE 共享同一仓库，只写一份）
-    agents_changed = upsert_agents_section(repo_path / "AGENTS.md")
+    # 3. 注入文件引导段 upsert（多 IDE 共享同一仓库，只写一份；默认
+    #    AGENTS.md，--inject-file 可覆盖）。主动沉淀叠加与档位自由组合：
+    #    hook 档宿主（如 trae）叠加 on 时「hook 读 + prompt 写」共存，
+    #    同样渲染 ACTIVE-SETTLE 块（渲染开关与 prompt 档同一函数）。
+    agents_changed = upsert_agents_section(inject_path)
+    protocol_changed = upsert_active_settle_protocol(inject_path, ide, active_settle)
+    agents_changed = agents_changed or protocol_changed
 
     return {
         "ide": ide,
         "dir": spec["dir"],
+        "wiring": "hook",
+        "active_settle": settle,
         "copied": copied,
+        "settings_file": spec["settings"],
         "settings_written": True,
         "settings_changed": settings_changed,
         "agents_changed": agents_changed,
+        "protocol_changed": protocol_changed,
+        # hook 档不存在换档清理对象：注册/产物本次都会被重建（强制覆盖拷贝），
+        # --clean 语义到达但无动作（unwired/cleaned 恒为空）。
+        "unwired": False,
+        "cleaned": [],
+        "clean": clean,
     }

@@ -39,7 +39,7 @@
 
 ## 三、hooks.yaml 声明文件设计
 
-包内新文件 `codewiki/hooks.yaml`（随包分发，与 schema.yaml 同为先例模式）：
+包内新文件 `codewiki/hooks.yaml`（随包分发，与 schema.yaml 同为先例模式）。**以下为 H1 定稿快照（历史），当前 schema 已加 `prompt` 家族与 `wiring`/`active_settle`/`inject_file`/`protocol` 字段——以 `codewiki/hooks.yaml` 为准**：
 
 ```yaml
 # CodeWiki hook 智能体支持注册表
@@ -60,7 +60,7 @@ families:
     events:
       session_start: [sessionStart]
       session_end: [stop]      # Cursor 无 SessionEnd，用 stop 事件（注意：
-                               # stop 不带 transcript_path，采集降级为事件信封）
+                               # stop 不带 transcript_path，无正文可采（_ide_hook 仅 stderr 诊断、不落盘）
 
   codex:                       # Codex 格式：hooks.json + 嵌套 matcher 结构
     config_file: hooks.json
@@ -118,7 +118,7 @@ agents:
 
 - `verified` 字段驱动文档与 prompt 的诚实表述：已验证三件套绝不与理论支持混称；
 - 事件数组结构（Q8 决策）：第二步 CLI 化若发现版本差异（如 Cursor 事件改名），往数组追加候选 key 即可，数据结构不变；
-- **cursor 家族的采集降级须显式声明**：Cursor 无 SessionEnd 等价事件，stop 事件不携带 transcript_path——该家族的会话采集只能落"事件信封"（_ide_hook 已有信封处理路径），完整对话蒸馏不可用。这是理论支持里最需要用户知情的一条；
+- **cursor 家族的采集降级须显式声明**：Cursor 无 SessionEnd 等价事件，stop 事件不携带 transcript_path——该家族无正文可采（_ide_hook 仅 stderr 诊断、不落盘，事件信封落盘路径已移除），完整对话蒸馏不可用，对话捕获只能靠 Agent 按 AGENTS.md「会话收尾轮」norm 中介补漏。这是理论支持里最需要用户知情的一条；
 - 理论支持工具的 family 归并是**待验证假设**（gemini/trae/windsurf 是否真读 claude 格式，接的时候才知道），声明文件里它们的存在本身不构成承诺。
 
 ---
@@ -171,7 +171,7 @@ codewiki query "端口冲突" [--output-dir <dir>] [--top 5] [--check] [--depth 
 | 风险 | 缓解 |
 |------|------|
 | 理论支持工具的家族归并假设错误（如 gemini 实际不读 claude 格式） | verified: false 声明在先；prompt 指引接线后必须跑模拟事件验证（沿用现有验证步骤），失败即反馈修订注册表 |
-| Cursor 采集降级（stop 无 transcript）影响该家族体验 | 声明文件与 prompt 双处显式告知；该家族标注"采集降级：仅事件信封" |
+| Cursor 采集降级（stop 无 transcript）影响该家族体验 | 声明文件与 prompt 双处显式告知；该家族标注"采集降级：无正文可采、不落盘" |
 | Cursor 事件名未来变更 | 事件数组结构已留位；用户反馈后追加候选 key |
 | CLI 检索命令与 MCP query_wiki 语义漂移 | CLI 是 handler 的投影层（直接调 handle_query_wiki 转 YAML 文本），不实现第二套检索 |
 

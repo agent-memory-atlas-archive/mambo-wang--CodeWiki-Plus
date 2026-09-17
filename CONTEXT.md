@@ -119,6 +119,21 @@ negative_examples 提示；自动降权不实施（小数据下误伤率高，�
 _Avoid_: 多档 result 分级（伪精度）、任务中途自报误用（Agent 判不了）、未攒数据
 就影响排序或生命周期。
 
+**主动沉淀（active settle）** — Agent 在自然停顿点直写任务记忆（`add_task_memory`）与
+草稿笔记（`ingest_note(status="draft")`）的 prompt 驱动写入路径，与批处理路径（收尾
+采集 → 下轮蒸馏）分轨互补：一个答"及时性"，一个答"漏网经验的兜底"。触发判据四条：
+任务里程碑达成、关键技术决策落定、用户话题明显转向、收尾轮（强制兜底）。接线模型上
+它是叠加标志（`active_settle`），不是 `wiring` 档位：trae/qwenwork 等采集链路断供的
+宿主默认开，hook 宿主可显式开成"prompt 写 + hook 读"共存。记忆闸门保持无（ADR-0002），
+笔记闸门保持有（两区制，ADR-0004）。_Avoid_: 字面每轮沉淀（记忆追加无去重，会把
+记忆灌爆并反复触发压缩阈值）。
+
+**原料标记（active_settle marker）** — `capture_conversation` 落盘的 `conv-*.md`
+frontmatter 顶层单行键 `active_settle: true`，声明"本会话任务记忆已由 Agent 直写"。
+蒸馏见到标记即**只产笔记、跳过记忆生成**——确定性规则，不靠提示约束，防止主动沉淀与
+蒸馏再生的记忆双写（任务记忆追加无去重，双写即噪声）。无标记的存量行为不变。
+frontmatter 单行键约束见 "frontmatter module" 词条（stdlib-only hook 逐行扫描）。
+
 ## Key decisions
 
 - [ADR-0001 — 任务记忆保持 Markdown，不迁移 JSONL](adr/0001-task-memory-stays-markdown.md)（2026-08-24）
@@ -128,3 +143,4 @@ _Avoid_: 多档 result 分级（伪精度）、任务中途自报误用（Agent 
 - [ADR-0005 — 证据漂移信号仅在代码变更路径参与增量决策，no_changes 路径保持静默](adr/0005-evidence-drift-silent-on-no-changes.md)（2026-09-06）
 - [ADR-0006 — 会话绑定凭证退役而非销毁，归属继承三级回退](adr/0006-session-binding-attribution-tombstone.md)（2026-09-11）
 - [ADR-0007 — 冲突案卷是独立页面类型，不是笔记](adr/0007-conflict-case-page-type.md)（2026-09-12）
+- [ADR-0008 — 主动沉淀与蒸馏双写路径用原料标记确定性去重](adr/0008-active-settle-deterministic-dedup.md)（2026-09-17）

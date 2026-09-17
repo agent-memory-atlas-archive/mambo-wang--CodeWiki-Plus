@@ -724,6 +724,7 @@ class KnowledgeStore:
         task_id: str = "",
         link_to: str = "",
         keep_raw: bool = False,
+        active_settle: bool = False,
         metadata: Optional[Dict[str, Any]] = None,
         transcript_title: str = "",
     ) -> Dict[str, Any]:
@@ -839,6 +840,11 @@ class KnowledgeStore:
             meta.update(metadata)
         if task_id:
             meta["task_id"] = task_id
+        # 原料标记（ADR-0008）：与 task_id 同走顶层单行键路径（inject_okf_frontmatter
+        # 的 top_level_extra），stdlib-only hook 逐行扫描可命中。仅在为 True 时写，
+        # 无标记的存量产物逐字节不变。
+        if active_settle:
+            meta["active_settle"] = True
 
         try:
             actor = _cfg.actor_id()

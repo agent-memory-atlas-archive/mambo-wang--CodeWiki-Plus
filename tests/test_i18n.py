@@ -63,6 +63,34 @@ def test_en_covers_every_zh_key():
     )
 
 
+def test_catalog_covers_every_registered_prompt():
+    """Every _PROMPT_REGISTRY entry must resolve in both catalogs.
+
+    The zh/en cross-coverage tests above cannot catch this direction: the
+    registry grew ``mode``/``active_settle`` args whose keys were never added
+    to either catalog, so prompts/list rendered ``[missing-i18n-key]``
+    sentinels in BOTH languages while the tests stayed green.
+    """
+    from codewiki.mcp.prompts import _PROMPT_REGISTRY
+
+    missing = []
+    for meta in _PROMPT_REGISTRY:
+        name = meta["name"]
+        for key in [f"prompts.{name}.title", f"prompts.{name}.description"]:
+            for lang in ("zh", "en"):
+                if i18n.MISSING_PREFIX in _text(key, lang):
+                    missing.append(f"{key} ({lang})")
+        for arg_name, _required in meta["args"]:
+            key = f"prompts.{name}.args.{arg_name}"
+            for lang in ("zh", "en"):
+                if i18n.MISSING_PREFIX in _text(key, lang):
+                    missing.append(f"{key} ({lang})")
+    assert missing == [], (
+        "prompt registry entries missing from locales/{zh,en}.yaml — add the "
+        f"translations: {missing}"
+    )
+
+
 def test_placeholder_sets_match_between_languages():
     mismatches = []
     for key in i18n.all_keys("zh"):

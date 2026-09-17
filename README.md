@@ -474,7 +474,7 @@ LLM 发现跨功能约束
 - 自动采集 Hook 只落 raw，永不自动蒸馏；蒸馏须显式调用 `distill_conversation`。
 - `repowiki/raw/` 是暂存区，不进 `query_wiki` 检索；蒸馏完成后由工具自动清理（除非 `keep_raw`）。
 - 触发形态为 **both**：手动命令（主）+ IDE Hook（可选）。
-- 自动采集/任务引导 Hook 接线支持 **CodeBuddy（`.codebuddy/`）、Qoder（`.qoder/`）、Claude Code（`.claude/`）**，启用时运行 `codewiki install-hooks --repo-path <repo>` 自动检测项目根目录存在哪些 IDE 配置目录，检测到哪些就为哪些接线（拷贝 hook 脚本与 distill-worker subagent、幂等合并 settings.json、写入 AGENTS.md 引导段）；采集脚本对事件载荷做了通用化处理。settings.json 中的命令路径按 IDE 生成**可移植形式**（CodeBuddy 用 `$CODEBUDDY_PROJECT_DIR/...`、Qoder 用仓库相对路径、Claude Code 用 `${CLAUDE_PROJECT_DIR}/...`），不写机器相关绝对路径——文件随仓库共享，队友克隆到任意目录都能工作；历史遗留的绝对路径条目重跑 install-hooks 会原地升级。显式 `--ide <name>` 默认要求该 IDE 配置目录已存在——仓库只为实际在用的工具接线；确需为尚未初始化的工具创建配置目录时，须显式加 `--create-dir`（防止 Agent 代跑命令时越权新建 `.qoder`/`.claude` 等目录）。
+- 自动采集/任务引导 Hook 接线支持 **CodeBuddy（`.codebuddy/`）、Qoder（`.qoder/`）、Claude Code（`.claude/`）、TRAE（`.trae/`，配置文件为 `hooks.json`）**；千问办公（QwenWork）无 shell hook 机制，走 **prompt 档**（只注入 AGENTS.md 引导段 + 主动沉淀协议块，用 `--ide qwenwork` 显式触发）。启用时运行 `codewiki install-hooks --repo-path <repo>` 自动检测项目根目录存在哪些 IDE 配置目录，检测到哪些就为哪些接线（拷贝 hook 脚本与 distill-worker subagent、幂等合并 settings.json/hooks.json、写入 AGENTS.md 引导段）；采集脚本对事件载荷做了通用化处理。配置中的命令路径一律用**项目相对形式**（如 `python ".codebuddy/hooks/task_session_start.py"`），不写机器相关绝对路径、也不用各宿主的 `$*_PROJECT_DIR` 占位符（实测展开不可靠）——文件随仓库共享，队友克隆到任意目录都能工作；历史遗留的绝对路径/占位符条目重跑 install-hooks 会原地迁移。显式 `--ide <name>` 默认要求该 IDE 配置目录已存在——仓库只为实际在用的工具接线；确需为尚未初始化的工具创建配置目录时，须显式加 `--create-dir`（防止 Agent 代跑命令时越权新建 `.qoder`/`.claude` 等目录）。
 
 **隐私语义（T2 团队遥测）：** `query_wiki` 的检索命中与 `capture_conversation` 的采纳记录会以 `user_id`（优先 `CODEWIKI_USER` 环境变量，回退 `git config user.name` / 系统登录名）署名写入 `repowiki/.meta/telemetry/<user_id>.jsonl` 并随仓库共享——此前这是 gitignore 的本机私有数据。`user_id` 不做鉴权（信任模型与 confirm 闸门一致：能提交即团队可信成员），仅作命名空间；不愿以 git 真名署名的成员可用 `CODEWIKI_USER` 设置花名，或在 `schema.yaml` 中设 `conventions.telemetry.enabled: false` 退回纯本机模式（写入 `repowiki/.meta/telemetry-local/`，已 gitignore，聚合逻辑不变）。
 
@@ -804,22 +804,39 @@ Agent 调用 `list_tasks` 找到任务 → `set_session_task` 绑定会话 → `
 
 ### 团队记忆 Hook 的智能体支持矩阵
 
-对话采集 Hook（team-memory-hook）按家族归并支持多种智能体（注册表 `codewiki/hooks.yaml`，家族格式：claude = settings.json、cursor/codex = hooks.json）：
+对话采集 Hook（team-memory-hook）按家族归并支持多种智能体。下表**由注册表 `codewiki/hooks.yaml` 经 `hook_registry.support_matrix_markdown()` 生成**（单一事实来源是注册表——增减智能体/改档位与叠加默认值请改 `hooks.yaml`，勿手改本表）：
 
-| 智能体 | 家族 | 支持等级 |
-|--------|------|----------|
-| `codebuddy` | claude | 已验证 |
-| `qoder` | claude | 已验证 |
-| `claude-code` | claude | 已验证 |
-| `codex-cli` | codex | 理论支持 |
-| `cursor` | cursor | 理论支持（采集降级：stop 事件不带 transcript，仅事件信封） |
-| `gemini-cli` | claude | 理论支持 |
-| `trae` | claude | 理论支持 |
-| `windsurf` | claude | 理论支持 |
-| `kilocode` | claude | 理论支持 |
-| `opencode` | claude | 理论支持 |
+| 智能体 | 家族 | 支持等级 | 档位 | 主动沉淀 |
+|--------|------|----------|------|----------|
+| `claude-code` | claude | 已验证 | hook | off |
+| `codebuddy` | claude | 已验证 | hook | off |
+| `qoder` | claude | 已验证 | hook | off |
+| `qwenwork` | prompt | 已验证 | prompt | on |
+| `trae` | trae | 已验证 | hook | on |
+| `codex-cli` | codex | 理论支持 | hook | off |
+| `cursor` | cursor | 理论支持 | hook | off |
+| `gemini-cli` | claude | 理论支持 | hook | off |
+| `kilocode` | claude | 理论支持 | hook | off |
+| `opencode` | claude | 理论支持 | hook | off |
+| `windsurf` | claude | 理论支持 | hook | off |
 
 "已验证"指日常使用背书；"理论支持"指家族归并推导、未经真机验证——接线后请按 team-memory-hook prompt 的模拟事件步骤验证。不支持 hook 的运行时可用 `capture_conversation` MCP 工具手动采集。
+
+**能力缺口说明**（家族层事实，与某仓库是否已接线无关）：
+- **`trae`**：无 SessionEnd 事件、Stop 每轮触发但不携带 `transcript_path`，hook 采集无正文可落盘；但 **SessionStart / UserPromptSubmit 完整注入**（`hookSpecificOutput.additionalContext`）。v2 起**主动沉淀默认 on**：会话停顿点直写任务记忆/草稿笔记（下轮零延迟），收尾轮再做带 `active_settle: true` 标记的**保险采集**——对话捕获由保险采集兜底，不再是"只能靠 Agent 中介补漏"的降级形态。
+- **`cursor`**：家族归并推导（`verified: false`），接线后必须跑模拟事件验证；该家族 stop 事件不带 `transcript_path`，无正文可采、不落盘，采集降级。
+- **`qwenwork`**：无 shell hook 机制，走 prompt 档 + 主动沉淀（默认 on），全靠注入文件自动加载 + Agent 中介执行。
+
+**档位 × 叠加 选择表**（两轴正交；决策树见 `docs/接线档位选择设计方案.md` §3.12，先用 `codewiki install-hooks --status` 看支持性与默认叠加）：
+
+| 档位（wiring） | 主动沉淀 | 产物 | 适用 | 任务记忆可见延迟 |
+|---|---|---|---|---|
+| `hook` | `off` | `<config_dir>/hooks/*.py` + settings 注册 + 注入引导段 | 采集完整宿主（codebuddy/qoder/claude-code）默认，现状批处理 | 1 轮（下轮蒸馏才落盘） |
+| `hook` | `on` | 同上 + `CODEWIKI-ACTIVE-SETTLE` 协议块 | hook 读 + prompt 写共存（trae 默认；codebuddy 想更及时可显式开） | **0**（停顿点直写，下轮 `get_task_context` 即取） |
+| `prompt` | `on` | 仅注入文件（引导段 + 协议块） | 无 shell hook 宿主（qwenwork）或团队共享仓库不留脚本/settings | **0** |
+| `prompt` | `off` | 仅注入文件（引导段） | 只用任务记忆引导、不要主动沉淀 | 1 轮 |
+
+选择入口：`codewiki install-hooks [--mode hook|prompt|auto] [--active-settle on|off] [--status]`（`auto` = 按注册表判定，与今日一致；prompt 家族宿主用 `--mode hook` 会硬报错、退出码 1，不静默降级）。
 
 **无 MCP 环境的检索**：`codewiki query "<关键词>"` CLI 命令输出 Agent 友好的定界文本块（与 query_wiki 同一引擎），配合 `codewiki/agents/wiki-recall.md` subagent 定义（拷入各工具的 agents 目录），任何能执行 shell 命令的 Agent 均可消费团队知识库。
 

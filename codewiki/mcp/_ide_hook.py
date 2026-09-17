@@ -497,43 +497,27 @@ def main(argv: Optional[list] = None) -> int:
     # A SessionEnd / PreCompact / Stop event may carry a `session_id` but no
     # turns (the IDE does not hand over the full transcript inline). In that
     # case, if a transcript path was not provided either, we cannot synthesize
-    # a conversation — but we still persist the event itself as a minimal
-    # record (so the hook firing is observable and the real payload shape can
-    # be inspected) instead of silently dropping it.
-    is_envelope = False
+    # a conversation. Earlier revisions persisted the event itself as a
+    # minimal "envelope" record for diagnosis; that mission is complete (the
+    # payload shapes of TRAE Stop and cursor stop are now known — no
+    # transcript), and envelope records carry no task_id/session, so they
+    # only pile up as never-distilled noise in raw/. Diagnose on stderr only.
     if not conversation:
         hook_event = event.get("hook_event_name") or event.get("event")
-        if hook_event in ("SessionEnd", "Stop", "PreCompact") and "session_id" in event:
+        if hook_event in ("SessionEnd", "Stop", "PreCompact"):
             print(
                 f"ide-hook: {hook_event} event has no conversation turns and no "
-                "usable transcript_path; capturing the event envelope only "
-                "(the IDE did not provide an inline transcript).",
+                "usable transcript_path; nothing to capture (envelope records "
+                "are no longer persisted).",
                 file=sys.stderr,
             )
-            # Fall through: capture the event envelope as a minimal record.
-            # NOTE: role must be "user" (not "system") -- capture_conversation
-            # drops every role outside {user, assistant} in _extract_transcript,
-            # so a system-role envelope would be silently discarded (see
-            # test_envelope_does_not_supersede_full_transcript). The envelope
-            # body carries no system-injection tags, so stripping is a no-op.
-            is_envelope = True
-            conversation = [
-                {
-                    "role": "user",
-                    "content": (
-                        f"[team-memory] {hook_event} hook fired but the IDE "
-                        "provided no inline transcript and no readable "
-                        "transcript_path. Raw event envelope preserved for "
-                        "diagnosis. Event keys: " + ", ".join(sorted(event.keys())) + "."
-                    ),
-                }
-            ]
         else:
             print(
                 "ide-hook: payload has no 'conversation' turns; nothing to capture.",
                 file=sys.stderr,
             )
-            return 0
+        _cleanup_event_file(event_file_to_clean)
+        return 0
 
     arguments: Dict[str, Any] = {
         "conversation": conversation,
@@ -545,18 +529,13 @@ def main(argv: Optional[list] = None) -> int:
         # same session re-captured with a longer transcript replaces its
         # pending raw file instead of piling up incremental copies. Named
         # source_session_id so it never collides with the MCP session_id.
-        #
-        # IMPORTANT: envelope records (no real transcript) must NOT carry
-        # source_session_id. capture_conversation supersede-replaces pending
-        # captures sharing the same source_session_id; if the envelope carried
-        # it, a later SessionEnd without transcript would overwrite a
-        # previously captured full transcript (data loss).
-        "source_session_id": ("" if is_envelope else (_pick("session_id", args.session_id) or "")),
+        # (Events without a usable transcript never reach this point — the
+        # envelope branch above returns early — so every capture here is a
+        # real conversation and may safely carry the session id.)
+        "source_session_id": (_pick("session_id", args.session_id) or ""),
         # Task binding, stamped into raw frontmatter so distill_conversation can
-        # route distilled memories back to the task. Like source_session_id, the
-        # envelope (no real transcript) must NOT carry task_id — it is not a real
-        # conversation and would otherwise pollute per-task memory routing.
-        "task_id": ("" if is_envelope else (_pick("task_id", args.task_id) or "")),
+        # route distilled memories back to the task.
+        "task_id": (_pick("task_id", args.task_id) or ""),
     }
     if not arguments["repo_path"]:
         print("ide-hook: repo_path is required to resolve repowiki/raw/.", file=sys.stderr)

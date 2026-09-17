@@ -3,10 +3,11 @@
 Covers the issues found in the review of commit 2e8c78c:
 
 1. **Data loss (critical)**: a SessionEnd/Stop/PreCompact event without an
-   inline transcript synthesizes a 1-line "event envelope". If that envelope
-   carried ``source_session_id``, capture_conversation's session-scoped
-   supersede logic would overwrite the previously captured full transcript
-   with the diagnostic one-liner. The envelope must NOT carry it.
+   inline transcript used to synthesize a 1-line "event envelope" record.
+   Envelope records are no longer persisted at all (they carried no
+   task_id/session and piled up as never-distilled noise in raw/); the hook
+   diagnoses on stderr only. A lifecycle event without a usable transcript
+   must not touch the already-captured full transcript either way.
 
 2. **Inline turns multi-key support**: IDEs inline conversations under several
    common keys (conversation / messages / turns / transcript_turns / chat).
@@ -103,8 +104,8 @@ def test_envelope_does_not_supersede_full_transcript(enable_hook, monkeypatch, t
     assert f'source_session: "{sid}"' in full_text
 
     # 2) SessionEnd fires for the SAME session but WITHOUT any transcript.
-    #    Before the fix, the synthesized envelope carried source_session_id and
-    #    supersede-replaced the full transcript -> data loss.
+    #    Envelope records are no longer persisted: the hook must be a no-op
+    #    on disk (stderr diagnosis only), leaving the full transcript intact.
     rc2 = _run_hook_stdin(
         monkeypatch,
         {
@@ -117,17 +118,12 @@ def test_envelope_does_not_supersede_full_transcript(enable_hook, monkeypatch, t
     assert rc2 == 0
 
     files = _raw_files(repo)
-    # Envelope must be a NEW file, not a replacement of the full transcript.
-    assert len(files) == 2
+    # No envelope file: the full transcript remains the only capture.
+    assert len(files) == 1
 
-    texts = [p.read_text(encoding="utf-8") for p in files]
-    # The full transcript must survive intact.
-    assert any("real question with substance" in t for t in texts)
-    # The envelope exists and carries NO source_session id.
-    envelopes = [t for t in texts if "event envelope preserved" in t]
-    assert len(envelopes) == 1
-    assert 'source_session: ""' in envelopes[0]
-    assert f'source_session: "{sid}"' not in envelopes[0]
+    full_text = files[0].read_text(encoding="utf-8")
+    assert "real question with substance" in full_text
+    assert f'source_session: "{sid}"' in full_text
 
 
 def test_envelope_only_fires_for_lifecycle_events(enable_hook, monkeypatch, tmp_path, capsys):

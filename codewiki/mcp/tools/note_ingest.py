@@ -362,6 +362,12 @@ def handle_ingest_note(
     task_id = arguments.get("task_id")
     if task_id:
         metadata_lines.append(f"  task_id: {task_id}")
+    # Session provenance: the IDE-side session id that produced the source
+    # conversation (traceability: note → session → task binding). Omitted for
+    # taskless / sessionless notes.
+    source_session = str(arguments.get("source_session") or "").strip()
+    if source_session:
+        metadata_lines.append(f"  source_session: {json.dumps(source_session, ensure_ascii=False)}")
     if related_modules:
         metadata_lines.append(
             f"  related_modules: {json.dumps(related_modules, ensure_ascii=False)}"

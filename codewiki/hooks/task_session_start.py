@@ -313,8 +313,8 @@ def _build_message(event: dict, repo_path: str) -> str:
     lines.append(
         "【硬性执行顺序】无论用户第一条消息问什么（哪怕是关于代码、文件、bug 的具体问题），"
         "本会话的第一个动作都必须是下面这个任务关联弹框流程；弹框、绑定、拉取上下文完成后，"
-        "才允许开始读文件/搜索代码/回答用户提问（有积压时补蒸馏委托 subagent 后台执行，"
-        "见下方「补蒸馏」段落，不阻塞回答）。严禁先探索代码或直接回答，事后再补弹任务关联框。"
+        "才允许开始读文件/搜索代码/回答用户提问（有积压时先阻塞补蒸馏，"
+        "见下方「补蒸馏」段落，蒸馏完成后再回答）。严禁先探索代码或直接回答，事后再补弹任务关联框。"
     )
     lines.append("")
     lines.append(
@@ -356,7 +356,8 @@ def _build_message(event: dict, repo_path: str) -> str:
     lines.append(
         "关联完成后调用 get_task_context(task_id=<选中任务>) 拉取该任务上下文继续工作。"
         "返回中的 pending_raw_count 是本任务尚未蒸馏的历史对话数：若大于 0，按下方"
-        "「补蒸馏」委托蒸馏 subagent 后台执行（无需等待，直接开始回答用户提问）。"
+        "「补蒸馏」发一个异步蒸馏 subagent（后台执行，不阻塞回答），"
+        "在自然停顿点拉取蒸馏结果并展示待确认草稿。"
         "若用户明确表示本次会话与任何任务无关，可跳过本提示。"
     )
 
@@ -372,19 +373,24 @@ def _build_message(event: dict, repo_path: str) -> str:
             lines.append(f"  - {label}: {n} 条")
         if IDE_DIR_NAME == ".codebuddy":
             lines.append(
-                "绑定任务之后，立即用 Task 工具 spawn「蒸馏 worker」subagent "
-                "（.codebuddy/agents/distill-worker.md，已授权 codewiki MCP）后台执行补蒸馏；"
-                "主 Agent 不要亲自 read_file raw 原文、也不等蒸馏完成，直接开始回答用户提问。"
+                "绑定任务之后，立即用 Task 工具发一个**异步**「蒸馏 worker」subagent "
+                "（.codebuddy/agents/distill-worker.md，已授权 codewiki MCP；"
+                "Task 工具传 name=<成员名> 参数即以后台 team member 运行，不阻塞主 Agent）执行补蒸馏"
+                "（**清空本任务的全部待蒸馏积压**，不设条数上限——只挑最近几条会让老积压永远轮不到）；"
+                "补蒸馏只提取经验笔记（skip_memories 默认生效），任务记忆由主动沉淀通道直写；"
+                "主 Agent 不必等 subagent 返回，直接开始回答用户提问，不要亲自 read_file raw 原文。"
             )
         else:
             # claude 家族（Qoder/Claude Code/Gemini CLI）：自定义子代理拿不到
             # MCP 权限（实测），委托改走内置 general-purpose 子代理，
             # 以 distill-worker.md 正文为剧本。包内源副本同走此分支。
             lines.append(
-                "绑定任务之后，立即用 Task 工具 spawn 内置 general-purpose 子代理后台执行补蒸馏："
+                "绑定任务之后，立即用 Task 工具发一个**异步**内置 general-purpose 子代理执行补蒸馏："
                 f"让它先读 {IDE_DIR_NAME}/agents/distill-worker.md（蒸馏 worker 剧本），"
-                "再按其中 Mode C 流程执行（本宿主自定义子代理拿不到 MCP 权限，须用内置子代理）；"
-                "主 Agent 不要亲自 read_file raw 原文、也不等蒸馏完成，直接开始回答用户提问。"
+                "再按其中 Mode C 流程执行（本宿主自定义子代理拿不到 MCP 权限，须用内置子代理；"
+                "**清空本任务的全部待蒸馏积压**，不设条数上限）；"
+                "补蒸馏只提取经验笔记（skip_memories 默认生效），任务记忆由主动沉淀通道直写；"
+                "主 Agent 不必等 subagent 返回，直接开始回答用户提问，不要亲自 read_file raw 原文。"
             )
         lines.append("蒸馏子代理走 Mode C（纯 MCP JSON）流程：")
         lines.append(
@@ -392,15 +398,18 @@ def _build_message(event: dict, repo_path: str) -> str:
             "获取该任务的积压对话清单"
         )
         lines.append(
-            "  2. 按清单逐条 read_file 阅读 raw 文件，提取 notes（通用经验）与 memories（任务进度）"
+            "  2. 按清单逐条 read_file 阅读 raw 文件（**清单里每条都要处理，不设条数上限**），"
+            "提取 notes（通用经验）；memories 默认跳过（通道互斥，任务记忆归主动沉淀直写）"
         )
         lines.append(
             '  3. distill_conversation(mode="submit", distilled=<提取结果>) 提交；'
-            "产出为草稿笔记（待确认）与直写落盘的任务记忆"
+            "产出为草稿笔记（待确认）"
         )
         lines.append(
-            "  4. 蒸馏完成后，主 Agent 在自然停顿点（任务告一段落/用户空闲时）重新 "
-            "get_task_context 拉取最新上下文（新落盘的任务记忆/待确认草稿笔记会一并注入）"
+            "  4. subagent 在后台执行，主 Agent 直接回答用户提问；"
+            "在自然停顿点（任务里程碑、话题切换、收尾轮）重新 get_task_context 拉取最新上下文"
+            "（新落盘的任务记忆/待确认草稿笔记会一并注入），并向用户展示待确认的草稿笔记；"
+            "subagent 失败/超时不重试——未蒸馏的 raw 留在 raw/ 等下次会话再补"
         )
         lines.append(
             "  5. 向用户展示待确认的草稿笔记，经 confirm_note 确认后才正式落盘"

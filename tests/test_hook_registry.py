@@ -1,8 +1,9 @@
 """Tests for the hook agent registry (H1/H3) and `codewiki query` CLI (H4).
 
 Covers docs/Hook多智能体支持设计方案.md §5 acceptance criteria:
-  - hooks.yaml loads with 3 families and >= 9 agents; verified tiers correct
-  - family_event: claude PascalCase / cursor camelCase mapping; arrays tolerated
+  - hooks.yaml loads with 5 families (incl. prompt) and >= 9 agents;
+    verified tiers correct; wiring/active_settle resolve agent > family > default
+  - family_event: claude/trae PascalCase, cursor camelCase mapping; arrays tolerated
   - detect_project_agents: only existing config dirs detected, none created
   - mtime cache invalidates on registry change
   - support_matrix_markdown renders verified-first
@@ -23,9 +24,16 @@ from codewiki.mcp.tools import hook_registry as hr
 # H1: registry loading
 # --------------------------------------------------------------------------- #
 class TestRegistry:
-    def test_three_families(self):
+    def test_family_set(self):
         fams = hr.load_registry()["families"]
-        assert set(fams.keys()) == {"claude", "cursor", "codex"}
+        assert set(fams.keys()) == {"claude", "cursor", "codex", "trae", "prompt"}
+
+    def test_prompt_family_shape(self):
+        # prompt 家族（无 shell hook 宿主）：无配置文件、无事件、档位 prompt
+        fams = hr.load_registry()["families"]
+        assert fams["prompt"]["config_file"] is None
+        assert fams["prompt"]["events"] == {}
+        assert fams["prompt"]["wiring"] == "prompt"
 
     def test_at_least_nine_agents(self):
         agents = hr.load_registry()["agents"]
@@ -34,10 +42,20 @@ class TestRegistry:
     def test_verified_tiers(self):
         agents = hr.load_registry()["agents"]
         verified = {a["id"] for a in agents if a.get("verified")}
-        assert verified == {"codebuddy", "qoder", "claude-code"}
+        assert verified == {"codebuddy", "qoder", "claude-code", "trae", "qwenwork"}
         # theoretical agents all carry verified: false explicitly
         for a in agents:
             assert isinstance(a.get("verified"), bool)
+
+    def test_qwenwork_registry_entry(self):
+        # qwenwork：prompt 家族、无仓库标记（不参与自动探测）、采集断供默认开叠加
+        agent = hr.get_agent("qwenwork")
+        assert agent is not None
+        assert agent["family"] == "prompt"
+        assert agent["config_dir"] is None
+        assert agent["verified"] is True
+        assert agent["protocol"] == "qwenwork"
+        assert agent["active_settle"] is True
 
     def test_family_event_mapping(self):
         assert hr.family_event("claude", "session_start") == "SessionStart"
@@ -45,6 +63,10 @@ class TestRegistry:
         assert hr.family_event("cursor", "session_start") == "sessionStart"
         assert hr.family_event("cursor", "session_end") == "stop"
         assert hr.family_event("codex", "session_end") == "SessionEnd"
+        # trae：Stop 替代 SessionEnd（无 SessionEnd 事件），UserPromptSubmit 可用
+        assert hr.family_event("trae", "session_start") == "SessionStart"
+        assert hr.family_event("trae", "session_end") == "Stop"
+        assert hr.family_event("trae", "user_prompt") == "UserPromptSubmit"
 
     def test_family_event_unknown(self):
         assert hr.family_event("nope", "session_start") is None
@@ -73,6 +95,99 @@ class TestRegistry:
 
 
 # --------------------------------------------------------------------------- #
+# 档位/叠加三级解析（agent > family > 默认）——注册表单源
+# --------------------------------------------------------------------------- #
+class TestWiringResolution:
+    def test_wiring_of_known_agents(self):
+        # 注册表事实快照：qwenwork 走 prompt 档，hook 宿主维持 hook 档
+        assert hr.wiring_of("qwenwork") == "prompt"
+        assert hr.wiring_of("codebuddy") == "hook"
+        assert hr.wiring_of("trae") == "hook"
+        assert hr.wiring_of("cursor") == "hook"
+
+    def test_active_settle_of_known_agents(self):
+        # 采集断供宿主默认开；hook 采集完整宿主默认关（= 今日批处理行为）
+        assert hr.active_settle_of("qwenwork") is True
+        assert hr.active_settle_of("trae") is True
+        assert hr.active_settle_of("codebuddy") is False
+        assert hr.active_settle_of("qoder") is False
+
+    def test_inject_file_of_known_agents(self):
+        # 注册表未声明 inject_file → 默认 AGENTS.md
+        assert hr.inject_file_of("qwenwork") == "AGENTS.md"
+        assert hr.inject_file_of("codebuddy") == "AGENTS.md"
+
+    def test_agent_overrides_family(self, monkeypatch):
+        # agent 级显式声明覆盖家族级
+        monkeypatch.setattr(
+            hr,
+            "load_registry",
+            lambda: {
+                "families": {
+                    "f1": {"wiring": "hook", "active_settle": True, "inject_file": "F1.md"},
+                },
+                "agents": [
+                    {
+                        "id": "a1",
+                        "family": "f1",
+                        "wiring": "prompt",
+                        "active_settle": False,
+                        "inject_file": "A1.md",
+                    },
+                ],
+            },
+        )
+        assert hr.wiring_of("a1") == "prompt"
+        assert hr.active_settle_of("a1") is False
+        assert hr.inject_file_of("a1") == "A1.md"
+
+    def test_family_overrides_default(self, monkeypatch):
+        # agent 未声明 → 家族级生效
+        monkeypatch.setattr(
+            hr,
+            "load_registry",
+            lambda: {
+                "families": {
+                    "f2": {"wiring": "prompt", "active_settle": True, "inject_file": "F2.md"},
+                },
+                "agents": [{"id": "a2", "family": "f2"}],
+            },
+        )
+        assert hr.wiring_of("a2") == "prompt"
+        assert hr.active_settle_of("a2") is True
+        assert hr.inject_file_of("a2") == "F2.md"
+
+    def test_defaults_when_nothing_declared(self, monkeypatch):
+        # agent 与家族都未声明 → 内置默认：hook / false / AGENTS.md
+        monkeypatch.setattr(
+            hr,
+            "load_registry",
+            lambda: {"families": {"f3": {}}, "agents": [{"id": "a3", "family": "f3"}]},
+        )
+        assert hr.wiring_of("a3") == "hook"
+        assert hr.active_settle_of("a3") is False
+        assert hr.inject_file_of("a3") == "AGENTS.md"
+
+    def test_unknown_agent_falls_back_to_defaults(self):
+        # 未知 agent：等价于「无 agent 无家族」→ 全部落到默认
+        assert hr.wiring_of("nonexistent") == "hook"
+        assert hr.active_settle_of("nonexistent") is False
+        assert hr.inject_file_of("nonexistent") == "AGENTS.md"
+
+    def test_explicit_false_short_circuits_family(self, monkeypatch):
+        # agent 显式 false 必须短路——家族默认 true 不得透漏上来
+        monkeypatch.setattr(
+            hr,
+            "load_registry",
+            lambda: {
+                "families": {"f4": {"active_settle": True}},
+                "agents": [{"id": "a4", "family": "f4", "active_settle": False}],
+            },
+        )
+        assert hr.active_settle_of("a4") is False
+
+
+# --------------------------------------------------------------------------- #
 # H3: project detection
 # --------------------------------------------------------------------------- #
 class TestDetection:
@@ -97,6 +212,18 @@ class TestSupportMatrix:
         t_pos = md.index("| `cursor`")
         assert v_pos < t_pos
         assert "已验证" in md and "理论支持" in md
+
+    def test_wiring_and_settle_columns(self):
+        # 档位与叠加列（口径与 _of 解析器一致）
+        md = hr.support_matrix_markdown()
+        header = md.splitlines()[0]
+        assert "档位" in header and "主动沉淀" in header
+        qw_row = next(line for line in md.splitlines() if line.startswith("| `qwenwork`"))
+        assert qw_row.endswith("| prompt | on |")
+        cb_row = next(line for line in md.splitlines() if line.startswith("| `codebuddy`"))
+        assert cb_row.endswith("| hook | off |")
+        tr_row = next(line for line in md.splitlines() if line.startswith("| `trae`"))
+        assert tr_row.endswith("| hook | on |")
 
 
 # --------------------------------------------------------------------------- #
@@ -197,6 +324,9 @@ class TestPromptRegistryDriven:
         assert "已验证支持" in s and "理论支持" in s
         assert "`codebuddy`" in s  # detected in this fake repo
         assert "cursor 家族采集降级" in s  # downgrade disclosed
+        # trae 家族采集降级同样必须披露（Stop 不带 transcript_path，
+        # 信封已不再落盘，披露措辞须与新行为一致）
+        assert "采集同样降级" in s and "不落盘" in s
         assert "只为探测到的智能体接线" in s
 
     def test_prompt_equivalence_for_verified(self):

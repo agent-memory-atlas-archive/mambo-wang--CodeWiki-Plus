@@ -617,6 +617,133 @@ def test_distill_memory_heading_uses_captured_at(tmp_path, monkeypatch):
     assert "昨天会话的进度记忆" in text
 
 
+def test_distill_task_scoped_skips_memories_by_default(tmp_path):
+    """Channel mutual exclusion (ADR-0009): the task-scoped catch-up path
+    (task_id filter) is FIXED to notes-only — task memories belong to the
+    active-settle channel. No opt-out switch (fixed semantics)."""
+    from pathlib import Path
+
+    repo = str(tmp_path)
+    r = _call(tm.handle_create_task, repo_path=repo, title="通道互斥任务")
+    task_id = r["task"]["id"]
+
+    cap = _call(
+        capture.handle_capture_conversation,
+        repo_path=repo,
+        conversation=[
+            {"role": "user", "content": "帮我实现通道互斥"},
+            {"role": "assistant", "content": "已实现，采用通道级互斥方案"},
+        ],
+        task_id=task_id,
+    )
+    cid = cap["conversation_id"]
+
+    # Task-scoped path: memories deterministically skipped, notes land.
+    sub = _call(
+        distill.handle_distill_conversation,
+        repo_path=repo,
+        mode="submit",
+        task_id=task_id,
+        distilled={
+            cid: {
+                "notes": [
+                    {
+                        "title": "通道互斥经验",
+                        "note_type": "lesson",
+                        "content": "## 背景\n\n测试。\n\n## 正确做法\n\n互斥。",
+                    }
+                ],
+                "memories": ["不应写入的记忆"],
+            }
+        },
+    )
+    assert sub["status"] == "completed"
+    per = sub["distilled"][0]
+    assert per["notes_created"] == 1
+    assert per["memories_written"] == 0
+    assert per["memories_skipped_reason"] == "skip_memories"
+
+    got = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
+    assert got["memories_total"] == 0
+
+    # Non-catch-up path (no task_id filter): dual-track still works —
+    # the raw carries task_id, so its memories land on that task.
+    cap2 = _call(
+        capture.handle_capture_conversation,
+        repo_path=repo,
+        conversation=[
+            {"role": "user", "content": "再来一轮双轨"},
+            {"role": "assistant", "content": "非补蒸馏路径仍双轨"},
+        ],
+        task_id=task_id,
+    )
+    cid2 = cap2["conversation_id"]
+    sub2 = _call(
+        distill.handle_distill_conversation,
+        repo_path=repo,
+        mode="submit",
+        distilled={
+            cid2: {
+                "notes": [],
+                "memories": ["双轨路径写入的记忆"],
+            }
+        },
+    )
+    assert sub2["status"] == "completed"
+    per2 = sub2["distilled"][0]
+    assert per2["memories_written"] == 1
+    assert "memories_skipped_reason" not in per2
+
+    got2 = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
+    assert "双轨路径写入的记忆" in got2["memories"]
+
+
+def test_distill_note_carries_source_session(tmp_path):
+    """Session provenance: distilled draft notes carry the raw capture's
+    source_session id under metadata, so a note can be traced back to the
+    originating IDE session (note → session → task binding)."""
+    from pathlib import Path
+
+    repo = str(tmp_path)
+    r = _call(tm.handle_create_task, repo_path=repo, title="会话溯源任务")
+    task_id = r["task"]["id"]
+
+    raw_dir = Path(repo) / "repowiki" / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    (raw_dir / "conv-sess.md").write_text(
+        "---\n"
+        "type: conversation\n"
+        "status: pending\n"
+        f'task_id: "{task_id}"\n'
+        'captured_at: "2026-09-17T01:00:00Z"\n'
+        'source_session: "sess-abc123"\n'
+        "---\n\nuser: hi",
+        encoding="utf-8",
+    )
+
+    sub = _call(
+        distill.handle_distill_conversation,
+        repo_path=repo,
+        mode="submit",
+        distilled={
+            "conv-sess": {
+                "notes": [
+                    {
+                        "title": "会话溯源经验",
+                        "note_type": "lesson",
+                        "content": "## 背景\n\n测试溯源。\n\n## 正确做法\n\n带 source_session。",
+                    }
+                ],
+                "memories": [],
+            }
+        },
+    )
+    assert sub["status"] == "completed"
+    note_file = sub["distilled"][0]["notes"][0]["note_file"]
+    text = Path(note_file).read_text(encoding="utf-8")
+    assert 'source_session: "sess-abc123"' in text
+
+
 def test_split_memories_three_formats():
     # Headed form: heading + multi-paragraph body stays one entry.
     headed = "### 2026-08-24 10:00\n\npara one\n\npara two\n\n### 2026-08-24 11:00\n\nsecond"

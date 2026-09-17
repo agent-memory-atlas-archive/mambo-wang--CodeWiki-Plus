@@ -88,6 +88,7 @@ prompts:
     args:
       repo_path: "仓库根目录路径（相对路径基于当前工作目录，默认当前目录）"
       enable_task_management: "是否启用任务管理（跨会话任务记忆）：true/1 会在初始化指引中追加任务管理启用说明（注册 SessionEnd 采集 Hook + 向 AGENTS.md 写入任务引导段，新建会话时提示用户关联/新建任务）；留空或 false 则跳过。默认关闭。"
+      active_settle: "主动沉淀叠加：on 自然停顿点直写沉淀；默认 off"
 
   init-workspace:
     title: "初始化多仓WIKI工作区"
@@ -192,6 +193,8 @@ prompts:
     args:
       action: "要执行的动作：enable（启用）| disable（关闭）；留空则先检查现状再按用户意愿选择"
       repo_path: "仓库根目录路径（相对路径基于当前工作目录，默认当前目录）"
+      mode: "接线档位：hook | prompt | auto"
+      active_settle: "主动沉淀叠加：on 自然停顿点直写沉淀；默认 off"
 
   distill-conversations:
     title: "蒸馏对话提取记忆和经验"
