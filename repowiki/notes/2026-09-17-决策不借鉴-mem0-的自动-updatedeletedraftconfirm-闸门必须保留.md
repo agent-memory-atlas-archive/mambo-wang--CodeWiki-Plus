@@ -1,6 +1,6 @@
 ---
 type: general
-title: "mem0 原始消息无条件落库且永不删除，作为下一轮提取的常驻上下文"
+title: "决策：不借鉴 mem0 的自动 UPDATE/DELETE——draft→confirm 闸门必须保留"
 tags: ["general"]
 metadata:
   date: 2026-09-17
@@ -9,10 +9,8 @@ metadata:
   source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working.md"
 status: draft
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-17T11:54:38Z }
+generated: { by: codewiki/5.10.1, at: 2026-09-17T11:54:57Z }
 stale_after: 2027-01-15
-origin: conversation
-
 ---
 
 
