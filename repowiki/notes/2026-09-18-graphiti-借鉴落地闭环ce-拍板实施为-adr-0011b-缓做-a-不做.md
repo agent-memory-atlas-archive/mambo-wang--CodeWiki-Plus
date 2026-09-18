@@ -1,16 +1,27 @@
 ---
 type: decision
-title: "graphiti 借鉴落地闭环：C+E 拍板实施为 ADR-0011，B 缓做 A 不做"
-tags: ["decision"]
+title: graphiti 借鉴落地闭环：C+E 拍板实施为 ADR-0011，B 缓做 A 不做
+tags:
+- decision
 metadata:
   date: 2026-09-18
-  confidence_level: weak
+  confidence_level: strong
   task_id: 他山之石
-  related_modules: ["knowledge_loop", "notes"]
-status: draft
+  related_modules:
+  - knowledge_loop
+  - notes
+  verification:
+    commit_ref: 858f6eb
+    test_ref: tests/test_distill_defensive.py
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T09:37:45Z }
-stale_after: 2027-09-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 09:37:45+00:00
+stale_after: '2027-09-18'
+verified:
+- by: human:wangbao
+  at: '2026-09-18T09:47:00Z'
 ---
 
 ## 背景
