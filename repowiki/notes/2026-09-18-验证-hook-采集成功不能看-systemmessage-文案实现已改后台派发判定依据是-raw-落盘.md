@@ -1,21 +1,29 @@
 ---
 type: pitfall
-title: "验证 hook 采集成功不能看 systemMessage 文案：实现已改后台派发，判定依据是 raw/ 落盘"
-tags: ["pitfall", "sessionend"]
+title: 验证 hook 采集成功不能看 systemMessage 文案：实现已改后台派发，判定依据是 raw/ 落盘
+tags:
+- pitfall
+- sessionend
 metadata:
   date: 2026-09-18
   confidence_level: weak
-  source_session: "7245f28d19714f71bca1abdd87568f23"
-  related_modules: ["team-memory-fusion", "hooks"]
+  source_session: 7245f28d19714f71bca1abdd87568f23
+  related_modules:
+  - team-memory-fusion
+  - hooks
   severity: medium
-  source_ref: "conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md"
-  scene: "hook 接线验证"
-status: draft
+  source_ref: conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md
+  scene: hook 接线验证
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T00:59:52Z }
-stale_after: 2027-03-17
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 00:59:52+00:00
+stale_after: '2027-03-17'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T01:45:49Z'
 ---
 
 ## 背景
