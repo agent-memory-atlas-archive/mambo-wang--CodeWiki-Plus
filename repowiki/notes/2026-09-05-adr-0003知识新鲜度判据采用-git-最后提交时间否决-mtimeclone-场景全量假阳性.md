@@ -14,8 +14,8 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，待与 freshness 相关笔记成组后单立场景
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
@@ -25,6 +25,7 @@ origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:32Z'
+reject_reason: consolidated into 多仓工作区初始化与增量分析
 ---
 
 ## Decision

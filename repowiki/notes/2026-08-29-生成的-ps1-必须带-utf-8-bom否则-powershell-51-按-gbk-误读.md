@@ -20,13 +20,14 @@ metadata:
   consolidated_into: ''
   compiled_into:
   - skills/windows-dev-env/SKILL.md
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.5
   at: '2026-08-29 07:03:14+00:00'
 stale_after: '2027-02-25'
 author: mambo-wang
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## 背景
