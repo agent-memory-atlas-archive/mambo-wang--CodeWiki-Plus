@@ -9,7 +9,7 @@ metadata:
   source_session: "0c273f6722ee4063b6e47fdae1ff47e3"
   related_modules: ["team-memory-fusion", "mcp"]
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working-2.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-2.md"
   scene: "任务记忆 / 溯源链"
 status: draft
 author: iamwangbao-163-com

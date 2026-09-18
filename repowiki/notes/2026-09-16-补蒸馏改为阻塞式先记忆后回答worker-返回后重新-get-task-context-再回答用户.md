@@ -12,7 +12,7 @@ status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-18T01:05:39Z }
 stale_after: 2027-09-16
-source_conversations: ['raw\conv-working_memory_content-The-following-is-the-existing-working-2.md']
+source_conversations: ['conversations/conv-working_memory_content-The-following-is-the-existing-working-2.md']
 
 ---
 
