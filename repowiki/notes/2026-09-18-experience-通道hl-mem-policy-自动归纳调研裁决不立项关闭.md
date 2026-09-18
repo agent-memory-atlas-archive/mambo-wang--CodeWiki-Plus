@@ -9,12 +9,14 @@ metadata:
   source_session: "94e1e091eed24b5cbd93153da2656197"
   related_modules: ["task_memory", "knowledge_loop"]
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3b1d9b.md"
   scene: "他山之石竞品调研：HL-Mem 遗留候选裁决"
 status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-18T09:20:39Z }
 stale_after: 2027-09-18
+origin: conversation
+
 ---
 
 ## 背景

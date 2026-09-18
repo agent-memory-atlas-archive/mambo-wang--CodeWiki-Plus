@@ -9,7 +9,7 @@ metadata:
   source_session: "94e1e091eed24b5cbd93153da2656197"
   related_modules: ["task_memory"]
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3b1d9b.md"
   scene: "他山之石任务遗留待办清理"
 status: draft
 author: iamwangbao-163-com
