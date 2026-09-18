@@ -9,12 +9,14 @@ metadata:
   source_session: "94e1e091eed24b5cbd93153da2656197"
   related_modules: ["knowledge-loop", "notes"]
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-6f15a7.md"
   scene: "他山之石-竞品调研"
 status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-18T06:10:20Z }
 stale_after: 2027-09-18
+origin: conversation
+
 ---
 
 ## 背景
