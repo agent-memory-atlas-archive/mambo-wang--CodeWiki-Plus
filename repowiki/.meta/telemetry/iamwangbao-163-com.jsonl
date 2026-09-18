@@ -863,3 +863,14 @@
 {"t": "hit", "doc": "notes/2026-09-18-任务记忆通道互斥固定语义补蒸馏task-id-过滤固定不提取记忆无开关记忆归主动沉淀直写.md", "at": "2026-09-18", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-18-决策任务记忆从-append-only-放宽为-append-受控降状态adr-0009.md", "at": "2026-09-18", "n": 2}
 {"t": "hit", "doc": "notes/2026-09-07-skill-creator-工具设计定档scenario-直译-mode-c-两区制确认闸门不建自动评分门控.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-18-adr-0009-实施中踩的三个坑rem-缺失locked-rmw-契约difflib-比对口径.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-18-任务记忆通道互斥固定语义补蒸馏task-id-过滤固定不提取记忆无开关记忆归主动沉淀直写.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-18-决策任务记忆从-append-only-放宽为-append-受控降状态adr-0009.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-18-惰性序号两侧口径必须共享同一实现注入侧与-supersede-侧编号规则错位会标错推翻目标.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-18-蒸馏笔记-sessionid-溯源链补全note-session-task-三级可查ingest-note-新增-sou.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-16-移除事件信封落盘无-transcript-的-hook-生命周期事件一律-no-op仅-stderr-诊断.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-16-补蒸馏改为阻塞式先记忆后回答worker-返回后重新-get-task-context-再回答用户.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-11-codebuddy-skills-三级渐进披露常驻只占-100-词元数据disable-model-invocation.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-11-distill-conversation-submit-的-distilled-必须是-conversation-idn-fc7c66.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-11-distill-conversation-submit-的-distilled-必须是-conversation-idn.md", "at": "2026-09-18", "n": 1}
+{"t": "by_file", "doc": "notes/2026-09-11-mcp-工具定义体积拆解实测描述占-70砍工具是性价比最差的手段先瘦身-top-8-大工具描述.md", "at": "2026-09-18", "n": 1}
