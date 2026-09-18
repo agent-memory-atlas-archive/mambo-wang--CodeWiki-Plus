@@ -14,8 +14,8 @@ metadata:
   source_ref: conversations/conv-开始新对话触发选择任务后，会有query_wiki以及蒸馏操作，这些操作可以放到subagent执行吗，别影响用户正常使.md
   scene: 任务记忆/补蒸馏
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.3.0
   at: '2026-08-23 08:00:48+00:00'
@@ -25,6 +25,7 @@ verified:
 - by: human:wangbao
   at: '2026-08-25T16:48:21Z'
 author: mambo-wang
+reject_reason: consolidated into 任务记忆系统设计方法
 ---
 
 ## Background

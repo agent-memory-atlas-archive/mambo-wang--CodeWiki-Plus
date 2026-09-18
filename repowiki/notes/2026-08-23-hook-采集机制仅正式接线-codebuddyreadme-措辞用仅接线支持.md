@@ -17,8 +17,8 @@ metadata:
   source_ref: conversations/conv-现在codewiki-plus开启hook机制，支持那些智能体，目前我只知道支持codebuddy-@prompts.p.md
   scene: team-memory-hook 支持范围
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.3.0
   at: '2026-08-23 07:40:26+00:00'
@@ -28,6 +28,7 @@ verified:
 - by: human:wangbao
   at: '2026-08-25T16:48:21Z'
 author: mambo-wang
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## Background

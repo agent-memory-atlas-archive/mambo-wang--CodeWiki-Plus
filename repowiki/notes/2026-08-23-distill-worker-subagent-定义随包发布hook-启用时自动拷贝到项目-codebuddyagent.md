@@ -15,8 +15,8 @@ metadata:
   source_ref: conversations/conv-开始新对话触发选择任务后，会有query_wiki以及蒸馏操作，这些操作可以放到subagent执行吗，别影响用户正常使-ad2869.md
   scene: 产品维护-蒸馏机制
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.3.0
   at: '2026-08-23 12:10:38+00:00'
@@ -26,8 +26,9 @@ verified:
 - by: human:wangbao
   at: '2026-08-25T16:48:21Z'
 author: mambo-wang
-source_conversations: ['conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md']
-
+source_conversations:
+- conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## Background

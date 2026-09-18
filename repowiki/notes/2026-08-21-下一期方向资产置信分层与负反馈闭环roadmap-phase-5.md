@@ -19,8 +19,8 @@ metadata:
   - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   source_ref: tam-team-memory-practice
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.3.0
   at: '2026-08-21 02:27:01+00:00'
@@ -29,6 +29,7 @@ verified:
 - by: human:wangbao
   at: '2026-08-25T16:48:21Z'
 author: mambo-wang
+reject_reason: consolidated into 对话蒸馏管线与raw暂存区
 ---
 
 ## 背景
