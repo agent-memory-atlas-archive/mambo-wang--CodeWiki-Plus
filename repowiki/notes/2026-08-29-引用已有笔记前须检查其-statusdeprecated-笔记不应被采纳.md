@@ -12,8 +12,8 @@ metadata:
   source_ref: conversations/conv-根据-D-repos-CodeWiki-CN-docs-多仓Harness工作区-集中式Wiki布局设计方案.md，结合.md
   scene: 知识检索与引用
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.5.0
   at: '2026-08-29 15:04:49+00:00'
@@ -23,6 +23,7 @@ verified:
 - by: human:wangbao
   at: '2026-08-29T15:14:32Z'
 author: wandering-bug
+reject_reason: consolidated into MCP-Server薄壳架构与参数约定
 ---
 
 ## Background

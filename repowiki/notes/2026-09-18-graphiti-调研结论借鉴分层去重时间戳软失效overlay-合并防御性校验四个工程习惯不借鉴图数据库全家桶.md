@@ -26,7 +26,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-18T06:41:21Z'
-source_conversations: ['raw\conv-working_memory_content-The-following-is-the-existing-working.md']
+source_conversations: ['conversations/conv-working_memory_content-The-following-is-the-existing-working-3c9e3c.md']
 
 ---
 

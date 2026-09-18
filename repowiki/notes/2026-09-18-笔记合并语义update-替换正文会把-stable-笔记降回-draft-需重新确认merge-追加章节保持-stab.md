@@ -9,12 +9,14 @@ metadata:
   source_session: "94e1e091eed24b5cbd93153da2656197"
   related_modules: ["note_consolidation", "distill_conversation"]
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3c9e3c.md"
   scene: "蒸馏草稿批量确认（14 条）"
 status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-18T06:47:59Z }
 stale_after: 2027-03-17
+origin: conversation
+
 ---
 
 ## 背景
