@@ -14,8 +14,8 @@ metadata:
   - skill-creator
   severity: medium
   source_ref: conversations/conv-@settings.json-27-38-是不是有问题，python-m-codewiki.mcp._ide_hook.md
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
@@ -25,6 +25,7 @@ origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:20Z'
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## 背景
