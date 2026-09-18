@@ -49,6 +49,8 @@ codewiki/mcp/ 的架构分层、工具参数面与检索契约。适用于新增
 14. 提示字段沿用 `*_hint` 家族命名（全仓无 advice 先例）。
 15. **MCP 层 i18n**：语言优先级 `~/.codewiki/config.json` 的 `lang` > `CODEWIKI_LANG` env > 系统 locale > 兜底 zh；语言源不放项目级 schema.yaml。MCP 协议（prompts/list、prompts/get）无语言协商参数，语言只能在 server 进程启动时确定；`Server(...)` 在 server.py 模块顶层构造，语言初始化必须早于它。方案定案：YAML 双文件（zh/en）全量、一次性做；prompt 正文是「逻辑+模板」混合体（条件分支、运行时占位符），不能整块搬进 YAML。存量中文落盘产物不追溯重写，语言只作用于新生成/整体重写路径；schema.yaml 已存在绝不动。
 16. **引用 query_wiki 返回的笔记前先查 status**：deprecated 表示方案已被否决/取代，不可作为行动依据；仅 draft/confirmed 可采纳。
+17. **code_routing 代码注入分档是文件粒度两档，非传闻三档**：纯 boilerplate 文件（file_categories == {"boilerplate"}）仅签名（≤15 参数）；business/infra/混合文件整文件全量；1-hop 依赖仅签名。「infra 摘要」档不存在（prompt_template.py:596-659）。
+18. **confirm/reject 生命周期实现已拆到 note_lifecycle.py**（2026-09 重构）：knowledge_loop.py 仅 2.4KB 兼容门面；handle_confirm_note 在 note_lifecycle.py:56-91（draft→stable、append verified、续期 stale_after）。找实现别去 knowledge_loop.py。
 
 ## 判断逻辑
 - dispatch() 已有统一异常兜底，handler 内抛异常是安全契约。
