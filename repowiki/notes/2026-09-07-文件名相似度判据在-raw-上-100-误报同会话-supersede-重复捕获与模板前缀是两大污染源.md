@@ -12,6 +12,8 @@ metadata:
   source_ref: conversations/conv-SKILL-CREATOR需求的PHASE-2是不是还没启动.md
   scene: skill_candidate hint 判据验证
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

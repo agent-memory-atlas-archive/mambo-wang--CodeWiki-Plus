@@ -16,7 +16,9 @@ metadata:
   severity: medium
   source_ref: conversations/conv-现在codewiki-plus开启hook机制，支持那些智能体，目前我只知道支持codebuddy-@prompts.p.md
   scene: team-memory-hook 支持范围
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   confidence_level: shadow
 status: deprecated
 generated:

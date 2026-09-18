@@ -10,7 +10,9 @@ metadata:
   - wiki_search
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   source_ref: conversations/conv-@command-codewiki-变更评估与代码评审（修改后）.md
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   confidence_level: shadow
 status: deprecated
 generated:

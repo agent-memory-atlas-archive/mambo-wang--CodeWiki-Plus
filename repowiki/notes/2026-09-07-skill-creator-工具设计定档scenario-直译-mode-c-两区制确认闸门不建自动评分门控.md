@@ -16,9 +16,11 @@ metadata:
   scene: 技能产物类型建设
   disposition:
     verdict: deferred
-    at: '2026-09-08'
-    reason: 技能产物建设组尚在推进中，等定稿落地后再立块
+    at: '2026-09-18'
+    reason: 已吸收进 IDE-Hook 场景块一句，但 skill-creator 工具链方法尚薄，待实现落地后独立成场景
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/IDE-Hook采集链路方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

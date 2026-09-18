@@ -22,8 +22,21 @@ metadata:
   - notes/2026-09-05-query-wiki-p0-改进四项定案rev2-评审定稿est-tokens-by-file-v1-仅-notes-新.md
   - notes/2026-09-05-query-wiki-的-check-模式是轻量预检不计入检索统计不污染-usageheat-排序信号工作流若不内建到工.md
   - notes/2026-09-05-检索预算口径打架前门-1200-字符-snippet-300-10-条只-4-条带内容expand-后门-1020000.md
-  summary: 补入 output_dir 纯函数收敛、E2E 显式传路径、检索预算口径成体系与 check 预检契约
-  heat: 4
+  - notes/2026-08-03-mcp-工具-schema-不声明-session-idhandler-隐式读取.md
+  - notes/2026-08-25-doctrine-不会自动注入-agent-上下文唯一通道是-query-wikimodeoverview.md
+  - notes/2026-08-26-handle-query-wiki-在-session-存在时每次查询都全量重建检索索引.md
+  - notes/2026-08-29-引用已有笔记前须检查其-statusdeprecated-笔记不应被采纳.md
+  - notes/2026-09-05-code-routing-代码注入分档的真实规则纯-boilerplate-文件仅签名businessinfra混合全量.md
+  - notes/2026-09-05-confirmreject-生命周期已从-knowledge-looppy-拆到-note-lifecyclepy202.md
+  - notes/2026-09-07-i18n-语言来源优先级configjson-lang-codewiki-lang-env-系统-locale-zh且不.md
+  - notes/2026-09-07-mcp-promptslist-与-promptsget-无语言协商参数语言只能在-server-进程启动时确定.md
+  - notes/2026-09-07-mcp-层中文返回文本-i18n-方案定案yaml-双文件全量一次性全做.md
+  - notes/2026-09-07-prompt-正文是逻辑模板混合体不能整块搬进-yaml-语料.md
+  - notes/2026-09-07-server-在-serverpy-模块顶层构造语言初始化必须早于它.md
+  - notes/2026-09-07-存量中文落盘产物不追溯重写语言策略只作用于新生成整体重写路径.md
+  summary: 补入 MCP 层 i18n 定案（语言优先级/启动期确定/存量不追溯）、code_routing 两档真实规则、note_lifecycle
+    拆分、deprecated 笔记引用前查 status
+  heat: 5
   confidence_level: weak
 ---
 ## 工作场景

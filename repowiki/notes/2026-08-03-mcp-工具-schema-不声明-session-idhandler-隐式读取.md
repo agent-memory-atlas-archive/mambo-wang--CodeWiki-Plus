@@ -20,7 +20,9 @@ metadata:
   - MCP_Core
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   related_components: []
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   confidence_level: shadow
 verified:
 - by: human:wangbao

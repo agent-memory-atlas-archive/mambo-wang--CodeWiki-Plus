@@ -18,8 +18,14 @@ metadata:
   source_notes:
   - notes/2026-09-05-蒸馏-subagent-自报的笔记状态不可信需用-get-task-context-的-related-notes-状态.md
   - notes/2026-09-07-mode-c-补蒸馏实操教训submit-空转先重试弱冲突多为误报按-store-裁决重提必须带完整正文.md
-  summary: 补入 subagent 落盘状态必须独立复核、Mode C 空转重试与冲突裁决重提须带完整正文
-  heat: 4
+  - notes/2026-08-19-l0-对话归档采用链接优先零索引设计.md
+  - notes/2026-08-21-下一期方向资产置信分层与负反馈闭环roadmap-phase-5.md
+  - notes/2026-08-25-mcp-参数长度受限时蒸馏-submit-走文件侧通道python-脚本直接调-handle-distill-conve.md
+  - notes/2026-08-25-蒸馏时无知识密度的对话也提交空结果否则-raw-无法归档清理.md
+  - notes/2026-09-07-tool-digest-两级消化机制tool-use-保留一行tool-result-仅留疑似错误前提是-content.md
+  - notes/2026-09-07-文件名相似度判据在-raw-上-100-误报同会话-supersede-重复捕获与模板前缀是两大污染源.md
+  summary: 补入 L0 链接优先零索引归档、tool_digest 两级消化、raw 文件名相似度判据 100% 误报的两大污染源、无知识密度对话也提交空结果
+  heat: 5
   confidence_level: weak
 ---
 ## 工作场景

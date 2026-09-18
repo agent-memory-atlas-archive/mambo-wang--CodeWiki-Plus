@@ -17,7 +17,9 @@ metadata:
   - wiki/scenarios/发布与依赖治理方法.md
   severity: medium
   root_cause: '''ruff 0.16.3 formatter 对特定文件 scripts/_tmp2.py（99e4c44 误提交的一次性诊断脚本）panic；叠加全仓'
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/发布与依赖治理方法.md
   confidence_level: shadow
 status: deprecated
 generated:

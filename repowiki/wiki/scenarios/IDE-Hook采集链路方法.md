@@ -21,6 +21,15 @@ metadata:
   - notes/2026-09-04-在-codebuddy-使用跨-agent-技能纯-skillmd-直接装-codebuddyskillshooks-需.md
   - notes/2026-09-07-npx-skills-add-非交互环境停-tui用--y-跳过-a-指定-agentuniversal-目录始终落盘.md
   - notes/2026-09-07-powershell-管道给-stdin-注入-utf-8-bom-致-jsonloads-失败stdin-解码须-ut.md
+  - notes/2026-08-23-distill-worker-subagent-定义随包发布hook-启用时自动拷贝到项目-codebuddyagent.md
+  - notes/2026-08-23-hook-采集机制仅正式接线-codebuddyreadme-措辞用仅接线支持.md
+  - notes/2026-09-07-skill-creator-工具设计定档scenario-直译-mode-c-两区制确认闸门不建自动评分门控.md
+  - notes/2026-09-07-userpromptsubmit-的-ide-hook
+  summary: 补入 distill-worker 随包发布自动拷贝、hook 仅正式接线 CodeBuddy、UserPromptSubmit draft
+    技能提示通道、skill-creator 定档
+  heat: 5
+  confidence_level: weak
+---enable-是-draft-技能提示通道advisory只.md
   summary: 补入多宿主家族分发变体、MCP 不透传自定义子代理的绕法、hook 防御清单与 stdin BOM 容错
   heat: 4
   confidence_level: weak

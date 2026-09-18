@@ -15,6 +15,8 @@ metadata:
     at: '2026-09-08'
     reason: 知识可信度组仅 2 条，待同类素材积累
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

@@ -15,6 +15,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@settings.json-27-38-是不是有问题，python-m-codewiki.mcp._ide_hook.md
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/IDE-Hook采集链路方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

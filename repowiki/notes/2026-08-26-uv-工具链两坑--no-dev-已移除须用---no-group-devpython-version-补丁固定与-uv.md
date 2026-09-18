@@ -10,7 +10,9 @@ metadata:
   - docker
   - wiki/scenarios/发布与依赖治理方法.md
   severity: medium
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/发布与依赖治理方法.md
   confidence_level: shadow
 status: deprecated
 generated:

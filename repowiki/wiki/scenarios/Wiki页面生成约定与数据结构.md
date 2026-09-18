@@ -18,8 +18,19 @@ metadata:
   source_notes:
   - notes/2026-09-05-schemayaml-模板双源收敛为包内单源删根副本守卫测试只验包内模板清理-init-wikischema-gener.md
   - notes/2026-09-07-consolidate-notes-候选-disposition-三值机制未入选笔记不再无声滞留excluded-必填.md
-  summary: 补入配置模板包内单源收敛与聚合候选 disposition 三值去向的可审计性机制
-  heat: 4
+  - notes/2026-09-05-doc-similaritypy同源判定用正文-shingle-的-minhash-bottom-k-sketch-ja.md
+  - notes/2026-09-05-frontmatter-sources-有三个生产者字段形态各不相同.md
+  - notes/2026-09-05-frontmatter-的-sources-是采样锚点不能当作文档覆盖率声明.md
+  - notes/2026-09-05-ingest-source-冲突同源确认闸门四层l0-sha-256-l1-version-sibling-语义指纹-l.md
+  - notes/2026-09-05-registry-backfill-在提前-return-分支会丢失version-sibling-拦截时须-save.md
+  - notes/2026-09-05-sources-wiki-sources-raw-sources-source-refs-四处同名语义完全不同.md
+  - notes/2026-09-05-stale-evidence-只驱动复核提醒仅处理带-content-hash-的条目报-warning-且不自动改写.md
+  - notes/2026-09-05-unsupported-claims-只扫带-confidence-xxx-的规则行且只做格式邻近性检查不校验语义支撑.md
+  - notes/2026-09-05-wikiindexmd-条目-summary-复用页面-description-时相对链接失效-render-index.md
+  - notes/2026-09-05-删除-rawsources-下某-source-前先盘点引用与-source-id-所有权删后-10-页断链-readm.md
+  summary: 补入 sources 四处同名语义区分、三生产者字段形态、stale_evidence/unsupported_claims 能力边界、doc_similarity
+    MinHash、ingest_source 四层闸门、index 相对链接重写
+  heat: 5
   confidence_level: weak
 ---
 ## 工作场景

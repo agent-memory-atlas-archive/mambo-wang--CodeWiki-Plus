@@ -16,6 +16,8 @@ metadata:
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/代码评审与分析工具方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

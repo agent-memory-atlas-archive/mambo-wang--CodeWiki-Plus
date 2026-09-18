@@ -18,6 +18,8 @@ metadata:
     at: '2026-09-08'
     reason: 竞品调研组候选，属调研结论而非调研方法，需与方法类笔记区分后成块
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/竞品调研与借鉴方法.md
 status: deprecated
 author: local
 generated:

@@ -10,7 +10,9 @@ metadata:
   - review_changes
   - wiki/scenarios/代码评审与分析工具方法.md
   source_ref: conversations/conv-@command-codewiki-变更评估与代码评审（修改后）.md
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/代码评审与分析工具方法.md
   confidence_level: shadow
 status: deprecated
 generated:

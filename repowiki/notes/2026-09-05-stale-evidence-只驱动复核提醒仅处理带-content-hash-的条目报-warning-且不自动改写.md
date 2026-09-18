@@ -17,6 +17,8 @@ metadata:
     at: '2026-09-08'
     reason: OKF sources 组候选，待该组单立场景
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

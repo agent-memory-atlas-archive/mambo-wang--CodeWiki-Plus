@@ -17,6 +17,8 @@ metadata:
     at: '2026-09-08'
     reason: 文档去重单一素材，待与导入闸门笔记成组
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

@@ -11,7 +11,9 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-repowiki-.meta-telemetry-Administrator..md
   scene: telemetry 统计修复
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/代码评审与分析工具方法.md
   confidence_level: shadow
 status: deprecated
 generated:

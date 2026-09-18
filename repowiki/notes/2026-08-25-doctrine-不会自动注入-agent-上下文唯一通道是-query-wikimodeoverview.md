@@ -9,7 +9,9 @@ metadata:
   source_conversations:
   - conversations/conv-user_command-commands-codewiki-蒸馏对话提取记忆和经验-把已采集的对话（repowiki-9477de.md
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   confidence_level: shadow
 status: deprecated
 generated:

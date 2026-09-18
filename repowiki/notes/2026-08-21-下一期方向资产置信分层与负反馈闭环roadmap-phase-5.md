@@ -18,7 +18,9 @@ metadata:
   - team-memory
   - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   source_ref: tam-team-memory-practice
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   confidence_level: shadow
 status: deprecated
 generated:

@@ -17,7 +17,9 @@ metadata:
   - wiki/scenarios/发布与依赖治理方法.md
   severity: high
   root_cause: 工具写入 .ps1 时使用无 BOM 的 UTF-8，而 Windows PowerShell 5.1 对无 BOM 的 .ps1 按系统
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/发布与依赖治理方法.md
   compiled_into:
   - skills/windows-dev-env/SKILL.md
   confidence_level: shadow

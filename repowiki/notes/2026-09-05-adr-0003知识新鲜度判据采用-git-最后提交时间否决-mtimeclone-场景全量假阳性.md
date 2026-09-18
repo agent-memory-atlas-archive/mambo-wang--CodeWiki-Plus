@@ -15,6 +15,8 @@ metadata:
     at: '2026-09-08'
     reason: 知识生命周期组候选，待与 freshness 相关笔记成组后单立场景
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/多仓工作区初始化与增量分析.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

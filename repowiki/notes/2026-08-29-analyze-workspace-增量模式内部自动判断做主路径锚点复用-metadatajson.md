@@ -13,7 +13,9 @@ metadata:
   severity: high
   source_ref: conversations/conv-工作区已有部分初始化痕迹（bootstrap.ps1-登记了业务仓、.gitignore-已排除等）时，init_wor.md
   scene: 多仓工作区增量分析设计
-  consolidated_into: ''
+  consolidated_into:
+  - ''
+  - wiki/scenarios/多仓工作区初始化与增量分析.md
   confidence_level: shadow
 status: deprecated
 generated:

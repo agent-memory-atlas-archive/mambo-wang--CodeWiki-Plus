@@ -13,6 +13,8 @@ metadata:
     at: '2026-09-08'
     reason: 与竞品调研组的「先过代码核对」同方法体系，下轮合并
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/代码评审与分析工具方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:
