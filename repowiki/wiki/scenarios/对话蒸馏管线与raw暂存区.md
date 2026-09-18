@@ -40,6 +40,7 @@ metadata:
 9. **Mode C 三条实操**：submit 返回 `missing_result` 且 `notes_created=0` 先原样重试一次（与「超时不幂等」不同，本现象是实际未执行）；`conflicts_pending` 多为 BM25 词面误报，逐条核对后 `dedup_action=store`，**重提必须带完整笔记正文**（否则草稿正文被裁决说明覆盖）；prepare 清单文件名与磁盘不符时列 raw 目录或重新 prepare。
 10. Phase 5 方向：资产置信分层（strong/weak/shadow）+ 负反馈闭环（`flag_misrecall` 达阈值自动降权）。
 11. **tool_digest 两级消化**（codewiki/src/tool_digest.py，stdlib-only；capture_conversation 与 _ide_hook 共享同一 import 单点，不会漂移）：纯噪音（thinking/system 等）无条件丢弃；tool_use 保留一行；tool_result 仅留疑似错误。前提是 content-block 列表结构。
+12. **raw 文件名相似度判据 100% 误报**：对 raw/ 首条指令 slug 做相似度扫描，≥0.55 命中全部误报（同会话 supersede 重复捕获的 -2 后缀、模板前缀），有效信号 0——重复任务感知类判据不能建立在文件名相似度上，须先剔除 supersede 副本与模板前缀两大污染源。
 
 ## 判断逻辑
 - 借鉴外部记忆管线：借分层不借 LLM、借模式不借 hook、借粒度不借无闸门。
