@@ -10,8 +10,8 @@ metadata:
   - conversations/conv-user_command-commands-codewiki-蒸馏对话提取记忆和经验-把已采集的对话（repowiki-9477de.md
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.2
   at: '2026-08-24 16:30:59+00:00'
@@ -21,6 +21,7 @@ verified:
 - by: human:wangbao
   at: '2026-08-24T16:32:22Z'
 author: mambo-wang
+reject_reason: consolidated into MCP-Server薄壳架构与参数约定
 ---
 
 ## 背景

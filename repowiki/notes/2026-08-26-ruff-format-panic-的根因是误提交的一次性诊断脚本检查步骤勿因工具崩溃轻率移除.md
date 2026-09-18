@@ -18,8 +18,8 @@ metadata:
   severity: medium
   root_cause: '''ruff 0.16.3 formatter 对特定文件 scripts/_tmp2.py（99e4c44 误提交的一次性诊断脚本）panic；叠加全仓'
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.4
   at: '2026-08-26 13:57:29+00:00'
@@ -28,6 +28,7 @@ verified:
 - by: human:mambo-wang
   at: '2026-08-26T13:58:01Z'
 author: mambo-wang
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## 背景

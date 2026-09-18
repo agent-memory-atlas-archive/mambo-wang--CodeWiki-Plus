@@ -11,8 +11,8 @@ metadata:
   - wiki/scenarios/代码评审与分析工具方法.md
   source_ref: conversations/conv-@command-codewiki-变更评估与代码评审（修改后）.md
   consolidated_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.3
   at: '2026-08-25 17:02:46+00:00'
@@ -22,6 +22,7 @@ verified:
 - by: human:mambo-wang
   at: '2026-08-25T17:03:47Z'
 author: wandering-bug
+reject_reason: consolidated into 代码评审与分析工具方法
 ---
 
 ## 背景
