@@ -14,7 +14,7 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
-  confidence_level: weak
+  confidence_level: shadow
 related_modules:
 - source_ingest
 - doc_similarity
@@ -23,7 +23,7 @@ related_modules:
 - README_CN_f03499.md
 - _find_conflict_candidates
 - similar_notes
-status: stable
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
@@ -32,6 +32,7 @@ stale_after: '2027-09-05'
 origin: conversation
 source_conversations:
 - conversations/conv-user_command-commands-codewiki-知识库搜索-请搜索-Wiki-知识库回答-如果用户摄入一篇.md
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Decision

@@ -15,8 +15,8 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
@@ -26,6 +26,7 @@ origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:37Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Background

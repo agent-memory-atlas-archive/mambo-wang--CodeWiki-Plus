@@ -19,8 +19,8 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: OKF sources 组候选，待该组单立场景
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
@@ -30,6 +30,7 @@ origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:40Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## 背景
