@@ -18,8 +18,8 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 技能产物建设组尚在推进中，等定稿落地后再立块
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.1
@@ -29,6 +29,7 @@ origin: conversation
 verified:
 - by: codewiki/5.6.1
   at: '2026-09-07T01:47:01Z'
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## Background
