@@ -173,13 +173,13 @@
       "written_at": "2026-09-16T13:09:05Z"
     },
     "wiki/scenarios/Wiki页面生成约定与数据结构.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "936791e8918bf913876a56234983a76fde0fa8e1",
       "components": [],
       "files": [],
       "source_fingerprint": null,
-      "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:55:14Z"
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-18T06:09:37Z"
     },
     "wiki/scenarios/多仓工作区初始化与增量分析.md": {
       "git_head": "92de166f314f7c98c5bd638282f3e9569482d8bd",
