@@ -11,8 +11,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-SKILL-CREATOR需求的PHASE-2是不是还没启动.md
   scene: skill_candidate hint 判据验证
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
@@ -22,6 +22,7 @@ origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:22Z'
+reject_reason: consolidated into 对话蒸馏管线与raw暂存区
 ---
 
 ## 背景
