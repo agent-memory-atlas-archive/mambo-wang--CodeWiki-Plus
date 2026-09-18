@@ -12,8 +12,8 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 与竞品调研组的「先过代码核对」同方法体系，下轮合并
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
@@ -23,6 +23,7 @@ origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:52Z'
+reject_reason: consolidated into 代码评审与分析工具方法
 ---
 
 ## Background

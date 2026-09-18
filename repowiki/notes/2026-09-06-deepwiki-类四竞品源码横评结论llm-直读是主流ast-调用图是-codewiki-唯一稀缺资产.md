@@ -17,8 +17,8 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 竞品调研组候选，属调研结论而非调研方法，需与方法类笔记区分后成块
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: local
 generated:
   by: codewiki/5.5.0
@@ -28,6 +28,7 @@ origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:13Z'
+reject_reason: consolidated into 竞品调研与借鉴方法
 ---
 
 ## 背景
