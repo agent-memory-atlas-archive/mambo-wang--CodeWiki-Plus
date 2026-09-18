@@ -1,22 +1,29 @@
 ---
 type: lesson
-title: "任务记忆中的候选状态标注可能滞后于笔记实际生命周期，裁决前以 frontmatter 实际状态为准"
-tags: ["codebuddy", "lesson"]
+title: 任务记忆中的候选状态标注可能滞后于笔记实际生命周期，裁决前以 frontmatter 实际状态为准
+tags:
+- codebuddy
+- lesson
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: 他山之石
-  source_session: "94e1e091eed24b5cbd93153da2656197"
-  related_modules: ["task_memory"]
+  source_session: 94e1e091eed24b5cbd93153da2656197
+  related_modules:
+  - task_memory
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3b1d9b.md"
-  scene: "他山之石任务遗留待办清理"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-3b1d9b.md
+  scene: 他山之石任务遗留待办清理
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T09:18:56Z }
-stale_after: 2027-03-17
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 09:18:56+00:00
+stale_after: '2027-03-17'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T09:47:19Z'
 ---
 
 ## 背景
