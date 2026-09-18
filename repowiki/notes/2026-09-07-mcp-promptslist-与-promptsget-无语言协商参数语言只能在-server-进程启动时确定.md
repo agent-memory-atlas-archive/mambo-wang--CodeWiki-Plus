@@ -16,8 +16,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: MCP 国际化
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
@@ -27,6 +27,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-10T07:47:22Z'
+reject_reason: consolidated into MCP-Server薄壳架构与参数约定
 ---
 
 ## 背景
