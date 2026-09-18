@@ -134,6 +134,17 @@ frontmatter 顶层单行键 `active_settle: true`，声明"本会话任务记忆
 蒸馏再生的记忆双写（任务记忆追加无去重，双写即噪声）。无标记的存量行为不变。
 frontmatter 单行键约束见 "frontmatter module" 词条（stdlib-only hook 逐行扫描）。
 
+**退役（retired）** — 「新知识推翻旧知识」的统一降状态语义，跨通道一个概念两份实现：
+笔记通道走 `reject_note`（置 deprecated），任务记忆通道走 supersede（置 superseded）。
+共同纪律：**降状态、不物理删**（原文保留供审计/回溯），注入与检索路径跳过已退役条目。
+_Avoid_: 把 superseded 与 deprecated 当两个概念各造一套机制；物理删除被推翻的条目。
+
+**写入检查（write check）** — 任务记忆写入路径的确定性质量门（difflib 相似度去重 +
+每压缩窗口软上限），与笔记通道的确认闸门（confirm gate）区分命名：一个零 LLM、写入即检、
+fail-open（超限警告放行不硬拒），一个 LLM 重活、draft→confirm 两段式。两者互补不互替：
+写入检查防"灌爆"，确认闸门防"噪声知识进库"。
+_Avoid_: 把写入检查做成硬拒绝（违反 fail-open 边界）；与确认闸门混用术语。
+
 ## Key decisions
 
 - [ADR-0001 — 任务记忆保持 Markdown，不迁移 JSONL](adr/0001-task-memory-stays-markdown.md)（2026-08-24）
@@ -144,3 +155,5 @@ frontmatter 单行键约束见 "frontmatter module" 词条（stdlib-only hook �
 - [ADR-0006 — 会话绑定凭证退役而非销毁，归属继承三级回退](adr/0006-session-binding-attribution-tombstone.md)（2026-09-11）
 - [ADR-0007 — 冲突案卷是独立页面类型，不是笔记](adr/0007-conflict-case-page-type.md)（2026-09-12）
 - [ADR-0008 — 主动沉淀与蒸馏双写路径用原料标记确定性去重](adr/0008-active-settle-deterministic-dedup.md)（2026-09-17）
+- [ADR-0009 — 任务记忆退役（supersede）与写入检查](adr/0009-task-memory-supersede-and-write-check.md)（2026-09-18）
+- [ADR-0010 — 任务记忆通道互斥：补蒸馏路径固定只产经验笔记](adr/0010-task-memory-channel-mutual-exclusion.md)（2026-09-18）

@@ -825,8 +825,9 @@ def main():
         '```json\n{"notes":[{"title":"Use status=draft","note_type":"decision",'
         '"related_modules":["notes"],"content":"## Decision\\nX"}]}\n```'
     )
-    parsed = _parse_llm_notes(golden)
+    parsed, parse_err = _parse_llm_notes(golden)
     check("golden parse yields one note", len(parsed) == 1, str(parsed))
+    check("golden parse has no error", parse_err is None, str(parse_err))
     if parsed:
         check(
             "golden note_type preserved", parsed[0].get("note_type") == "decision", str(parsed[0])
@@ -836,8 +837,9 @@ def main():
             parsed[0].get("title") == "Use status=draft",
             str(parsed[0]),
         )
-    bad = _parse_llm_notes("totally not json")
+    bad, bad_err = _parse_llm_notes("totally not json")
     check("non-json yields no notes (no hallucinated draft)", bad == [], str(bad))
+    check("non-json reports parse error (ADR-0011)", bad_err is not None, str(bad_err))
 
     # -- 19. distill_conversation Mode C (agent-driven prepare/submit) --
     print("\n[19] distill_conversation Mode C (agent-driven prepare/submit)")

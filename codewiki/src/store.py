@@ -42,7 +42,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from codewiki.src import config as _cfg
 from codewiki.src.frontmatter import (
@@ -201,6 +201,13 @@ def locked_write(path: Path, content: str) -> None:
         atomic_write(path, content)
 
 
+# ADR-0009: internal sentinel for supersede validation failures (raised
+# inside the locked_rmw transform, caught by the caller — the transform
+# contract is "None aborts", so errors must travel as exceptions).
+class _SupersedeError(Exception):
+    pass
+
+
 def locked_rmw(path: Path, transform, *, default: str = "") -> Optional[str]:
     """Cross-process safe read-modify-write on a text file.
 
@@ -260,6 +267,12 @@ class Page:
 # Memory entry structure (ADR-0001: markdown stays; the heading is the parse
 # boundary for truncation/compaction).
 _ENTRY_TS_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})")
+# ADR-0009: persistent entry id rides on the heading line ("### ... #a3f2");
+# legacy headings without an id keep parsing unchanged.
+_ENTRY_ID_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})(?: (#\w+))?")
+# ADR-0009: retirement marker line under the heading ("​> [superseded ... by #x]").
+# re.M: the marker sits on line 2 of the entry, not at string start.
+_SUPERSEDED_RE = re.compile(r"^> \[superseded (\d{4}-\d{2}-\d{2}) by (#\w+)\]", re.M)
 SUMMARY_HEADING = "## 早期记忆（摘要）"
 MEMORIES_DIRNAME = "memories"
 ARCHIVE_DIRNAME = "memories-archive"
@@ -319,7 +332,49 @@ def entry_sort_key(entry: str) -> Tuple[int, str]:
     return (1, "")
 
 
-def format_memory_entry(content: str, at: Optional[datetime] = None) -> str:
+def entry_display_ids(entries: Iterable[str]) -> Dict[int, str]:
+    """Shared numbering rule (ADR-0009 D2): entries WITHOUT a persistent id get
+    lazy ordinal ids "#e01"... in chronological order; entries WITH a persistent
+    id keep it. Returns {index_in_list: display_id} for the given entry list."""
+    display: Dict[int, str] = {}
+    n = 1
+    for i, e in enumerate(entries):
+        pid = entry_id(e)
+        if pid is None:
+            display[i] = f"#e{n:02d}"
+            n += 1
+    return display
+
+
+def entry_id(entry: str) -> Optional[str]:
+    """Persistent id from the heading line ("#a3f2"), None for legacy entries."""
+    m = _ENTRY_ID_RE.match(entry)
+    return m.group(2) if m else None
+
+
+def entry_is_superseded(entry: str) -> bool:
+    """ADR-0009: whether the entry carries a retirement marker line."""
+    return bool(_SUPERSEDED_RE.search(entry))
+
+
+def new_entry_id(existing_ids: Optional[Iterable[str]] = None) -> str:
+    """Random 4-char base36 id ("#a3f2"), collision-checked against existing."""
+    import secrets
+
+    alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
+    taken = set(existing_ids or [])
+    for _ in range(20):
+        cand = "#" + "".join(secrets.choice(alphabet) for _ in range(4))
+        if cand not in taken:
+            return cand
+    # 20 draws of 36^4 ≈ 1.7M space with collisions everywhere is not a real
+    # scenario; fall back to a longer id rather than loop forever.
+    return "#" + "".join(secrets.choice(alphabet) for _ in range(8))
+
+
+def format_memory_entry(
+    content: str, at: Optional[datetime] = None, entry_id_: Optional[str] = None
+) -> str:
     """One timestamp-headed memory entry.
 
     ``at`` stamps the heading with the entry's real time (e.g. a distilled
@@ -327,11 +382,17 @@ def format_memory_entry(content: str, at: Optional[datetime] = None) -> str:
     append time ``datetime.now()``. Aware datetimes are converted to local
     naive time so headings share the naive-local clock ``datetime.now()``
     produces.
+
+    ADR-0009: ``entry_id_`` appends the persistent id to the heading line
+    ("### 2026-09-18 14:30 #a3f2"); None keeps the legacy heading shape.
     """
     ts = at if at is not None else datetime.now()
     if ts.tzinfo is not None:
         ts = ts.astimezone().replace(tzinfo=None)
-    return f"### {ts:%Y-%m-%d %H:%M}\n\n{(content or '').strip()}\n"
+    head = f"### {ts:%Y-%m-%d %H:%M}"
+    if entry_id_:
+        head += f" {entry_id_}"
+    return f"{head}\n\n{(content or '').strip()}\n"
 
 
 # --------------------------------------------------------------------------- #
@@ -1168,7 +1229,13 @@ class KnowledgeStore:
         return (text, summary, entries, path.stat().st_size)
 
     def append_memories(
-        self, task_id: str, contents: List[str], *, user: str, at: Optional[datetime] = None
+        self,
+        task_id: str,
+        contents: List[str],
+        *,
+        user: str,
+        at: Optional[datetime] = None,
+        entry_id_override: Optional[str] = None,
     ) -> int:
         """Append timestamp-headed entries to the user's memory file under a
         cross-process lock (the old path admitted it had none). Ghost tasks
@@ -1177,6 +1244,10 @@ class KnowledgeStore:
         ``at`` (optional) stamps every entry's heading with the same real time
         instead of the append time — distillation passes the conversation's
         captured_at here so one batch's entries share the dialogue's moment.
+
+        ADR-0009: every new entry carries a persistent id on its heading line;
+        ``entry_id_override`` lets the caller pre-allocate the id (the
+        supersede marker references it before the append lands).
         """
         if not task_id or not contents:
             return 0
@@ -1195,9 +1266,85 @@ class KnowledgeStore:
                     existing = existing.rstrip("\n")
                     if existing:
                         existing += "\n\n"
-                atomic_write(path, existing + format_memory_entry(c, at=at))
+                ids = [entry_id(e) for e in split_entries(existing) if entry_id(e)]
+                eid = entry_id_override or new_entry_id(ids)
+                atomic_write(path, existing + format_memory_entry(c, at=at, entry_id_=eid))
             written += 1
         return written
+
+    def supersede_memory(
+        self, task_id: str, *, user: str, ref: str, new_id: str, dry_run: bool = False
+    ) -> Optional[str]:
+        """ADR-0009: mark the entry referenced by ``ref`` as superseded.
+
+        ``ref`` is the persistent id ("#a3f2") or the lazy ordinal ("#e03")
+        assigned at injection time. The marker line is inserted right under
+        the target entry's heading. Returns None on success; an error string
+        when the ref matches nothing (never silent — Doctrine: no silent
+        failure) or matches an already-superseded entry.
+
+        ``dry_run=True`` validates the ref WITHOUT writing the marker —
+        callers append the new entry only after validation passes, so a bad
+        ref never leaves an orphan new entry on disk (验收链 2).
+        """
+        if not task_id or not ref:
+            return "task_id and ref are required."
+        path = self.memory_path_for(task_id, user)
+        if not path.exists():
+            return f"No memory file for task '{task_id}'."
+
+        def _mark(existing: str) -> Optional[str]:
+            summary, entries = split_summary_and_entries(existing)
+            # Lazy ordinals (#e01...) follow the shared numbering rule
+            # (entry_display_ids): only entries WITHOUT a persistent id get
+            # ordinals, in chronological order over the FULL hot layer
+            # (own + legacy merged) — exactly what the injection side
+            # (_load_memories_layered) shows the agent. Refs resolving into
+            # the legacy file are rejected (read-only compat, converging
+            # into the own file on compaction).
+            own_entries = list(entries)
+            legacy_parsed = self.parse_memory_file(self.legacy_memory_path(task_id))
+            legacy_entries = list(legacy_parsed[2]) if legacy_parsed else []
+            # (own_index or None, entry) over the merged hot layer — index-
+            # tagged so duplicate texts can never misattribute ownership.
+            merged = [(i, e) for i, e in enumerate(own_entries)] + [
+                (None, e) for e in legacy_entries
+            ]
+            merged.sort(key=lambda ie: entry_sort_key(ie[1]))
+            display = entry_display_ids([e for _, e in merged])
+            target_idx: Optional[int] = None
+            for i, (own_i, e) in enumerate(merged):
+                if entry_id(e) == ref or display.get(i) == ref:
+                    if entry_is_superseded(e):
+                        raise _SupersedeError(f"Entry {ref} is already superseded.")
+                    if own_i is None:
+                        raise _SupersedeError(
+                            f"Entry {ref} lives in the legacy memories.md — "
+                            "legacy entries cannot be superseded."
+                        )
+                    target_idx = own_i
+                    break
+            if target_idx is None:
+                raise _SupersedeError(f"No entry matches ref '{ref}' in this memory file.")
+            if dry_run:
+                # Validation-only pass: caller appends the new entry itself
+                # after confirming the ref resolves (ADR-0009 验收链 2: a bad
+                # ref must NOT leave an orphan new entry on disk).
+                return None
+            date = datetime.now().strftime("%Y-%m-%d")
+            lines = entries[target_idx].splitlines()
+            # Insert the marker right after the heading line.
+            lines.insert(1, f"\n> [superseded {date} by {new_id}]")
+            entries[target_idx] = "\n".join(lines)
+            # Reassemble: summary section (if any) + entries.
+            parts = ([summary] if summary else []) + entries
+            return "\n\n".join(parts) + "\n"
+
+        try:
+            locked_rmw(path, _mark)
+        except _SupersedeError as e:
+            return str(e)
+        return None
 
     def search_memories(
         self,
@@ -1224,6 +1371,11 @@ class KnowledgeStore:
         CURRENT user's own live file + legacy + their archives; other
         users' memories require ``include_others=True`` (search must never
         be broader than reading).
+
+        ADR-0009 D7 (retirement): superseded entries are excluded from
+        scoring (they no longer represent current truth) but archived hits
+        are still reported with ``superseded: true`` so callers can tell a
+        retired hit from a live one.
         """
         if not task_id:
             return {"error": "task_id is required."}
@@ -1270,6 +1422,7 @@ class KnowledgeStore:
                         "archived": archived,
                         "file": rel,
                         "text": e,
+                        "superseded": entry_is_superseded(e),
                     }
                 )
 
@@ -1302,9 +1455,12 @@ class KnowledgeStore:
         # bm25_score — the formula must not drift between consumers) ──
         from codewiki.src.retrieval import bm25_score
 
-        doc_tokens = [tokenize(e["text"]) for e in entries]
-        avgdl = (sum(len(t) for t in doc_tokens) / len(doc_tokens)) or 1.0
-        n_docs = len(entries)
+        # ADR-0009 D7: retired entries don't represent current truth —
+        # exclude from scoring, but keep them in the corpus counts.
+        live = [e for e in entries if not e.get("superseded")]
+        doc_tokens = [tokenize(e["text"]) for e in live]
+        avgdl = (sum(len(t) for t in doc_tokens) / len(doc_tokens)) if doc_tokens else 1.0
+        n_docs = len(live)
         df = {qt: sum(1 for toks in doc_tokens if qt in toks) for qt in qts}
 
         scored: List[Tuple[float, int]] = []
@@ -1317,13 +1473,14 @@ class KnowledgeStore:
 
         results = []
         for score, i in scored[: max(1, max_results)]:
-            e = entries[i]
+            e = live[i]
             results.append(
                 {
                     "date": e["date"],
                     "kind": e["kind"],
                     "owner": e["owner"],
                     "archived": e["archived"],
+                    "superseded": e.get("superseded", False),
                     "file": e["file"],
                     "score": round(score, 4),
                     "snippet": extract_snippet(e["text"], qts),

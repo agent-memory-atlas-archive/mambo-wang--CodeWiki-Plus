@@ -345,11 +345,11 @@ artifacts:
 
       When answering about this repo's knowledge or code, **cite the source at every key claim** — never write "according to the docs/code" without naming it:
 
-      - Citing a doc/note found via `query_wiki` → annotate `（source: <file>）`, where `<file>` matches the `file` field of the search result exactly (e.g. `notes/xxx.md`, `wiki/modules/yyy.md`)
-      - Citing a code fact (function/class/config/behavior assertion) → annotate `<code file>:<line>` (e.g. `codewiki/mcp/tools/adoption.py:32`). Use the line numbers you actually read from the code or search results — **do not copy line numbers from docs that may be stale**
+      - Citing a doc/note found via `query_wiki` → annotate `（source: <file>）`, where `<file>` matches the `file` field of the search result exactly
+      - Citing a code fact → annotate `<code file>:<line>`, using the line numbers you actually read from the code — **do not copy line numbers from docs that may be stale**
       - When the basis comes from this session's own code inspection rather than a doc → say so, e.g. `source: code inspection — <code file>:<line>`
 
-      In-body citations are a traceability promise for humans; the trailing `codewiki:referenced-docs` comment remains the machine adoption signal. The two coexist and do not interfere.
+      In-body citations are a traceability promise for humans; the trailing `codewiki:referenced-docs` comment is the machine adoption signal. The two coexist.
 
       ### Adoption declaration (retrieval feedback)
 
@@ -359,27 +359,19 @@ artifacts:
       <!-- codewiki:referenced-docs: ["notes/pitfall-xxx.md", "wiki/modules/yyy.md"] -->
       ```
 
-      Paths must match the `file` field returned by query_wiki exactly. Declared documents earn an adoption count (`usage.adopted_count`) and rank higher in future retrievals (adoption weight is 2x plain recall); notes that are frequently retrieved but never adopted get flagged by the `low_adoption` check in `lint_wiki` as "needs a more actionable rewrite".
-
-      **Note**: only declare docs you genuinely used — this is a signal that teaches the knowledge base what is actually useful, not a polite acknowledgement. Forgetting is fine (missed reports are tolerable); declaring docs you did not use is not.
+      Paths must match the `file` field returned by query_wiki exactly. Declared documents earn an adoption count and rank higher in future retrievals; notes frequently retrieved but never adopted get flagged by the `low_adoption` check in `lint_wiki`. Only declare docs you genuinely used — missed reports are tolerable, false declarations are not.
 
       ### Correction detection and experience capture
 
-      When the user corrects, complains, or supplies context you lacked, that may be experience worth keeping. Handle it as follows:
+      When the user corrects, complains, or supplies context you lacked, run the three-step flow:
 
-      **Correction signals (any one triggers):**
+      1. **Reflect**: state plainly what you got wrong, the correct approach, and the root cause
+      2. **Draft a note**: structured content (background → correct approach → root-cause analysis)
+      3. **Ask for confirmation**: show the draft and ask "shall I record this to the Wiki?" — **get explicit confirmation before calling `ingest_note`**; never save silently
 
-      - The user explicitly rejects your output: "no", "that's wrong", "that's not it", "it should be…"
-      - The user expresses frustration about the same mistake recurring: "again…", "last time too…", "why again…"
-      - The user is still unhappy after you revised your output — the misunderstanding is fundamental
-      - The user adds critical context you did not know: "don't you know…", "this project has always…", "we agreed…"
-      - The user points out that a method name / Javadoc disagrees with actual behavior, or flags a legacy quirk in the code
+      Correction signals: explicit rejection ("that's wrong"), frustration about recurring mistakes ("again…"), still unhappy after your revision, critical context you lacked ("this project has always…"), naming/behavior mismatch pointed out.
 
-      **Three-step flow:**
-
-      1. **Reflect**: state plainly what you got wrong, what the correct approach is, and the root cause (missing project context? misread code?)
-      2. **Draft a note**: structure the lesson as background (the scenario where you erred), the correct approach, and root-cause analysis
-      3. **Ask for confirmation**: show the draft to the user and ask "shall I record this to the Wiki?" — **you must get explicit confirmation before calling `ingest_note`**; never save silently
+      Only record experience with reuse value — would a future agent or new teammate in the same situation benefit? Temporary adjustments and personal preferences do not count.
 
       **Archiving example:**
 
@@ -396,23 +388,9 @@ artifacts:
 
       ### Proactive knowledge capture
 
-      Do not wait for a correction. When these signals appear in the conversation, reflect and extract knowledge proactively:
+      Do not wait for a correction. Trigger signals (any one): root cause found after multi-step debugging, a choice made among two or more options, code behavior disagreeing with docs/naming, implicit project knowledge supplied by the user, an investigation converging on a clear conclusion, a reusable pattern found.
 
-      **Trigger signals (any one activates reflection):**
-
-      - You found the root cause after a multi-step debug session (especially after taking a detour)
-      - Two or more options were discussed and one was chosen
-      - Actual code behavior disagrees with docs / naming / comments
-      - The user supplied implicit project knowledge (conventions, historical reasons, "we always do it this way")
-      - An exploratory investigation converged on a clear conclusion
-      - You found a reusable pattern, toolchain trick, or environment setup tip
-
-      **Four-question filter (all must pass to be worth recording):**
-
-      1. Will it still be useful in a future conversation without this context?
-      2. Would another agent or a new teammate benefit directly in the same situation?
-      3. Did `query_wiki` confirm existing docs do not cover it?
-      4. Is it a "fact / decision / pattern / lesson" rather than "temporary state of this task"?
+      **Four-question filter (all must pass):** useful in a future conversation without this context? another agent/new teammate benefits directly? `query_wiki` confirms no existing coverage? a "fact/decision/pattern/lesson" rather than temporary task state?
 
       **Routing table:**
 
@@ -428,19 +406,9 @@ artifacts:
 
       **Execution flow:**
 
-      1. After a trigger fires, review the relevant conversation and extract candidate items
-      2. Run each candidate through the four-question filter and drop those that fail
-      3. Check `query_wiki` for existing coverage (avoid duplicates)
-      4. Pick the write method from the routing table and draft structured content (background → conclusion → root cause → scope)
-      5. Show the draft to the user and ask for confirmation — **write only after confirmation**
-      6. Several candidates may accumulate in one conversation; present them together at a natural pause (task done, topic switch) instead of interrupting repeatedly
+      Extract candidates → four-question filter → `query_wiki` dedup check → draft structured content (background → conclusion → root cause → scope) → **show the draft and write only after confirmation**. Present accumulated candidates together at a natural pause instead of interrupting repeatedly.
 
-      **Do not record:**
-
-      - Temporary variables, paths or parameters relevant only to this task
-      - Personal user preferences (that belongs in agent memory, not the project Wiki)
-      - Information already stated plainly in code comments or the README
-      - Unverified guesses or "maybe / probably" level inferences
+      **Do not record:** temporary variables/paths/parameters of this task, personal user preferences, information already stated in code comments or the README, unverified guesses.
 
       ### Output language (language gate)
 
@@ -547,7 +515,7 @@ tools:
     low_adoption_suggestion: "Recalled often but adopted zero times: content is likely relevant but not actionable enough. Consider rewriting it in a more executable form (concrete steps / commands / expected results) — draft it via distill_conversation then confirm_note, or update it directly with edit_doc_file on {rel_path}."
     check_done: "Lint complete: {count} issue(s)"
   task_manager:
-    compact_instruction: "Read entries_to_compress (if existing_summary is non-empty it holds the previously compressed summary — the new summary should supersede it) and write a Markdown summary of the task's early memories in English, at most {max_chars} characters. Cover: key facts and decisions already made, open questions, and context that may still affect later work (past pitfalls, conventions, external dependencies). Drop pure process detail, keep conclusions. Then call compact_task_memories(mode='submit', task_id=..., summary=...)."
+    compact_instruction: "Read entries_to_compress (if existing_summary is non-empty it holds the previously compressed summary — the new summary should supersede it) and write a Markdown summary of the task's early memories in English, at most {max_chars} characters. Cover: key facts and decisions already made, open questions, and context that may still affect later work (past pitfalls, conventions, external dependencies). Drop pure process detail, keep conclusions. Then call compact_task_memories(mode='submit', task_id=..., summary=...). If submit reports exceeding the limit, the error states the overage — trim by that amount and retry."
   prompt_server:
     draft_template: |
       📝 Knowledge capture candidates ({n})

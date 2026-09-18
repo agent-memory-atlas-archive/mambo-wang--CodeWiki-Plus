@@ -12,7 +12,7 @@ enabledAutoRun: true
 ## 流程
 
 1. **prepare**：调用 `distill_conversation(mode="prepare", task_id=<任务id>)`。返回积压对话清单（`captures`：每条含 `conversation_id` 与 `full_path`，按 `captured_at` 升序）和 `system_prompt`（提取规范）。**清单里每条都要处理完并 submit，不设条数上限。**
-2. **逐条提取**：对清单中的每条 capture，用 `ReadFile` 读取 `full_path` 指向的 raw 文件正文；严格按 `system_prompt` 的提取规范，产出 `notes`（通用经验笔记，`status=draft`，待确认）。**memories 默认跳过**（通道互斥 ADR-0009：任务记忆由主动沉淀通道直写，补蒸馏只产经验笔记；prepare 响应的 `skip_memories: true` 与 `memories_note` 会声明这一点，提取时直接返回空 `memories` 数组即可）。
+2. **逐条提取**：对清单中的每条 capture，用 `ReadFile` 读取 `full_path` 指向的 raw 文件正文；严格按 `system_prompt` 的提取规范，产出 `notes`（通用经验笔记，`status=draft`，待确认）。**memories 默认跳过**（通道互斥 ADR-0010：任务记忆由主动沉淀通道直写，补蒸馏只产经验笔记；prepare 响应的 `skip_memories: true` 与 `memories_note` 会声明这一点，提取时直接返回空 `memories` 数组即可）。
 3. **submit**：逐条调用 `distill_conversation(mode="submit", conversation_id=<id>, distilled=<提取JSON>)` 交回结果，优先内联（subagent 逐条处理，单条载荷通常不超限）。**若单条载荷过大导致 MCP 传输失败**：改用 `distilled_file` 文件侧通道——先用写文件工具把提取 JSON（形状 `{conversation_id: {notes, memories}}`，或单条裸 `{notes, memories}` 配合 conversation_id）写入 `repowiki/raw/.distill-<id>.json`，再只传文件路径；工具读取后自动删除该暂存文件。产出物：待确认的草稿笔记（不直接成为正式知识）；memories 默认被确定性丢弃（响应 `memories_skipped_reason=skip_memories`）。
 4. **汇报**：全部完成后，向主 Agent 返回摘要——本次蒸馏的对话数、新建笔记数、去重抑制/合并数、落盘记忆数（memories_written，通道互斥下通常为 0），以及建议主 Agent 在停顿点向用户展示的待确认草稿清单。若 submit 返回了 `skill_hint`，原样附上（只汇报，不执行）。
 

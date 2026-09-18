@@ -39,7 +39,7 @@ import re
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 # note_type values accepted by ingest_note (see agents_md.py routing table).
 # V4: single source of truth is the note_types declaration table
@@ -192,6 +192,11 @@ _TITLE_SIMILARITY_THRESHOLD = 0.5
 _PRIORITY_MIN = 70  # below this value a distilled note is dropped
 _PRIORITY_HIGH = 90  # >= maps to severity=high; 70-89 maps to medium
 _CONFLICT_TITLE_FLOOR = 0.35  # weak-band lower bound for title Jaccard
+# ADR-0011 Round 2: subset titles in [0.6, 0.8) are ambiguous shorthands
+# ("任务记忆压缩" vs "任务记忆压缩设计方案") — downgrade to the weak band.
+# At >= 0.8 the pair is a near-identical paraphrase ("...删除 cache key" vs
+# "...删除 key") and stays in the strong band.
+_SUBSET_STRONG_CEILING = 0.8
 _CONFLICT_BM25_FLOOR = 2.5  # BM25 recall score considered a conflict hint
 _BM25_RECALL_TOPK = 3
 _VALID_DEDUP_ACTIONS = ("store", "skip", "update", "merge")
@@ -458,8 +463,16 @@ def _safe_rel(path: Path, base: Path) -> bool:
 
 
 def _title_tokens(title: str) -> set:
-    """Lowercased word tokens for a title (for Jaccard similarity)."""
-    return {t for t in re.split(r"[\s_\-/]+", title.lower()) if t}
+    """Token set for a title (for Jaccard similarity).
+
+    ADR-0011: reuses the single authoritative tokeniser (jieba for CJK, regex
+    fallback, stopword filtering) so Chinese titles get real token sets — the
+    old whitespace/underscore splitter kept a CJK title as ONE token, so
+    near-duplicate Chinese titles could never enter the weak-conflict band.
+    """
+    from codewiki.src.retrieval import tokenize
+
+    return set(tokenize(title))
 
 
 def _title_similarity(a: str, b: str) -> float:
@@ -467,6 +480,26 @@ def _title_similarity(a: str, b: str) -> float:
     if not ta or not tb:
         return 0.0
     return len(ta & tb) / len(ta | tb)
+
+
+def _is_title_subset(a: str, b: str) -> bool:
+    """True when one title's token set is a strict subset of the other's AND
+    the pair is in the ambiguous band [0.6, 0.8).
+
+    ADR-0011 Round 2: subset titles ("发版本" vs "发版本流程") are semantically
+    ambiguous — the shorter may be a shorthand for the same note OR a genuinely
+    different one. They must NOT auto-suppress in the strong band; they are
+    downgraded to the weak conflict band for agent adjudication. Near-identical
+    paraphrases (>= 0.8, e.g. differing by one filler token) and identical
+    token sets still take the fast path.
+    """
+    ta, tb = _title_tokens(a), _title_tokens(b)
+    if not ta or not tb or ta == tb:
+        return False
+    if not (ta < tb or tb < ta):
+        return False
+    sim = len(ta & tb) / len(ta | tb)
+    return sim < _SUBSET_STRONG_CEILING
 
 
 def _find_existing_note(
@@ -506,11 +539,13 @@ def _find_existing_note(
         same_type = note_type == candidate_type
         # Use title similarity as the duplicate signal (0..1).
         score = title_sim
+        # ADR-0011 Round 2: subset titles are ambiguous — never auto-suppress.
+        subset_ambiguous = _is_title_subset(candidate_title, title)
         is_dup = (
             score >= _DEDUP_THRESHOLD
             or (score >= _DEDUP_THRESHOLD * 0.8 and same_type)
             or (title_sim >= _TITLE_SIMILARITY_THRESHOLD and same_type)
-        )
+        ) and not subset_ambiguous
         if is_dup and score > best_score:
             rel = str(note_path.relative_to(output_dir))
             best = {
@@ -713,11 +748,14 @@ def _find_conflict_candidates(
             if sim < _CONFLICT_TITLE_FLOOR:
                 continue
             same_type = note_type == candidate_type
+            # ADR-0011 Round 2: subset titles are ambiguous — downgrade to the
+            # weak band (agent adjudication) instead of strong auto-suppress.
+            subset_ambiguous = _is_title_subset(candidate_title, title)
             is_strong = (
                 sim >= _DEDUP_THRESHOLD
                 or (sim >= _DEDUP_THRESHOLD * 0.8 and same_type)
                 or (sim >= _TITLE_SIMILARITY_THRESHOLD and same_type)
-            )
+            ) and not subset_ambiguous
             if is_strong and not include_strong:
                 continue  # handled by _find_existing_note, not a "conflict"
             rel = str(note_path.relative_to(output_dir))
@@ -904,8 +942,15 @@ def _default_llm_from_env() -> Callable[[str, str], Awaitable[str]]:
 # --------------------------------------------------------------------------- #
 # Core distillation (stateless)
 # --------------------------------------------------------------------------- #
-def _parse_llm_notes(raw_llm_output: str) -> List[Dict[str, Any]]:
-    """Parse the LLM JSON output into a list of note dicts; best-effort."""
+def _parse_llm_notes(raw_llm_output: str) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    """Parse the LLM JSON output into a list of note dicts.
+
+    ADR-0011 defensive validation: returns ``(notes, parse_error)``. A non-None
+    ``parse_error`` means the output was NOT valid extraction JSON — the caller
+    must keep the raw file pending (never treat it as no_knowledge noise, which
+    would delete the transcript). An empty ``notes`` list with a None error is a
+    legitimate "no knowledge in this conversation" verdict.
+    """
     text = raw_llm_output.strip()
     # Strip possible markdown fences
     if text.startswith("```"):
@@ -923,13 +968,15 @@ def _parse_llm_notes(raw_llm_output: str) -> List[Dict[str, Any]]:
             try:
                 data = json.loads(text[start : end + 1])
             except json.JSONDecodeError:
-                return []
+                return [], "unparseable LLM output (salvage failed)"
         else:
-            return []
-    notes = data.get("notes", []) if isinstance(data, dict) else []
+            return [], "unparseable LLM output (no JSON object found)"
+    if not isinstance(data, dict):
+        return [], "LLM output is not a JSON object"
+    notes = data.get("notes", [])
     if not isinstance(notes, list):
-        return []
-    return notes
+        return [], "'notes' is not a list"
+    return notes, None
 
 
 def _parse_llm_memories(raw_llm_output: str) -> List[str]:
@@ -1025,10 +1072,28 @@ def _process_llm_output(
     # 草稿笔记、跳过任务记忆生成。规则写在工具层（确定性），跳过时响应显式声明。
     active_settle = str(meta.get("active_settle", "")).lower() == "true"
 
-    notes = _parse_llm_notes(llm_output)
+    notes, parse_error = _parse_llm_notes(llm_output)
     produced: List[Dict[str, Any]] = []
     conflicts: List[Dict[str, Any]] = []
     unresolved_conflicts = 0
+    # ADR-0011: parse failure is NOT no_knowledge. Keep the raw pending so the
+    # caller can retry; report the error explicitly (never silent).
+    if parse_error is not None:
+        logger.warning("distill parse failed for %s: %s", raw_path, parse_error)
+        _mark_parse_failed(raw_path, parse_error)
+        return {
+            "raw_path": str(raw_path),
+            "status": "parse_failed",
+            "parse_error": parse_error,
+            "notes_created": 0,
+            "notes": [],
+            "distilled": [],
+            "memories_written": 0,
+            "task_id": task_id or None,
+            "deleted_raw": False,
+            "archived_raw": None,
+            "keep_raw": False,
+        }
     # Traceability: source_conversation points at the raw file (relative to repowiki)
     raw_rel = (
         str(raw_path.relative_to(output_dir)) if _safe_rel(raw_path, output_dir) else str(raw_path)
@@ -1040,6 +1105,30 @@ def _process_llm_output(
             note_type = "general"
         title = note.get("title") or "Untitled conversation note"
         content = note.get("content") or ""
+        # ADR-0011: per-note field validation — drop malformed entries with an
+        # explicit produced record instead of silently ingesting junk.
+        if not isinstance(note, dict) or not str(note.get("title") or "").strip():
+            produced.append(
+                {
+                    "title": str(note.get("title") or "") if isinstance(note, dict) else "",
+                    "note_type": note_type,
+                    "status": "invalid_note",
+                    "reason": "missing or empty title",
+                }
+            )
+            logger.warning("distill dropped malformed note entry in %s: no title", raw_path)
+            continue
+        if not str(content).strip():
+            produced.append(
+                {
+                    "title": title,
+                    "note_type": note_type,
+                    "status": "invalid_note",
+                    "reason": "missing or empty content",
+                }
+            )
+            logger.warning("distill dropped malformed note entry in %s: no content", raw_path)
+            continue
         related = note.get("related_modules") or related_modules_override or []
         if link_to and link_to not in related:
             related = related + [link_to]
@@ -1205,7 +1294,7 @@ def _process_llm_output(
     # carries a task_id. Ghost task_id (task deleted after capture) is
     # tolerated — the writer skips silently.
     # ADR-0008：见原料标记则整段跳过记忆直写（确定性去重，笔记路径不受影响）。
-    # 通道互斥（ADR-0009）：主动沉淀是任务记忆的默认通道；补蒸馏路径
+    # 通道互斥（ADR-0010）：主动沉淀是任务记忆的默认通道；补蒸馏路径
     # （task_id 过滤的 catch-up）默认 skip_memories=true 只产经验笔记，
     # 显式 skip_memories=false 恢复双轨。跳过不静默：响应显式声明原因。
     memories = (
@@ -1363,6 +1452,40 @@ def _mark_distilled(raw_path: Path) -> None:
 
     try:
         locked_rmw(raw_path, _flip)
+    except OSError:
+        pass
+
+
+def _mark_parse_failed(raw_path: Path, parse_error: str) -> None:
+    """ADR-0011 Round 2: stamp the failure reason into the raw frontmatter.
+
+    The raw stays ``status: pending`` (so prepare re-lists it for retry), but
+    carries ``parse_error:`` so the next distillation worker sees why the
+    previous attempt failed without re-reading the whole transcript.
+    """
+    from codewiki.src.store import locked_rmw
+
+    safe_error = parse_error.replace("\n", " ")[:200]
+
+    def _stamp(text: str):
+        if re.search(r"^parse_error:", text, flags=re.MULTILINE):
+            new_text = re.sub(
+                r"^parse_error:.*$", f"parse_error: {safe_error}", text, count=1, flags=re.MULTILINE
+            )
+        else:
+            new_text = re.sub(
+                r"^status:\s*\w+",
+                f"status: pending\nparse_error: {safe_error}",
+                text,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            if new_text == text:
+                new_text = text.replace("---", f"---\nstatus: pending\nparse_error: {safe_error}", 1)
+        return new_text
+
+    try:
+        locked_rmw(raw_path, _stamp)
     except OSError:
         pass
 
@@ -1749,10 +1872,14 @@ def handle_distill_conversation(
                 "(5) only then move to the next capture, dropping the previous "
                 "transcript from working memory. Note: captures may carry "
                 "related_notes (V6) — existing notes the transcript touches; "
-                "prefer extending/referencing them over emitting a near-duplicate."
+                "prefer extending/referencing them over emitting a near-duplicate. "
+                "If the transcript OVERTURNS or AMENDS one of those existing "
+                "notes, say so in the new note's content (cite the note file "
+                "name and what changed) — the reviewer can then update or "
+                "retire the old note via the consolidation channel."
             ),
         }
-        # 通道互斥（ADR-0009）：补蒸馏路径（task_id 过滤）固定只产经验笔记，
+        # 通道互斥（ADR-0010）：补蒸馏路径（task_id 过滤）固定只产经验笔记，
         # 任务记忆由主动沉淀通道直写——提前告知提取方，省去无效的 memories
         # 生成与随后的确定性丢弃。
         if task_filter:
@@ -1828,7 +1955,7 @@ def handle_distill_conversation(
             # P1: Mode C 启用两段式去重——弱冲突笔记挂起等待 agent 用
             # dedup_action 裁决（agent 即 LLM，精判零成本）；raw 文件在全部
             # 裁决完成前保留，不标记 distilled。
-            # 通道互斥（ADR-0009）：补蒸馏路径（task_id 过滤）固定只产经验
+            # 通道互斥（ADR-0010）：补蒸馏路径（task_id 过滤）固定只产经验
             # 笔记，任务记忆归主动沉淀通道直写。
             res = _process_llm_output(
                 p,

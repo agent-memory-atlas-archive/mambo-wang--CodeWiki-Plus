@@ -2840,15 +2840,28 @@ _register(
         name="add_task_memory",
         description=(
             "Append a memory entry to the CURRENT USER's per-user memory file "
-            "memories/<user_id>.md (atomic, append-only; each user writes only "
+            "memories/<user_id>.md (atomic; each user writes only "
             "their own file — git-level conflict isolation). Task memories are "
-            "task-scoped progress knowledge, distinct from wiki notes."
+            "task-scoped progress knowledge, distinct from wiki notes. "
+            "ADR-0009: optional 'supersedes' retires a referenced entry "
+            "(persistent id like '#a3f2' or lazy ordinal like '#e03' as shown "
+            "in get_task_context); the retired entry keeps its text, gains a "
+            "superseded marker, and is skipped by injection/search. A write "
+            "check rejects near-duplicates (difflib > 0.85) — supersede or "
+            "merge instead of re-adding."
         ),
         inputSchema={
             "type": "object",
             "properties": {
                 "task_id": {"type": "string", "description": "Task id."},
                 "content": {"type": "string", "description": "Memory text (markdown)."},
+                "supersedes": {
+                    "type": "string",
+                    "description": (
+                        "Optional entry id this memory replaces (persistent '#a3f2' "
+                        "or lazy '#e03'). The referenced entry is marked superseded."
+                    ),
+                },
                 "session_id": {"type": "string", "description": "Optional active session id."},
                 "repo_path": {"type": "string", "description": "Repository path."},
             },

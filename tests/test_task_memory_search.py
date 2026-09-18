@@ -331,7 +331,7 @@ def test_get_task_context_carries_compaction_work(tmp_path):
     assert work is not None
     assert len(work["entries_to_compress"]) == 25  # 45 - keep 20
     assert work["keep_recent"] == 20
-    assert work["summary_max_chars"] == 2048
+    assert work["summary_max_chars"] == 4096
     assert work["instruction"]
     assert "compact_task_memories(mode='submit'" in work["submit"]
 

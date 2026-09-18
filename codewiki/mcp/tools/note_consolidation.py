@@ -128,7 +128,17 @@ def _read_frontmatter(path: Path) -> Optional[Dict[str, Any]]:
         return None
     if not text.startswith("---"):
         return None
-    end = text.find("---", 3)
+    # Match the closing fence as a whole line (^---\s*$), not a substring:
+    # frontmatter values may legitimately contain "---" (e.g. note filenames
+    # like "...commit---amend-....md" in source_refs), which would truncate
+    # the YAML block mid-value and fail parsing.
+    end = -1
+    offset = text.index("\n") + 1  # skip the opening "---" line
+    for line in text.splitlines(keepends=True)[1:]:
+        if line.strip() == "---":
+            end = offset
+            break
+        offset += len(line)
     if end < 0:
         return None
     try:
