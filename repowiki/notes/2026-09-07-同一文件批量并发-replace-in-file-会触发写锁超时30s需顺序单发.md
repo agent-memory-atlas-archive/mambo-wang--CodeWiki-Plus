@@ -12,8 +12,8 @@ metadata:
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-.codebuddy-plans-output_dir-收敛为repo_pat.md
   scene: 批量代码编辑
   compiled_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
@@ -23,6 +23,7 @@ origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:21Z'
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## 背景
