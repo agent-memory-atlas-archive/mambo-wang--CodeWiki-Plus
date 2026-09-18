@@ -155,13 +155,13 @@
       "written_at": "2026-09-08T05:54:25Z"
     },
     "wiki/scenarios/MCP-Server薄壳架构与参数约定.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "98d22d313810819a9868600c8ab98bd16a3ad2c0",
       "components": [],
       "files": [],
       "source_fingerprint": null,
-      "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:54:39Z"
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-18T06:07:12Z"
     },
     "wiki/scenarios/IDE-Hook采集链路方法.md": {
       "git_head": "3e18a181574b6dd231860b07d2ff6255f5505fd9",
