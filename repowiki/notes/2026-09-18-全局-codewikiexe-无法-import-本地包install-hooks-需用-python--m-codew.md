@@ -1,21 +1,30 @@
 ---
 type: pitfall
-title: "全局 codewiki.exe 无法 import 本地包：install-hooks 需用 python -m codewiki.cli.main 从仓库根执行"
-tags: ["codewiki", "modulenotfounderror", "pitfall"]
+title: 全局 codewiki.exe 无法 import 本地包：install-hooks 需用 python -m codewiki.cli.main
+  从仓库根执行
+tags:
+- codewiki
+- modulenotfounderror
+- pitfall
 metadata:
   date: 2026-09-18
   confidence_level: weak
-  source_session: "7245f28d19714f71bca1abdd87568f23"
-  related_modules: ["cli"]
+  source_session: 7245f28d19714f71bca1abdd87568f23
+  related_modules:
+  - cli
   severity: medium
-  source_ref: "conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md"
-  scene: "hook 接线 / CLI 使用"
-status: draft
+  source_ref: conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md
+  scene: hook 接线 / CLI 使用
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T00:59:36Z }
-stale_after: 2027-03-17
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 00:59:36+00:00
+stale_after: '2027-03-17'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T01:46:12Z'
 ---
 
 ## 背景
