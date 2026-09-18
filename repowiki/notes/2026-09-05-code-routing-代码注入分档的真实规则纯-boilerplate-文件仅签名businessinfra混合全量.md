@@ -14,8 +14,8 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识可信度组仅 2 条，待同类素材积累
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
@@ -25,6 +25,7 @@ origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:32Z'
+reject_reason: consolidated into MCP-Server薄壳架构与参数约定
 ---
 
 ## Background
