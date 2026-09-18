@@ -129,3 +129,11 @@ graphiti 调研闭环：报告落盘 docs/graphiti-调研与借鉴分析.md；�
 ### 2026-09-18 16:44 #seek
 
 ADR-0011 Round 2 完成（grill 第二轮）：实测发现子集标题误杀风险（0.75 直落强重复带），实施 _is_title_subset 降级规则——真子集且 sim∈[0.6,0.8) 降级到弱冲突带，≥0.8 近全同改写仍走快路径（全量测试抓到 0.857 同义改写反例后修正）；parse_error 写入 raw frontmatter 供下轮 worker 可见。73 passed 验证。教训：改判定带阈值后必须实测真实标题对分布。
+
+### 2026-09-18 17:23 #fhi1
+
+调研 atomicstrata/llm-wiki-compiler（llmwiki v1.3.0，TypeScript/Node≥24，MIT，作者 Ethan Joffe，活跃度高——最后提交 2026-09-17）。定位：Karpathy LLM Wiki 模式的通用知识编译器，原始素材（md/PDF/URL/YouTube）→ 带引用的可互链 Markdown wiki。核心机制已代码核对：①CLP 配置化生命周期 profile（.llmwiki/profile.json 声明实体/关系/生命周期FSM/工作流/信任门，写路径 fail-closed 强制，引擎无领域分支）；②意图日志+单一变更执行器 seam（src/trust/journal.ts、executor.ts，批次原子性契约，crash 恢复 replay）；③计算式 freshness 层（state.json 哈希对比，fresh/stale/orphaned/unverified 四态，refresh --stale 定向修复）；④eval 量化评估（health/citation coverage/depth/support/graph health + 阈值 + 历史delta，src/eval/index.ts）；⑤review policy 自动扣留（低置信/矛盾/违规schema/违规出处四类 hold 模式）；⑥MCP server 10+ 工具；⑦OKF 开放知识格式交换 + Ed25519 签名模板分发。对 CodeWiki-Plus 的可借鉴点：eval 量化门禁、freshness 四态分类、意图日志原子性、profile-as-data 原则；明确不借：TS 技术栈、CLP 全量 FSM 机制（对代码 wiki 场景过重）。
+
+### 2026-09-18 17:28 #oc38
+
+完成 cognee（topoteretes/cognee v1.5.4）调研，报告落盘 docs/cognee-调研与借鉴分析.md。核心发现：cognee 的 improve() 是会话→永久图谱桥接总入口（7 stage 全 fail-open），四个底座无关的可借鉴工程习惯——①水位线增量持久化（成功才推进、失败重试、陈旧检测，修 O(n²)）；②LIVE 确定性+ BATCH LLM 两级提取（错误轨迹零成本成 lesson，每 10 条才付一次 LLM）；③脱敏先行（错误文本入库前正则抹 secret/JWT/UUID）；④流式加权 w+=α(r−w) 替代裸计数（反馈与频率双通道）。明确不借：图库底座、无确认闸门的自动加权、truth subspace 质心、全局上下文索引分桶摘要。下一步候选：把①②③落成 CodeWiki 采集/蒸馏通道的具体设计方案。
