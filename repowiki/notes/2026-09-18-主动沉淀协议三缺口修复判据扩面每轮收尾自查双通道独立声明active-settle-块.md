@@ -9,7 +9,7 @@ metadata:
   source_session: "21b7dedf054c44bfbec90d72f16ba0b4"
   related_modules: ["prompts", "agents-md"]
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working-2.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-2-e83954.md"
   scene: "产品维护-主动沉淀协议"
 status: draft
 author: iamwangbao-163-com
