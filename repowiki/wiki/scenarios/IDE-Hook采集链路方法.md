@@ -45,6 +45,7 @@ IDE hook 采集链路（capture_session_end.py → _ide_hook.py → capture_conv
 11. **hook 防御清单**：规则单事实源 + 运行时读取注入（不硬编码拷贝）；`requireSibling()` 校验兄弟模块形状、缺失降级；stdin 加 watchdog + unref 防挂起；按首个完整 JSON 触发而非等 EOF（Windows 管道 close 延迟）；hook 永不非零退出；fail-open 优先；per-session 状态而非全局标志；SessionStart 对 compact/resume 也重注入（防压缩后行为漂移）+ UserPromptSubmit 每轮轻提醒。
 12. **stdin 解码一律 `utf-8-sig` + `lstrip("\ufeff")`**（PowerShell 管道可能注入多个 BOM）；验证 hook 优先用 `--conversation <file>` 文件方式而非管道。
 13. **非交互装技能**：`npx skills add` 加 `-y` 跳过 TUI、`-a codebuddy` 指定 agent；Universal 目录 `~/.agents/skills/` 始终落盘（TUI 未完成也已安装）；纯 SKILL.md 技能可直接复制到 `~/.codebuddy/skills/<id>/`，新会话生效（无 hook 时档位状态不持久化，压缩后可能漂移需重说一次）。
+14. **UserPromptSubmit 的 _ide_hook --enable 是 draft 技能提示通道（advisory）**：只提示不捕获，从 stdin 读事件载荷，把 prompt 与 `repowiki/skills/*/SKILL.md` 中 `status: draft` 的未安装技能做 containment 匹配后提示。
 
 ## 判断逻辑
 - transcript 噪声只保留 user/assistant；hook 无 transcript 的生命周期事件（SessionEnd/Stop/PreCompact）一律 no-op，只留 stderr 诊断、不落盘（事件信封路径已移除）。
