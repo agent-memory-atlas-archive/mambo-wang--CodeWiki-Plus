@@ -1,30 +1,10 @@
-## 早期记忆（摘要）
+### 2026-08-24 22:33
 
-## 产品维护任务早期记忆摘要
+用户发起代码图谱工具对标调研（CodeGraph/Grapify/CBM），结论：技术底座同源（tree-sitter 10 语言 + SQLite + transitive_impact），影响半径能力已有（analyze_impact 比 codegraph impact 更细）。确认 3 项真实差距并整理为 backlog：①P1 文件监听实时增量同步（watch 模式）②P1 git diff 驱动变更影响闭环（analyze_changes + 测试映射）③P2 代码符号全文/语义检索（FTS5 BM25，可选 embedding）。另含 2 项 P3 可选（死代码扫描、cytoscape 交互可视化）。已落盘 docs/代码图谱能力增强-Backlog.md（沿用 OKF Backlog 文档格式：背景/问题/方案/验收/影响面/优先级）。待用户决定实施顺序。
 
-【已落地决策与实现】
-- 任务记忆绑定机制：capture_conversation 的 task_id 依赖绑定文件消费，已加 _resolve_task_from_binding 回退逻辑（绑定存在即盖章，不校验任务 status）+ task_source 字段；task_bindings 为一次性消费凭证，supersede 继承旧 task_id。后续可选：若需「只认 active 任务」，在回退逻辑里查 tasks/.index.json 的 status。
-- SessionStart hook 强化：task_session_start.py 新增「硬性执行顺序」（会话第一动作必须是任务关联弹框）并直接把 active 任务标题+task_id 注入 additionalContext；codewiki/hooks 源副本与 .codebuddy/hooks 项目副本同步维护。
-- 补蒸馏委托 subagent：创建 .codebuddy/agents/distill-worker.md，hook 启用时自动从 codewiki/agents/distill-worker.md 权威版本拷贝到项目；AGENTS.md/prompts.py/README 同步措辞；不阻塞主 Agent 回答。→ **2026-09-16 更新**：执行方式改为**阻塞式、先记忆后回答**（worker 返回后重新 get_task_context 再回答用户）；授权方式为 `mcpServers: [codewiki]`（勿写 `tools:` 白名单，会挡掉 MCP 工具）。
-- 多 IDE hook 自动检测接线（v5.4.0）：CodeBuddy/Qoder/Claude Code 三类 IDE，codewiki install-hooks + IDE 注册表驱动；已发 PyPI 与 GitHub Release。
-- README 措辞：hook 采集仅接线支持 CodeBuddy（.codebuddy/settings.json）；_ide_hook.py 已做 CodeBuddy/Claude-Code 事件载荷兼容。
-- 蒸馏工具链修复：capture_conversation _unq 提升模块级、_rebuild_index 与 pending_raws_by_task 去引号（修 .index.json task_id 带字面引号 bug）；lint_wiki 新增 fix=true 自愈过期索引；_okf_patch_defaults 补 aliases 默认键并 backfill。
-- 测试：test_core_modules_import 因 caw 在 Windows import fcntl 失败加平台跳过；全量 pytest 341 passed 2 skipped。
-- 文档：已撰写 docs/articles/CodeWiki-Plus系列7（Subagent 机制详解）；repowiki lint 110 问题清理完毕。
+### 2026-08-24 22:49
 
-【未决/待办】
-- 文档质量审计（lint_wiki checks=all）曾被任务引导打断，用户明确搁置（「不用」），后续如需可重新发起。
-- 待验证：distill-worker.md frontmatter（toolsMCP、agentic 模式）依赖 IDE 对 subagent 定义的解析，需在新会话观察 hook 是否成功把蒸馏委托出去。→ **2026-09-16 已定案**：`toolsMCP` 非官方字段、静默无效，且 `tools: ReadFile` 白名单挡掉全部 MCP 工具，二者叠加导致 worker「0 tool uses 空转」；现改为 `mcpServers: [codewiki]` 并省略 `tools` 行。修复须落回随包源变体（`codewiki/agents/*.md`）+ 守门测试，只修 `.codebuddy/agents/` 副本会被 install-hooks 覆盖打回。
-- 安全：推送时发现对话归档含 PyPI token 已脱敏 amend；建议吊销 token、删除 raw 中的 token、清理 scripts/ 临时文件。
-
-【历史坑/约定】
-- Windows GBK 控制台编码会导致 CLI 输出与 twine 发布崩溃。
-- GitHub API 直连被阻时用 PowerShell Invoke-RestMethod 走系统网络栈，token 从 git 凭据管理器提取。
-- 对话归档原样保留用户密钥会被 GitHub 密钥扫描拦 push。
-- 配置合并的 Python 坑：dict 浅拷贝污染原配置 + hooks.get(event, []) 未写回。
-- 会话启动的 query_wiki/蒸馏等重操作委托 subagent 执行，避免阻塞用户正常使用。
-
-> 原文归档于 memories-archive.md，截至 2026-08-25，共 24 条。
+需求细化：用户明确两个目标——①修改前按函数查上下游影响（analyze_impact 已覆盖，依赖图谱新鲜度=watch 模式）；②修改后按 commit 范围或工作区未提交变更分析影响。②的精度要求从文件级升级为函数级：git diff 行级解析（--unified=0 取变更行号）→ 组件 start_line/end_line 区间匹配定位变更函数（删除行回退旧版本解析）。backlog 第 2 项已拆分子项②（行级 diff 解析）+子项③（analyze_changes 工具，输入 since 或 worktree=true，含 untracked），验收标准同步更新。复用点：GitPython 已依赖、transitive_impact/resolve_files_to_components 已有。
 
 ### 2026-08-24 23:13
 
@@ -81,13 +61,6 @@ tests/test_task_manager.py 新增 2 个测试（test_capture_deletes_binding_aft
 ### 2026-08-24 23:17
 
 同步更新 AGENTS.md 任务记忆段落与 codewiki/mcp/prompts.py 的 task-workflow 提示词，说明绑定生命周期语义。
-### 2026-08-24 22:33
-
-用户发起代码图谱工具对标调研（CodeGraph/Grapify/CBM），结论：技术底座同源（tree-sitter 10 语言 + SQLite + transitive_impact），影响半径能力已有（analyze_impact 比 codegraph impact 更细）。确认 3 项真实差距并整理为 backlog：①P1 文件监听实时增量同步（watch 模式）②P1 git diff 驱动变更影响闭环（analyze_changes + 测试映射）③P2 代码符号全文/语义检索（FTS5 BM25，可选 embedding）。另含 2 项 P3 可选（死代码扫描、cytoscape 交互可视化）。已落盘 docs/代码图谱能力增强-Backlog.md（沿用 OKF Backlog 文档格式：背景/问题/方案/验收/影响面/优先级）。待用户决定实施顺序。
-
-### 2026-08-24 22:49
-
-需求细化：用户明确两个目标——①修改前按函数查上下游影响（analyze_impact 已覆盖，依赖图谱新鲜度=watch 模式）；②修改后按 commit 范围或工作区未提交变更分析影响。②的精度要求从文件级升级为函数级：git diff 行级解析（--unified=0 取变更行号）→ 组件 start_line/end_line 区间匹配定位变更函数（删除行回退旧版本解析）。backlog 第 2 项已拆分子项②（行级 diff 解析）+子项③（analyze_changes 工具，输入 since 或 worktree=true，含 untracked），验收标准同步更新。复用点：GitPython 已依赖、transitive_impact/resolve_files_to_components 已有。
 
 ### 2026-08-24 23:24
 
@@ -144,6 +117,7 @@ repowiki/wiki/doctrine.md 已 confirm 为 stable（human:wangbao，2026-08-24T16
 ### 2026-08-25 00:37
 
 后续注意 aggregation.notes_since_last_doctrine，达到阈值 25 时需运行 refresh_doctrine。
+
 ### 2026-08-25 00:40
 
 ## 2026-08-25：代码图谱 Backlog 收尾——已提交推送 develop
@@ -154,10 +128,3 @@ repowiki/wiki/doctrine.md 已 confirm 为 stable（human:wangbao，2026-08-24T16
 - 经验：SearchReplace 工具无法处理含 git 冲突标记（<<<<<<<）的文件，且 CRLF 行尾文件需用 \r\n 匹配；git 冲突文件直接用 python 脚本清标记更可靠。PowerShell 下 git rebase --continue 卡 vim → 用 $env:GIT_EDITOR='true' 跳过。
 
 ### 2026-08-26 01:04
-
-### 2026-08-26 会话蒸馏完成（4 条 raw 对话 → 6 条 stable 笔记）
-
-- 输入：repowiki/raw/ 下 4 条 raw（主体为「变更评估与代码评审」144 轮长对话）
-- 结果：6 条 store + 2 条 skip（与 2026-08-25 已有 stable 笔记重复）+ 2 条无知识（SessionEnd 信封、命令重复），均已清理/归档
-- 6 条确认 stable 笔记：query_wiki 全量重建索引、type-filter 单值精确匹配、analyze-repo 并行时序竞态、load-project-checklist 静默回退、changed-components 行区间近似、read-versioned-lines untracked 空列表
-- 待办：aggregation_hint 提示 consolidate_notes（58 条确认、阈值 10）与 refresh_doctrine（阈值 25）到期，已询问用户，待用户决定是否执行

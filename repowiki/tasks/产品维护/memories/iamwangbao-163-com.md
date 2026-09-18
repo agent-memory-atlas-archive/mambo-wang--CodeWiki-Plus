@@ -1,34 +1,34 @@
-### 2026-08-28 12:16
+## 早期记忆（摘要）
 
-用户询问 .meta/telemetry/Administrator.jsonl.tmp.19748 孤儿临时文件来源与清理时机：根因是 telemetry.py 的 _atomic_write_lines 崩溃安全写入（临时文件+os.replace）在进程被强杀/崩溃/断电或抛非 OSError 异常时残留；无自动清理机制，不影响 aggregate_usage（glob *.jsonl 不匹配），手动删除即可。
+## 产品维护任务早期记忆摘要（截至 2026-09-05）
 
-### 2026-08-28 12:16
+【已落地决策与实现】
+- 任务记忆绑定：task_bindings 一次性消费凭证，capture 落盘后自动删除，supersede 继承旧 task_id；绑定回退不校验任务 status。
+- SessionStart hook：硬性执行顺序（第一动作必须是任务关联弹框）+ active 任务注入；codewiki/hooks 源副本与 .codebuddy/.qoder/hooks 同步维护。Team Doctrine 已硬注入。
+- 补蒸馏 subagent（distill-worker，2026-09-16 定案）：`toolsMCP` 非官方字段无效，`tools:` 白名单会挡 MCP 工具致 worker 空转；正确授权 `mcpServers: [codewiki]` 且省略 tools 行。修复须落回随包源变体（codewiki/agents/*.md）+ 守门测试，只修项目副本会被 install-hooks 覆盖。
+- 多 IDE hook 自动接线（v5.4.0，已发 PyPI + Release）：CodeBuddy/Qoder/Claude Code，install-hooks + IDE 注册表驱动。
+- 代码图谱 Backlog（commit d5293df 已推送）：analyze_changes（git diff --unified=0 行级解析→组件区间匹配→transitive_impact，since/worktree 双模式）+ watch 模式（RepoWatcher 轮询去抖默认 2s；必须用 cache._fp_detect() 幂等检测，git 检测器会无限循环；remove_by_file 需 relative_path 列匹配）。P2 符号检索（FTS5）用户决定不做。
+- 蒸馏闭环（2026-08-25）：23 对话→19 笔记→6 场景块聚合，29 源笔记退役；doctrine/聚合阈值由 schema.yaml conventions.aggregation 覆盖（doctrine_threshold: 25），达阈值需 refresh_doctrine。
+- D19 锁文件集中化：.lck 迁至 <wiki-root>/.meta/locks/<sha256(abs)[:20]>.lck；Windows 释放即删（仅改 store.locked() sidecar 语义，勿下沉 file_lock 通用层），Unix 因 inode race 保留。升级窗口内新旧锁路径不互斥，升级须重启 server。
+- 工具链修复：capture _unq/_rebuild_index 去引号（修 .index.json task_id 引号 bug）；lint_wiki fix=true 自愈 stale_refs；_okf_patch_defaults 补 aliases 默认键。
+- telemetry 孤儿 .tmp 文件：_atomic_write_lines 崩溃残留，手动删即可。
+- write_doc_file sources 自动盖章链路：schema.yaml auto_evidence → _inject_evidence → append_evidence_block，唯一消费者 lint 的 stale_evidence。
 
-用户在该会话中报告 codewiki get_task_context 调用很慢，需定位性能瓶颈原因（raw 捕获不完整，仅 user 消息无 assistant 回复，问题转主 Agent 跟进）。
+【未决/待办】
+- get_task_context 调用慢的性能瓶颈定位（2026-08-28 提出）。
+- 文档质量审计（lint_wiki checks=all）用户明确搁置。
+- 安全遗留：建议吊销泄露过的 PyPI token、删 raw 中 token、清理 scripts/ 临时文件。
 
-### 2026-09-04 16:17
+【历史坑/约定】
+- Windows GBK 控制台编码致 CLI/twine 崩溃；GitHub API 被阻时用 Invoke-RestMethod 走系统网络栈。
+- 对话归档原样保留密钥会被 GitHub 密钥扫描拦 push。
+- GitPython Windows 坑：repo.index.add(".") 会加 .git 内部文件；ls-files --others --exclude-standard 比 Repo.untracked_files 可靠。
+- SearchReplace 无法处理含冲突标记文件，CRLF 需 \r\n 匹配；PowerShell git rebase 卡 vim 用 $env:GIT_EDITOR='true'。
+- caw 库 Windows import fcntl 失败，测试加平台跳过。
 
-2026-09-04：D19 锁文件集中化变更完成 review（7 文件 +109/−13，`store.py` 新增 `_lock_path_for()` 将 `.lck` 从目标旁边车迁到 `<wiki-root>/.meta/locks/<sha256(abs)[:20]>.lck`，无 `.meta` 祖先时回退就地 sidecar）。结论：代码质量良好，可直接提交，无必须修改项。
+> 原文归档于 memories-archive/，截至 2026-09-05。
 
-### 2026-09-04 16:17
-
-2026-09-04：D19 相关测试全绿——`tests/test_phase2_concurrency.py` 16 passed（含新增 3 个），加 test_locks/knowledge_store/layout_routing/phase3_4/phase4_second_slice 共 63 passed，合计 79 passed（Windows / Python 3.14.5）；新增跨进程测试真实起 2 个 subprocess 各 +15 断言 =30 且仅 1 个锁文件，证明集中锁与旧实现互斥等价。
-
-### 2026-09-04 16:17
-
-2026-09-04：针对 `.meta/locks/` 锁文件累积问题，用户已拍板选「仅 Windows 释放即删」方案——下一步是在 `store.locked()` 出口做 best-effort unlink（吞错），Unix 因 inode race 保留不删，并在 `locks.py`/docstring 注明原因，约 10 行 + 测试。实现时务必只改 sidecar 语义的 `store.locked()`，不要下沉到 `file_lock` 通用层（`wiki_index`/`workspace_bootstrap` 锁的是数据文件本身）。
-
-### 2026-09-04 16:17
-
-2026-09-04：评估后否决了 `lint_wiki` 补刀清扫锁文件——锁文件存在是常态非问题（只能 fix-only 不能当 check 上报），Unix 下同样踩 inode race，且释放即删生效后残留量被钉死在上界，补刀收益极低。
-
-### 2026-09-04 16:17
-
-2026-09-04：D19 review 记录的非阻塞观察（未处理）：`_lock_path_for()` 每次调用做 resolve+祖先遍历+mkdir（低频可接受，热点可加「root→locks_dir」缓存）；Windows 下路径大小写不同会导致哈希不同、锁不互斥（内部路径已归一化，风险极低）；升级窗口内新旧进程锁路径不同、互不互斥，升级须重启 server。
-
-### 2026-09-05 19:12
-
-回答了用户关于 `MCP_Tools_DocWriter.md` frontmatter `sources` 生成与使用的提问：梳理出「`schema.yaml` 的 `auto_evidence` 开关 → `write_doc_file` 落盘后 `_inject_evidence` → `append_evidence_block` 外科插入」的自动盖章链路，及其唯一消费者 lint 的 `stale_evidence`；实测本页两条证据（gen/tpl）重算哈希与记录一致，当前状态 `ok`，lint 不会报警。同时厘清了 `sources` 的三个生产者与四类同名歧义。
+> 原文归档于 memories-archive/iamwangbao-163-com.md, memories-archive/legacy.md，截至 2026-09-18，共 34 条。
 
 ### 2026-09-05 19:12
 
@@ -93,3 +93,26 @@ SessionStart 任务关联弹框已改为「单框列全」：只允许 1 次 ask
 ### 2026-09-10 20:14
 
 产品维护遗留未提交项：README.md 的「第 11 篇」文章链接（上一会话遗留，与本次改动无关），以及 5 个未跟踪的 repowiki/conversations/conv-*.md 与 .codebuddy/skills/repowiki-conclusion-update/，等用户决定是否单独补 commit。
+
+### 2026-09-18 11:05 #g3j1
+
+确认主动沉淀可关联任务：`add_task_memory` 的 task_id 必填（天然任务级）；`ingest_note` 有可选 `task_id` 参数写入 note frontmatter，由 `get_task_context` 的 related_notes 和 `query_wiki(task_id=...)` 消费（registry.py:1039/1230）；`delete_task` 删任务目录但不删盖了 task_id 的笔记（registry.py:2794）。注意：`.codebuddy/memory/` 是 CodeBuddy IDE 宿主自带的工作记忆通道，与 CodeWiki 任务记忆独立并存，任务进展须显式走 `add_task_memory` 落到 repowiki/tasks/ 下。
+
+### 2026-09-18 11:10 #gnu6
+
+用户反馈主动沉淀协议未触发（会话中只写了 IDE 工作记忆 .codebuddy/memory，未写任务记忆）。诊断出三缺口：①四判据不含「产品机制澄清/事实纠偏」类 Q&A 价值轮次，纯问答合规漏记；②宿主 CodeBuddy 系统提示的强指令（MUST 写 .codebuddy/memory）与协议块软措辞竞争，产生已沉淀错觉，协议块未声明两通道独立；③会话中无 per-turn 自查/提醒载体，hook 仅 SessionStart 注入。优化方向（改 prompts.py `_active_settle_section()` 源头+重新生成+守门测试）：判据扩面、加每轮收尾自查硬动作、加双通道独立声明；可选 UserPromptSubmit 周期提醒后置。
+
+### 2026-09-18 12:27 #jdvt
+
+实施 AGENTS.md 主动沉淀协议优化与文本块精简：① ACTIVE-SETTLE 块（prompts.py `_active_settle_section()`）判据扩面（第2条加「澄清/纠偏产品机制、代码事实等关键认知」）、加每轮回复收尾前自查、加双通道独立声明（宿主 IDE 工作记忆不豁免任务记忆）——修复用户反馈的「Q&A 轮合规漏记」问题；② TEAM-MEMORY-TASK 块精简冗余解释；③ locales/zh.yaml+en.yaml `artifacts.agents_md.main` 大幅精简（纠正识别/主动沉淀段压缩，保留测试断言短语）；④ 重新生成 AGENTS.md 三块（write_agents_md + upsert_agents_section + upsert_active_settle_protocol），约 200 行→165 行。测试 122+109 passed。手写的 Agent skills/Team memory fusion 段未动。
+
+### 2026-08-26 会话蒸馏完成（4 条 raw 对话 → 6 条 stable 笔记）
+
+- 输入：repowiki/raw/ 下 4 条 raw（主体为「变更评估与代码评审」144 轮长对话）
+- 结果：6 条 store + 2 条 skip（与 2026-08-25 已有 stable 笔记重复）+ 2 条无知识（SessionEnd 信封、命令重复），均已清理/归档
+- 6 条确认 stable 笔记：query_wiki 全量重建索引、type-filter 单值精确匹配、analyze-repo 并行时序竞态、load-project-checklist 静默回退、changed-components 行区间近似、read-versioned-lines untracked 空列表
+- 待办：aggregation_hint 提示 consolidate_notes（58 条确认、阈值 10）与 refresh_doctrine（阈值 25）到期，已询问用户，待用户决定是否执行
+
+### 2026-09-18 13:03 #zffa
+
+压缩摘要上限优化：`_COMPACTION_SUMMARY_MAX_CHARS` 2048→4096（task_manager.py:198），超限报错改为给出超出字数（over by N），便于按差额删减；zh/en `compact_instruction` 补充超限重试指引；设计文档 §5.2 同步；测试断言更新（2049→4097 + over by 1）。68 passed。背景：用户质疑 70 字限制，实为 2048 字符上限被误读，实测 34 条早期记忆压缩到 2048 偏紧被迫丢细节。
