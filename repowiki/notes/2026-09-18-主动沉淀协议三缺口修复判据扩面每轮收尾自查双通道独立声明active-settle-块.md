@@ -1,22 +1,31 @@
 ---
 type: decision
-title: "主动沉淀协议三缺口修复：判据扩面、每轮收尾自查、双通道独立声明（ACTIVE-SETTLE 块）"
-tags: ["codebuddy", "decision", "sessionstart"]
+title: 主动沉淀协议三缺口修复：判据扩面、每轮收尾自查、双通道独立声明（ACTIVE-SETTLE 块）
+tags:
+- codebuddy
+- decision
+- sessionstart
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: 产品维护
-  source_session: "21b7dedf054c44bfbec90d72f16ba0b4"
-  related_modules: ["prompts", "agents-md"]
+  source_session: 21b7dedf054c44bfbec90d72f16ba0b4
+  related_modules:
+  - prompts
+  - agents-md
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-2-e83954.md"
-  scene: "产品维护-主动沉淀协议"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-2-e83954.md
+  scene: 产品维护-主动沉淀协议
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T06:16:02Z }
-stale_after: 2027-09-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 06:16:02+00:00
+stale_after: '2027-09-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T06:41:31Z'
 ---
 
 ## 背景
