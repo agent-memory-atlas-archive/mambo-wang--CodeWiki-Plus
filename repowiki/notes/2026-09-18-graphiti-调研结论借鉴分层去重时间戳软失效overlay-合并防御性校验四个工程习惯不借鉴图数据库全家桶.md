@@ -1,22 +1,31 @@
 ---
 type: decision
-title: "graphiti 调研结论：借鉴分层去重、时间戳软失效、overlay 合并、防御性校验四个工程习惯，不借鉴图数据库全家桶"
-tags: ["codewiki", "decision", "minhash"]
+title: graphiti 调研结论：借鉴分层去重、时间戳软失效、overlay 合并、防御性校验四个工程习惯，不借鉴图数据库全家桶
+tags:
+- codewiki
+- decision
+- minhash
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: 他山之石
-  source_session: "94e1e091eed24b5cbd93153da2656197"
-  related_modules: ["knowledge-loop", "notes"]
+  source_session: 94e1e091eed24b5cbd93153da2656197
+  related_modules:
+  - knowledge-loop
+  - notes
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-6f15a7.md"
-  scene: "他山之石-竞品调研"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-6f15a7.md
+  scene: 他山之石-竞品调研
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T06:10:20Z }
-stale_after: 2027-09-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 06:10:20+00:00
+stale_after: '2027-09-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T06:41:21Z'
 ---
 
 ## 背景
