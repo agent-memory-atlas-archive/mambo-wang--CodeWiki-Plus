@@ -39,6 +39,7 @@ metadata:
 8. **subagent 回报的落盘状态一律当线索**：用 `get_task_context` 的 `related_notes[].status` 或直接读 notes frontmatter 复核；`draft` 未 confirm 前只能只读参考，直接采信即构成一次静默确认。
 9. **Mode C 三条实操**：submit 返回 `missing_result` 且 `notes_created=0` 先原样重试一次（与「超时不幂等」不同，本现象是实际未执行）；`conflicts_pending` 多为 BM25 词面误报，逐条核对后 `dedup_action=store`，**重提必须带完整笔记正文**（否则草稿正文被裁决说明覆盖）；prepare 清单文件名与磁盘不符时列 raw 目录或重新 prepare。
 10. Phase 5 方向：资产置信分层（strong/weak/shadow）+ 负反馈闭环（`flag_misrecall` 达阈值自动降权）。
+11. **tool_digest 两级消化**（codewiki/src/tool_digest.py，stdlib-only；capture_conversation 与 _ide_hook 共享同一 import 单点，不会漂移）：纯噪音（thinking/system 等）无条件丢弃；tool_use 保留一行；tool_result 仅留疑似错误。前提是 content-block 列表结构。
 
 ## 判断逻辑
 - 借鉴外部记忆管线：借分层不借 LLM、借模式不借 hook、借粒度不借无闸门。
