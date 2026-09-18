@@ -1,22 +1,31 @@
 ---
 type: lesson
-title: "宿主 IDE 工作记忆与 CodeWiki 任务记忆是独立通道，写前者不豁免后者"
-tags: ["codebuddy", "codewiki", "lesson"]
+title: 宿主 IDE 工作记忆与 CodeWiki 任务记忆是独立通道，写前者不豁免后者
+tags:
+- codebuddy
+- codewiki
+- lesson
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: 产品维护
-  source_session: "21b7dedf054c44bfbec90d72f16ba0b4"
-  related_modules: ["task-manager", "knowledge-loop"]
+  source_session: 21b7dedf054c44bfbec90d72f16ba0b4
+  related_modules:
+  - task-manager
+  - knowledge-loop
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-2-e83954.md"
-  scene: "产品维护-记忆沉淀"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-2-e83954.md
+  scene: 产品维护-记忆沉淀
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T06:16:13Z }
-stale_after: 2027-03-17
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 06:16:13+00:00
+stale_after: '2027-03-17'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T06:41:47Z'
 ---
 
 ## 背景
