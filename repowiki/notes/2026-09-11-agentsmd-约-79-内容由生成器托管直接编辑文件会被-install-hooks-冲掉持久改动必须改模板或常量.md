@@ -26,6 +26,8 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-11T03:55:10Z'
+source_conversations: ['raw\conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md']
+
 ---
 
 ## 背景
@@ -59,3 +61,16 @@ AGENTS.md 装的是**行为契约**（标注依据、确认闸门、任务关联
 ## 关联
 
 与『弹框工具的 options 条数建议…』同属「注入文案改动」家族，但那条讲**多副本同步**（改哪几处），本条讲**生成器托管与回冲机制**（改文件为什么没用、怎么验证）。
+
+## AGENTS.md 编辑工具报成功但内容未变：疑似 IDE 侧还原，需读回复核
+
+> 合并自蒸馏候选：AGENTS.md 编辑工具报成功但内容未变：疑似 IDE 侧还原，需读回复核
+
+## 补充：编辑工具「报成功但不生效」的复核手法（2026-09-18）
+
+批量订正「ADR-0009 通道互斥」→「ADR-0010」悬空引用时，对根目录 `AGENTS.md` 的 `replace_in_file` 报成功，但后续搜索与 `Select-String` 均显示旧引用仍在——编辑未生效（疑似 IDE 侧进程还原该文件，与上文「生成器托管」是同一现象的另一种表现：不只是 install-hooks 会回冲，IDE 宿主也可能还原）。
+
+正确做法：
+1. 对关键文件的编辑，改完后**读回或用 shell 精确验证**实际内容，不信任工具返回的成功状态；
+2. 遇到「报成功但不生效」时，改用 PowerShell 直接读写文件（`[IO.File]::ReadAllText` + `Replace` + `WriteAllText`）绕过编辑通道，随后复核确认；
+3. Windows 大小写不敏感：`agents.md` 与 `AGENTS.md` 是同一文件，排查时勿当成两个文件。
