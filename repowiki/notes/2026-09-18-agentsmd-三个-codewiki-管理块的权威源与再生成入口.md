@@ -1,22 +1,31 @@
 ---
 type: architecture
-title: "AGENTS.md 三个 codewiki 管理块的权威源与再生成入口"
-tags: ["architecture", "codewiki"]
+title: AGENTS.md 三个 codewiki 管理块的权威源与再生成入口
+tags:
+- architecture
+- codewiki
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: 产品维护
-  source_session: "21b7dedf054c44bfbec90d72f16ba0b4"
-  related_modules: ["agents-md", "prompts", "locales"]
+  source_session: 21b7dedf054c44bfbec90d72f16ba0b4
+  related_modules:
+  - agents-md
+  - prompts
+  - locales
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-2-e83954.md"
-  scene: "产品维护-AGENTS.md 精简"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-2-e83954.md
+  scene: 产品维护-AGENTS.md 精简
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T06:16:35Z }
-stale_after: 2027-09-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 06:16:35+00:00
+stale_after: '2027-09-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T06:42:11Z'
 ---
 
 ## 背景
