@@ -1,22 +1,29 @@
 ---
 type: decision
-title: "Experience 通道（HL-Mem Policy 自动归纳）调研裁决：不立项关闭"
-tags: ["decision"]
+title: Experience 通道（HL-Mem Policy 自动归纳）调研裁决：不立项关闭
+tags:
+- decision
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: 他山之石
-  source_session: "94e1e091eed24b5cbd93153da2656197"
-  related_modules: ["task_memory", "knowledge_loop"]
+  source_session: 94e1e091eed24b5cbd93153da2656197
+  related_modules:
+  - task_memory
+  - knowledge_loop
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3b1d9b.md"
-  scene: "他山之石竞品调研：HL-Mem 遗留候选裁决"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-3b1d9b.md
+  scene: 他山之石竞品调研：HL-Mem 遗留候选裁决
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T09:20:39Z }
-stale_after: 2027-09-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 09:20:39+00:00
+stale_after: '2027-09-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T09:47:10Z'
 ---
 
 ## 背景

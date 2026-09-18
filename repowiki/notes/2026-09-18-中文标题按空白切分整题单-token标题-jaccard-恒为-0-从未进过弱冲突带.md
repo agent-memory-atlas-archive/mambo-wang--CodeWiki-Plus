@@ -1,16 +1,27 @@
 ---
 type: pitfall
-title: "中文标题按空白切分整题单 token，标题 Jaccard 恒为 0 从未进过弱冲突带"
-tags: ["pitfall"]
+title: 中文标题按空白切分整题单 token，标题 Jaccard 恒为 0 从未进过弱冲突带
+tags:
+- pitfall
 metadata:
   date: 2026-09-18
-  confidence_level: weak
+  confidence_level: strong
   task_id: 他山之石
-  related_modules: ["knowledge_loop", "retrieval"]
-status: draft
+  related_modules:
+  - knowledge_loop
+  - retrieval
+  verification:
+    commit_ref: 858f6eb
+    test_ref: tests/test_distill_defensive.py
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T09:37:56Z }
-stale_after: 2027-03-17
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 09:37:56+00:00
+stale_after: '2027-03-17'
+verified:
+- by: human:wangbao
+  at: '2026-09-18T09:47:10Z'
 ---
 
 ## 背景
