@@ -26,6 +26,8 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-18T06:41:21Z'
+source_conversations: ['raw\conv-working_memory_content-The-following-is-the-existing-working.md']
+
 ---
 
 ## 背景
@@ -49,3 +51,21 @@ verified:
 ## 依据
 
 graphiti 源码：摄取流水线 graphiti.py:1043（官方建议异步队列、episode 串行 await）；检索 16 个预置 recipe（search_config_recipes.py）+ RRF/MMR/cross-encoder 等 reranker；社区检测 label propagation 纯 Python 实现。
+
+## graphiti 借鉴点对照基线：分层去重、overlay 合并、串行化已有同构，LLM 输出防御性校验有缺口
+
+> 合并自蒸馏候选：graphiti 借鉴点对照基线：分层去重、overlay 合并、串行化已有同构，LLM 输出防御性校验有缺口
+
+## 落地对照基线（grill Round 1 代码核对，修正上文部分论断）
+
+对上文借鉴清单逐一核对 CodeWiki 代码现状，发现多数借鉴点已有同构实现——讨论性质从「要不要引入」变为「已有实现差在哪、值不值得补」。
+
+**修正**：上文称「CodeWiki 冲突检测（conflict_case.py）目前纯 LLM 判断，可先加精确匹配快路径」——本次核对发现**已有同构**：强重复走标题 Jaccard ≥ 0.6 直接判定（`_DEDUP_THRESHOLD`，codewiki/mcp/tools/distill_conversation.py:175），0.35~0.6 弱冲突带 hold 给 agent 裁决（:194），「确定性快路径 + LLM 兜底」哲学与 graphiti 一致，无需新建快路径。
+
+**其余对照结论**：
+- **overlay 合并：metadata 层已有**。`_update_frontmatter_meta` 是 merge 语义（codewiki/mcp/tools/note_consolidation.py:155-178），LLM 漏抽字段保留旧值；正文层 update 是 agent 裁决后整体替换（agent 读过两边，合理）。
+- **摄取串行化：已有**。`locked_rmw` + sidecar lock（codewiki/src/store.py:211-228），跨进程串行已解决。
+- **检索 recipe 预设化：无**。现有 mode（check/full/by_file）+ authority/heat/confidence 乘子，但无命名组合预设。
+- **LLM 输出防御性校验：有缺口（真实差距）**。`_parse_llm_notes`（distill_conversation.py:907-932）best-effort 解析，失败返回 `[]`——调用方拿到 `notes_created: 0`，无法区分「对话确实无知识」与「LLM 输出烂了解析失败」，静默无产出违反 Doctrine「不静默失败」；单条 note 缺 title/content 也无剔除+告警。
+
+**落地候选（截至该对话用户尚未拍板，实施前须确认）**：C（防御性校验补强）推荐必做，失败口径推荐「raw 标记 parse_failed 保留 + 显式报告」；E（短标题门控）推荐值得做，判据推荐 jieba 分词后 token 数 <3 不进标题 Jaccard 带（不引入未经验证的字符熵公式）；B（检索 recipe 预设）缓做；A（退役时间维度）不做，ADR-0009 刚落地先观察。实施归属推荐「产品维护」任务线，调研任务只出报告。
