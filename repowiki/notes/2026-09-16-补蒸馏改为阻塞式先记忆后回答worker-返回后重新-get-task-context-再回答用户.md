@@ -1,19 +1,33 @@
 ---
 type: decision
-title: "补蒸馏改为阻塞式（先记忆后回答）：worker 返回后重新 get_task_context 再回答用户"
-tags: ["decision"]
-aliases: ["阻塞式补蒸馏", "先记忆后回答", "不阻塞已被取代", "补蒸馏时机", "pending_raw_count"]
+title: 补蒸馏改为阻塞式（先记忆后回答）：worker 返回后重新 get_task_context 再回答用户
+tags:
+- decision
+aliases:
+- 阻塞式补蒸馏
+- 先记忆后回答
+- 不阻塞已被取代
+- 补蒸馏时机
+- pending_raw_count
 metadata:
   date: 2026-09-16
   confidence_level: weak
   task_id: 产品维护
-  related_modules: ["agents", "hooks", "mcp"]
-status: draft
+  related_modules:
+  - agents
+  - hooks
+  - mcp
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T01:05:39Z }
-stale_after: 2027-09-16
-source_conversations: ['conversations/conv-working_memory_content-The-following-is-the-existing-working-2.md']
-
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 01:05:39+00:00
+stale_after: '2027-09-18'
+source_conversations:
+- conversations/conv-working_memory_content-The-following-is-the-existing-working-2.md
+verified:
+- by: human:wangbao
+  at: '2026-09-18T01:49:04Z'
 ---
 
 ## 背景
