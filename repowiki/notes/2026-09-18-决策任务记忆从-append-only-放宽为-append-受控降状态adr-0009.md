@@ -1,21 +1,32 @@
 ---
 type: decision
-title: "决策：任务记忆从 append-only 放宽为 append + 受控降状态（ADR-0009）"
-tags: ["a3f2", "decision", "e01", "sequencematcher", "新id"]
+title: 决策：任务记忆从 append-only 放宽为 append + 受控降状态（ADR-0009）
+tags:
+- a3f2
+- decision
+- e01
+- sequencematcher
+- 新id
 metadata:
   date: 2026-09-18
   confidence_level: weak
-  source_session: "44b4bea9c40947d09554371636e88cac"
-  related_modules: ["team-memory-fusion", "mcp"]
+  source_session: 44b4bea9c40947d09554371636e88cac
+  related_modules:
+  - team-memory-fusion
+  - mcp
   severity: high
-  source_ref: "conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md"
-  scene: "任务记忆治理"
-status: draft
+  source_ref: conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md
+  scene: 任务记忆治理
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T01:10:55Z }
-stale_after: 2027-09-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 01:10:55+00:00
+stale_after: '2027-09-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T01:47:04Z'
 ---
 
 ## 背景
