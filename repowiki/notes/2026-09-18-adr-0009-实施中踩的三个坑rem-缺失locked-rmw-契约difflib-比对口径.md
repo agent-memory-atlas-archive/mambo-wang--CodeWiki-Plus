@@ -8,7 +8,7 @@ metadata:
   source_session: "44b4bea9c40947d09554371636e88cac"
   related_modules: ["team-memory-fusion", "mcp"]
   severity: medium
-  source_ref: "raw\\conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md"
+  source_ref: "conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md"
   scene: "任务记忆治理实施"
 status: draft
 author: iamwangbao-163-com

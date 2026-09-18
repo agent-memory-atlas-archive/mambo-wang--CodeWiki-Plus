@@ -26,7 +26,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-11T03:55:10Z'
-source_conversations: ['raw\conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md']
+source_conversations: ['conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md']
 
 ---
 
