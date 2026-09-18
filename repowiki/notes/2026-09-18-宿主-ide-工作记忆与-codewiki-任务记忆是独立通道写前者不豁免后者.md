@@ -15,6 +15,8 @@ status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-18T06:16:13Z }
 stale_after: 2027-03-17
+origin: conversation
+
 ---
 
 ## 背景
