@@ -1,22 +1,29 @@
 ---
 type: pitfall
-title: "笔记合并语义：update 替换正文会把 stable 笔记降回 draft 需重新确认，merge 追加章节保持 stable"
-tags: ["pitfall"]
+title: 笔记合并语义：update 替换正文会把 stable 笔记降回 draft 需重新确认，merge 追加章节保持 stable
+tags:
+- pitfall
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: 他山之石
-  source_session: "94e1e091eed24b5cbd93153da2656197"
-  related_modules: ["note_consolidation", "distill_conversation"]
+  source_session: 94e1e091eed24b5cbd93153da2656197
+  related_modules:
+  - note_consolidation
+  - distill_conversation
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3c9e3c.md"
-  scene: "蒸馏草稿批量确认（14 条）"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-3c9e3c.md
+  scene: 蒸馏草稿批量确认（14 条）
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T06:47:59Z }
-stale_after: 2027-03-17
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 06:47:59+00:00
+stale_after: '2027-03-17'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T07:13:49Z'
 ---
 
 ## 背景
