@@ -1,22 +1,30 @@
 ---
 type: architecture
-title: "蒸馏笔记 sessionId 溯源链补全：note → session → task 三级可查（ingest_note 新增 source_session 参数）"
-tags: ["architecture"]
+title: 蒸馏笔记 sessionId 溯源链补全：note → session → task 三级可查（ingest_note 新增 source_session
+  参数）
+tags:
+- architecture
 metadata:
   date: 2026-09-18
   confidence_level: weak
   task_id: OpenWiki-竞品调研
-  source_session: "0c273f6722ee4063b6e47fdae1ff47e3"
-  related_modules: ["team-memory-fusion", "mcp"]
+  source_session: 0c273f6722ee4063b6e47fdae1ff47e3
+  related_modules:
+  - team-memory-fusion
+  - mcp
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-2.md"
-  scene: "任务记忆 / 溯源链"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-2.md
+  scene: 任务记忆 / 溯源链
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-18T01:04:29Z }
-stale_after: 2027-09-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-18 01:04:29+00:00
+stale_after: '2027-09-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-18T01:47:27Z'
 ---
 
 ## 背景
