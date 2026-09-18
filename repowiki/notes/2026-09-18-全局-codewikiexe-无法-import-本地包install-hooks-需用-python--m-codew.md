@@ -8,7 +8,7 @@ metadata:
   source_session: "7245f28d19714f71bca1abdd87568f23"
   related_modules: ["cli"]
   severity: medium
-  source_ref: "raw\\conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md"
+  source_ref: "conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md"
   scene: "hook 接线 / CLI 使用"
 status: draft
 author: iamwangbao-163-com

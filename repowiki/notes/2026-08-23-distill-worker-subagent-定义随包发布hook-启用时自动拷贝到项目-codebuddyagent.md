@@ -26,6 +26,8 @@ verified:
 - by: human:wangbao
   at: '2026-08-25T16:48:21Z'
 author: mambo-wang
+source_conversations: ['conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md']
+
 ---
 
 ## Background
@@ -50,3 +52,23 @@ subagent 定义与 hook 脚本同属「启用即部署」的配套资源，与 `
 - `prompts.py` 语法 OK；`tests/test_task_session_start.py` 4 个测试全部通过；无 lint 错误。
 - ~~待验证点：`distill-worker.md` 的 frontmatter（`toolsMCP` 字段名、agentic 模式下 Task 工具是否能直接 spawn）依赖 IDE 对 subagent 定义的解析，需在下次新会话观察 hook 是否成功把蒸馏委托出去；若解析方式有差异只需调整该文件 frontmatter 字段名，不影响其他改动。~~
 - **已验证（2026-09-16）**：`toolsMCP` 是**非官方字段、静默无效**，且 `tools: ReadFile` 白名单会把 MCP 工具一并挡掉——两者叠加正是 worker「0 tool uses 空转」的根因。现写法改为 `mcpServers: [codewiki]` 并省略 `tools` 行。另注：修复必须改随包源变体（`codewiki/agents/*.md`），只改 `.codebuddy/agents/` 已装副本会被 `install-hooks` 强制覆盖打回。详见 `notes/2026-09-08-蒸馏-worker-启动前先自检-mcp-可见性拿不到-distill-conversation-就停不要退让直连-ha.md`。修复丢失的完整机制（覆盖拷贝 + 测试固化 + 文档假事实）见 `notes/2026-09-16-修-subagenthook-定义只改已装副本会被-install-hooks-覆盖打回必须改随包源变体并加源变体守门测.md`。
+
+## distill-worker.md 按智能体分流不同源变体：比对漂移前先查 IDE_SPECS.agent_file
+
+> 合并自蒸馏候选：distill-worker.md 按智能体分流不同源变体：比对漂移前先查 IDE_SPECS.agent_file
+
+## 背景
+
+检查各智能体目录下 `agents/distill-worker.md` 是否与源文件一致时，若统一与 `codewiki/agents/distill-worker.md` 对比，会误报 `.qoder`/`.trae` 存在 15 行「漂移」。
+
+## 正确做法
+
+各智能体的 subagent 文件来源按 `IDE_SPECS.agent_file` 分流（依据代码核对：`codewiki/cli/utils/ide_config.py:55-106`）：
+
+| 目标 | 正确源变体 |
+|---|---|
+| `.codebuddy/agents/distill-worker.md` | `codewiki/agents/distill-worker.md`（CodeBuddy frontmatter：`tools: ReadFile` + `toolsMCP`） |
+| `.qoder/agents/distill-worker.md` | `codewiki/agents/distill-worker.claude.md`（claude 家族变体，省略 tools 行以继承全部工具含 MCP） |
+| `.trae/agents/distill-worker.md` | 同上 |
+
+比对漂移前先确认该智能体对应的源变体，再下结论；重跑 `install-hooks` 属幂等操作，可安全用于强制同步。

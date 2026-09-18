@@ -8,12 +8,14 @@ metadata:
   source_session: "7245f28d19714f71bca1abdd87568f23"
   related_modules: ["team-memory-fusion", "hooks"]
   severity: medium
-  source_ref: "raw\\conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md"
+  source_ref: "conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me.md"
   scene: "hook 接线验证"
 status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-18T01:00:04Z }
 stale_after: 2027-03-17
+origin: conversation
+
 ---
 
 ## 背景
