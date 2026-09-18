@@ -116,3 +116,11 @@ SessionStart 任务关联弹框已改为「单框列全」：只允许 1 次 ask
 ### 2026-09-18 13:03 #zffa
 
 压缩摘要上限优化：`_COMPACTION_SUMMARY_MAX_CHARS` 2048→4096（task_manager.py:198），超限报错改为给出超出字数（over by N），便于按差额删减；zh/en `compact_instruction` 补充超限重试指引；设计文档 §5.2 同步；测试断言更新（2049→4097 + over by 1）。68 passed。背景：用户质疑 70 字限制，实为 2048 字符上限被误读，实测 34 条早期记忆压缩到 2048 偏紧被迫丢细节。
+
+### 2026-09-18 15:18 #jx2n
+
+知识飞轮全链路完成：① 任务记忆压缩（34条→摘要，上限已提至4096）；② 笔记聚合（60条→9场景块更新+1新建「竞品调研与借鉴方法」，57条退役，3条deferred）；③ Doctrine 刷新（新增竞品调研SOP与「文档站宣传口径/代码事实口径」判断逻辑，1200/1200压线，已confirm stable，计数器归零）。lint：3个error均为既有skills/windows-dev-env frontmatter问题，与本次无关。
+
+### 2026-09-18 15:46 #clgi
+
+修复 frontmatter 解析 bug：`_read_frontmatter`（note_consolidation.py:124）用 `text.find("---", 3)` 找结束标记，frontmatter 值内含 `---`（如笔记文件名 `commit---amend`）即截断 YAML、解析失败 → lint 误报 SKILL.md 缺 name/status/source_refs。修复为按行匹配 `^---\s*$`。验证：7 keys/6 refs 解析正常，54 passed，skill_lint 3 error→0。遗留：全仓约 30 处同款模式待收敛成共享 helper；MCP server 需重启生效。

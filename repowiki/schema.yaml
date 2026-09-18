@@ -174,6 +174,20 @@ conventions:
 
     min_age_days: 14    # 笔记树龄下限（防新笔记速通）
 
+  # P2 聚合状态参数（aggregation_state.read_config 读取；缺省时代码内置默认值生效）。
+  #
+  # - consolidation_threshold / doctrine_threshold：自上次聚合/刷新以来新增的
+  #   confirmed 笔记数越过阈值时，工具生成 aggregation_hint 提醒（只提醒，不自动执行）；
+  # - hint_interval：计数器每再增 N 条时重复提醒，防一次性提醒被错过；
+  # - max_scenarios：L2 场景块（wiki/scenarios/）硬上限。分级预警：
+  #   黄 = 达到 max-3（优先 UPDATE/MERGE）、橙 = max-1（仅 UPDATE）、
+  #   红 = 满（必须先 MERGE 腾位）；每批最多新建 1 个场景块。
+  aggregation:
+    consolidation_threshold: 10
+    doctrine_threshold: 50
+    hint_interval: 5
+    max_scenarios: 20
+
   # T2 团队遥测：per-user 使用信号事件流（.meta/telemetry/<user_id>.jsonl，入库共享）。
 
   # query_wiki 的检索命中与采纳记录以 user_id（优先 CODEWIKI_USER 环境变量，回退
