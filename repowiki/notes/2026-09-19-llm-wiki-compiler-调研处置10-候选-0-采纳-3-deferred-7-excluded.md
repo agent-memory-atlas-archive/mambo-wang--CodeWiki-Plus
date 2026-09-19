@@ -1,22 +1,29 @@
 ---
 type: decision
-title: "llm-wiki-compiler 调研处置：10 候选 0 采纳 / 3 deferred / 7 excluded"
-tags: ["decision", "typescript"]
+title: llm-wiki-compiler 调研处置：10 候选 0 采纳 / 3 deferred / 7 excluded
+tags:
+- decision
+- typescript
 metadata:
   date: 2026-09-19
   confidence_level: weak
   task_id: 他山之石
-  source_session: "c07baaa505eb4d5e8a426636266c63a0"
-  related_modules: ["docs"]
+  source_session: c07baaa505eb4d5e8a426636266c63a0
+  related_modules:
+  - docs
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-788cb5.md"
-  scene: "竞品调研（他山之石）"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-788cb5.md
+  scene: 竞品调研（他山之石）
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-19T01:17:41Z }
-stale_after: 2027-09-19
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-19 01:17:41+00:00
+stale_after: '2027-09-19'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-19T01:21:33Z'
 ---
 
 ## Background
