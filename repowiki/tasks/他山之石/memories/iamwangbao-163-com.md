@@ -157,3 +157,12 @@ supermemory 调研完成，报告落盘 docs/supermemory-调研与借鉴分析.m
 ### 2026-09-19 22:34 #6huc
 
 supermemory「值得借鉴落地吗」grill 复核定案：无立即落地项。关键验证：supermemory「declined 即 forgotten」本仓已完全等价且是更精细三层设计（handler 层跳过 deprecated note_query.py:1030/465/672 + 索引层 -0.35 降权压出 top-N 槽位 retrieval.py:485 + 蒸馏去重豁免 apply_authority=False distill_conversation.py:678）。曾误判降权是死代码被代码核对证伪——降权作用于排序层在 handler 过滤之前。derives/isLatest 维持 deferred（知识形态不同）；SMFS 哲学归 Cli能力、MemoryBench 归质量量化、SKILL.md 范本归技能提取，均不推送等任务自然消费。报告 §3 处置表 #1 已改写为已验证等价。决策笔记已落草稿待确认。
+
+### 2026-09-19 22:45 #yoy8
+
+## hindsight 调研（2026-09-19）
+- 克隆 D:\repos\hindsight（HEAD 0a58d69，2026-09-19 当日提交，vectorize-io 出品，约 4740 文件），报告落盘 `docs/hindsight-调研与借鉴分析.md`。
+- 定位：生物拟态长期记忆系统（hindsight-api Python 引擎 + coding-agents TS 集成包接 18 个编码 Agent），重基建重 LLM（Postgres+embedding+cross-encoder，每次 retain 都跑 LLM 提取），与本仓架构前提相反。
+- 核心收获在集成层认知：①索引抑制——注入块列知识页清单导致 40 轮实测 0 次搜索（全拿注入 id 直接 read），absorbed 为注入设计约束（本仓现状已部分符合，只列 3 条最新笔记）；②consolidation prompt 两条规则 absorbed 进 distill/聚合 prompt：每条 op 必带 reason、NO COMPUTATION（不推断未明说的数字）。
+- deferred 2：knowledge page delta 刷新（等再生成成本成痛点）、4 臂检索+每臂截断+RRF 融合（等 query_wiki 多路召回需求）。
+- 其余 excluded：工具指南反复注入、引用致谢、降级留痕、mission 外置等本仓已有等价；Memory Defense/云端 bank 前提不成立。
