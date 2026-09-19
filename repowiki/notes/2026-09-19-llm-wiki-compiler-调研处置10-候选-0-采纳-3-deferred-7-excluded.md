@@ -9,7 +9,7 @@ metadata:
   source_session: "c07baaa505eb4d5e8a426636266c63a0"
   related_modules: ["docs"]
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-788cb5.md"
   scene: "竞品调研（他山之石）"
 status: draft
 author: iamwangbao-163-com
