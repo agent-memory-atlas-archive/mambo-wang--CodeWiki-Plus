@@ -137,3 +137,7 @@ ADR-0011 Round 2 完成（grill 第二轮）：实测发现子集标题误杀风
 ### 2026-09-18 17:28 #oc38
 
 完成 cognee（topoteretes/cognee v1.5.4）调研，报告落盘 docs/cognee-调研与借鉴分析.md。核心发现：cognee 的 improve() 是会话→永久图谱桥接总入口（7 stage 全 fail-open），四个底座无关的可借鉴工程习惯——①水位线增量持久化（成功才推进、失败重试、陈旧检测，修 O(n²)）；②LIVE 确定性+ BATCH LLM 两级提取（错误轨迹零成本成 lesson，每 10 条才付一次 LLM）；③脱敏先行（错误文本入库前正则抹 secret/JWT/UUID）；④流式加权 w+=α(r−w) 替代裸计数（反馈与频率双通道）。明确不借：图库底座、无确认闸门的自动加权、truth subspace 质心、全局上下文索引分桶摘要。下一步候选：把①②③落成 CodeWiki 采集/蒸馏通道的具体设计方案。
+
+### 2026-09-19 09:25 #llhc
+
+cognee 调研 grill 复核定稿：8 个借鉴点全部证伪、0 采纳（6 条本仓已有等价实现：pending-status≈水位线、tool_digest 错误链≈LIVE 快路径、secret_redact≈脱敏、submit 单次多产出、usage_heat 三件套≈流式加权、file_lock+noop≈抢锁放弃；2 条语义不同不采纳：raw 优先级标记无排队前提、novelty 限定同类节点集违背 related≠same Doctrine）。报告 docs/cognee-调研与借鉴分析.md §三/§五已按证伪结论改写，cognee 价值定位为「独立收敛互证」。另：5 条蒸馏草稿笔记已全部 confirm 为 stable（llm-wiki-compiler 处置、noop 竞争处置、confirm_note 文件名坑、Experience 通道不立项、任务记忆状态滞后）。
