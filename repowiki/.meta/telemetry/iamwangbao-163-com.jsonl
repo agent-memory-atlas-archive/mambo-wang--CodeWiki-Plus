@@ -892,3 +892,6 @@
 {"t": "hit", "doc": "notes/2026-09-07-维护者-git-reset---hard-归位分支前必须检查用户未提交改动codewiki-plus-上游-issues.md", "at": "2026-09-18", "n": 3}
 {"t": "hit", "doc": "notes/2026-09-12-重写-frontmatter-文件时闭合栅栏后必须保留换行lenient-正则会静默吞掉正文且测试可能侥幸通过.md", "at": "2026-09-18", "n": 3}
 {"t": "hit", "doc": "wiki/scenarios/代码评审与分析工具方法.md", "at": "2026-09-18", "n": 3}
+{"t": "hit", "doc": "notes/2026-09-19-supermemory-调研处置12-候选-0-立即落地reject-可见性经代码验证已等价.md", "at": "2026-09-19", "n": 1}
+{"t": "hit", "doc": "notes/2026-09-19-llm-wiki-compiler-调研处置10-候选-0-采纳-3-deferred-7-excluded.md", "at": "2026-09-19", "n": 1}
+{"t": "hit", "doc": "notes/2026-09-19-memos-调研处置1-absorbed-挂起搭车-3-deferred-6-excluded当前无立即落地项.md", "at": "2026-09-19", "n": 1}
