@@ -145,3 +145,7 @@ cognee 调研 grill 复核定稿：8 个借鉴点全部证伪、0 采纳（6 条
 ### 2026-09-19 09:32 #zj2v
 
 完成 memos（usememos/memos，HEAD 7e3d3c6，2026-09-19）调研，报告落盘 docs/memos-调研与借鉴分析.md。核心发现：其 MCP server（server/mcp/）协议合规工程是迄今调研项目最高水平——OpenAPI 驱动工具目录+白名单、进程内回环执行、annotations 方法推导+覆盖表修正、structuredContent 对象形规范化（修 #6022）、错误结果不带 schema（修 #6139）、任务级 eval（15 QA 钉种子数据）。处置：absorbed 1 条（registry 加 annotations 参数，写类工具标 destructiveHint，建议立项小改动）；deferred 3 条（structuredContent/outputSchema 与错误形状同根、任务级 eval 并入质量量化主线与 llm-wiki-compiler 调研合流）；excluded 6 条（无 OpenAPI 前提、无 SQL 存储、stdio 无 TTL 需求等）。
+
+### 2026-09-19 19:06 #w7jl
+
+Grill 轮裁决 memos 调研的 annotations 借鉴：absorbed 但挂起搭车（不单独立项），等下次 registry 契约变更时顺路落地。判定标准采用 memos「覆盖/删除既有状态 → destructive」：destructive 集合 = {edit_doc_file, reject_note, delete_task}，confirm_note/ingest_note/batch_set_status 不标。SDK 层已核实支持（mcp/types.py:1329 Tool.annotations）。MCP 协议术语不进 CONTEXT.md。草稿笔记已落盘：notes/2026-09-19-mcp-工具-annotations-挂起待搭车sdk-已支持判定标准采用-memos-覆盖既有状态说.md（待 confirm_note）。报告 docs/memos-调研与借鉴分析.md 处置表已同步更新。
