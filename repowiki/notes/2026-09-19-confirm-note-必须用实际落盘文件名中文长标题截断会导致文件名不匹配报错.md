@@ -1,22 +1,29 @@
 ---
 type: pitfall
-title: "confirm_note 必须用实际落盘文件名：中文长标题截断会导致文件名不匹配报错"
-tags: ["pitfall", "powershell"]
+title: confirm_note 必须用实际落盘文件名：中文长标题截断会导致文件名不匹配报错
+tags:
+- pitfall
+- powershell
 metadata:
   date: 2026-09-19
   confidence_level: weak
   task_id: 他山之石
-  source_session: "c07baaa505eb4d5e8a426636266c63a0"
-  related_modules: ["knowledge-loop"]
+  source_session: c07baaa505eb4d5e8a426636266c63a0
+  related_modules:
+  - knowledge-loop
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-788cb5.md"
-  scene: "草稿笔记确认"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-788cb5.md
+  scene: 草稿笔记确认
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-19T01:17:55Z }
-stale_after: 2027-03-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-19 01:17:55+00:00
+stale_after: '2027-03-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-19T01:21:43Z'
 ---
 
 ## Background

@@ -1,22 +1,28 @@
 ---
 type: pitfall
-title: "蒸馏 submit 返回 noop：raw 被并行流程抢先处理时的正确处置"
-tags: ["pitfall"]
+title: 蒸馏 submit 返回 noop：raw 被并行流程抢先处理时的正确处置
+tags:
+- pitfall
 metadata:
   date: 2026-09-19
   confidence_level: weak
   task_id: 他山之石
-  source_session: "c07baaa505eb4d5e8a426636266c63a0"
-  related_modules: ["knowledge-loop"]
+  source_session: c07baaa505eb4d5e8a426636266c63a0
+  related_modules:
+  - knowledge-loop
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-788cb5.md"
-  scene: "补蒸馏 worker 执行"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-788cb5.md
+  scene: 补蒸馏 worker 执行
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-19T01:15:17Z }
-stale_after: 2027-03-18
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-19 01:15:17+00:00
+stale_after: '2027-03-18'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-19T01:21:43Z'
 ---
 
 ## Background
