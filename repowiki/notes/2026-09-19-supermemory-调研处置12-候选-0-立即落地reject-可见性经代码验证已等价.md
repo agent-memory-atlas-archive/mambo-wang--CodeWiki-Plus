@@ -1,17 +1,31 @@
 ---
 type: decision
-title: "supermemory 调研处置：12 候选 0 立即落地，reject 可见性经代码验证已等价"
-tags: ["decision"]
-aliases: ["supermemory 借鉴处置", "deprecated 降权三层设计", "declined 即 forgotten 等价验证"]
+title: supermemory 调研处置：12 候选 0 立即落地，reject 可见性经代码验证已等价
+tags:
+- decision
+aliases:
+- supermemory 借鉴处置
+- deprecated 降权三层设计
+- declined 即 forgotten 等价验证
 metadata:
   date: 2026-09-19
-  confidence_level: weak
+  confidence_level: strong
   task_id: 他山之石
-  related_modules: ["retrieval", "note_query", "distill_conversation"]
-status: draft
+  related_modules:
+  - retrieval
+  - note_query
+  - distill_conversation
+  verification:
+    reviewed_by: human:iamwangbao-163-com
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-19T14:33:32Z }
-stale_after: 2027-09-19
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-19 14:33:32+00:00
+stale_after: '2027-09-19'
+verified:
+- by: human:iamwangbao-163-com
+  at: '2026-09-19T14:41:54Z'
 ---
 
 ## 背景

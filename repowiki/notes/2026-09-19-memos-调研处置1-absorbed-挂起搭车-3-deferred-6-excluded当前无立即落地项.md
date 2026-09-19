@@ -1,22 +1,32 @@
 ---
 type: decision
-title: "memos 调研处置：1 absorbed 挂起搭车 / 3 deferred / 6 excluded，当前无立即落地项"
-tags: ["1", "6139", "9", "decision", "toolannotations"]
+title: memos 调研处置：1 absorbed 挂起搭车 / 3 deferred / 6 excluded，当前无立即落地项
+tags:
+- '1'
+- '6139'
+- '9'
+- decision
+- toolannotations
 metadata:
   date: 2026-09-19
   confidence_level: weak
   task_id: 他山之石
-  source_session: "d30d6164edba4f13ada8ca7a51b8ac13"
-  related_modules: ["mcp"]
+  source_session: d30d6164edba4f13ada8ca7a51b8ac13
+  related_modules:
+  - mcp
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-dfaba1.md"
-  scene: "他山之石竞品调研"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-dfaba1.md
+  scene: 他山之石竞品调研
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-19T11:28:52Z }
-stale_after: 2027-09-19
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-19 11:28:52+00:00
+stale_after: '2027-09-19'
 origin: conversation
-
+verified:
+- by: human:iamwangbao-163-com
+  at: '2026-09-19T14:41:54Z'
 ---
 
 ## 背景
