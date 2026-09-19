@@ -8,12 +8,14 @@ metadata:
   task_id: 他山之石
   related_modules: ["knowledge-loop"]
   severity: medium
-  source_ref: "raw\\conv-https-github.com-vectorize-io-hindsight-调研项目.md"
+  source_ref: "conversations/conv-https-github.com-vectorize-io-hindsight-调研项目.md"
   scene: "他山之石竞品调研（hindsight）"
 status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-19T14:53:38Z }
 stale_after: 2027-09-19
+origin: conversation
+
 ---
 
 ## 背景
