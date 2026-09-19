@@ -141,3 +141,7 @@ ADR-0011 Round 2 完成（grill 第二轮）：实测发现子集标题误杀风
 ### 2026-09-19 09:25 #llhc
 
 cognee 调研 grill 复核定稿：8 个借鉴点全部证伪、0 采纳（6 条本仓已有等价实现：pending-status≈水位线、tool_digest 错误链≈LIVE 快路径、secret_redact≈脱敏、submit 单次多产出、usage_heat 三件套≈流式加权、file_lock+noop≈抢锁放弃；2 条语义不同不采纳：raw 优先级标记无排队前提、novelty 限定同类节点集违背 related≠same Doctrine）。报告 docs/cognee-调研与借鉴分析.md §三/§五已按证伪结论改写，cognee 价值定位为「独立收敛互证」。另：5 条蒸馏草稿笔记已全部 confirm 为 stable（llm-wiki-compiler 处置、noop 竞争处置、confirm_note 文件名坑、Experience 通道不立项、任务记忆状态滞后）。
+
+### 2026-09-19 09:32 #zj2v
+
+完成 memos（usememos/memos，HEAD 7e3d3c6，2026-09-19）调研，报告落盘 docs/memos-调研与借鉴分析.md。核心发现：其 MCP server（server/mcp/）协议合规工程是迄今调研项目最高水平——OpenAPI 驱动工具目录+白名单、进程内回环执行、annotations 方法推导+覆盖表修正、structuredContent 对象形规范化（修 #6022）、错误结果不带 schema（修 #6139）、任务级 eval（15 QA 钉种子数据）。处置：absorbed 1 条（registry 加 annotations 参数，写类工具标 destructiveHint，建议立项小改动）；deferred 3 条（structuredContent/outputSchema 与错误形状同根、任务级 eval 并入质量量化主线与 llm-wiki-compiler 调研合流）；excluded 6 条（无 OpenAPI 前提、无 SQL 存储、stdio 无 TTL 需求等）。
