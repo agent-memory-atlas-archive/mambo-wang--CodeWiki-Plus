@@ -149,3 +149,7 @@ cognee 调研 grill 复核定稿：8 个借鉴点全部证伪、0 采纳（6 条
 ### 2026-09-19 19:06 #w7jl
 
 Grill 轮裁决 memos 调研的 annotations 借鉴：absorbed 但挂起搭车（不单独立项），等下次 registry 契约变更时顺路落地。判定标准采用 memos「覆盖/删除既有状态 → destructive」：destructive 集合 = {edit_doc_file, reject_note, delete_task}，confirm_note/ingest_note/batch_set_status 不标。SDK 层已核实支持（mcp/types.py:1329 Tool.annotations）。MCP 协议术语不进 CONTEXT.md。草稿笔记已落盘：notes/2026-09-19-mcp-工具-annotations-挂起待搭车sdk-已支持判定标准采用-memos-覆盖既有状态说.md（待 confirm_note）。报告 docs/memos-调研与借鉴分析.md 处置表已同步更新。
+
+### 2026-09-19 19:27 #9tx3
+
+supermemory 调研完成，报告落盘 docs/supermemory-调研与借鉴分析.md。基线 HEAD 57b430b（2026-09-18），本地克隆 D:\repos\supermemory。核心结论：开源仓是客户端/集成层（MCP server、tools SDK、SMFS、MemoryBench），核心引擎闭源。12 项候选处置：6 项 excluded（确认闸门/双层记忆/成组蒸馏/检索缓存/采纳计数均已有等价，Claude memory 适配器方向相反）、3 项 deferred（derives+isLatest 挂知识飞轮主线；SMFS 文件系统哲学归 Cli能力任务；MemoryBench 归质量量化主线——同根信号第三次出现）、2 项归任务参考（annotations 四档为已裁决提供第二佐证；SKILL.md 范本归技能提取任务）。
