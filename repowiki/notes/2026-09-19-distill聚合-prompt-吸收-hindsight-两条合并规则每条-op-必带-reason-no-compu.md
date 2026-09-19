@@ -36,3 +36,7 @@ hindsight consolidation prompt 共九条合并规则，调研处置（报告 doc
 ## 适用范围
 
 调整 `distill_conversation` 提取规范或知识聚合（consolidation）prompt 时参考；hindsight 其余机制处置见调研报告（absorbed 2 / deferred 2 / excluded 8）。
+
+## 落地（2026-09-19 已实施）
+
+经 grill 拷问定案（ADR-0012）：两条规则合并为一条第 6 条纪律写入 `_DISTILL_SYSTEM`（codewiki/mcp/tools/distill_conversation.py，"Reasoned and literal"），聚合侧不动（dispositions 已强制 reason），tests/test_distill_p1.py 补断言，全量 1169 passed。absorbed 语义定为「必须有可指认的落点，否则降级 deferred」。
