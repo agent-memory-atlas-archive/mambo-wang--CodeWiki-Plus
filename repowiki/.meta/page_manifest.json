@@ -200,13 +200,13 @@
       "written_at": "2026-09-12T00:55:39Z"
     },
     "wiki/scenarios/任务记忆系统设计方法.md": {
-      "git_head": "56afa01099f7739ff40dcd0b57feae2344f13164",
+      "git_head": "bcf395b314c96779d15a74b250cc3eb3f78ca869",
       "components": [],
       "files": [],
       "source_fingerprint": null,
       "repo": "CodeWiki-Plus",
       "producer": "codewiki/5.10.1",
-      "written_at": "2026-09-18T06:07:41Z"
+      "written_at": "2026-09-20T02:00:04Z"
     },
     "wiki/scenarios/代码评审与分析工具方法.md": {
       "git_head": "acbb924518068fa447c11aa7d899a49dafad33f6",
