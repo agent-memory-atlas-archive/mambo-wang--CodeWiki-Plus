@@ -13,8 +13,8 @@ metadata:
   source_ref: conversations/conv-推送代码.md
   scene: 发布推送
   compiled_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
@@ -24,6 +24,7 @@ origin: conversation
 verified:
 - by: wangbao
   at: '2026-09-08T05:27:33Z'
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## Background
