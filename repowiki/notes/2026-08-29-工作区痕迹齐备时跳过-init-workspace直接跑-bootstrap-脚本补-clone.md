@@ -5,26 +5,30 @@ tags:
 - codewiki
 - decision
 metadata:
-  date: 2026-08-29
+  date: '2026-08-29'
   task_id: 多仓工作区
   related_modules:
   - workspace_bootstrap
   - init_workspace
+  - wiki/scenarios/多仓工作区初始化与增量分析.md
   severity: high
   source_ref: conversations/conv-工作区已有部分初始化痕迹（bootstrap.ps1-登记了业务仓、.gitignore-已排除等）时，init_wor.md
   scene: 多仓工作区初始化流程优化
   consolidated_into:
+  - ''
   - wiki/scenarios/多仓工作区初始化与增量分析.md
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.5.0
-  at: 2026-08-29 15:03:49+00:00
+  at: '2026-08-29 15:03:49+00:00'
 stale_after: '2027-08-29'
 origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-08-29T15:14:32Z'
 author: wandering-bug
+reject_reason: consolidated into 多仓工作区初始化与增量分析
 ---
 
 ## Background

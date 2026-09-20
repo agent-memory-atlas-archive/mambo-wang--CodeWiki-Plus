@@ -4,23 +4,27 @@ title: 文件名相似度判据在 raw 上 100% 误报：同会话 supersede 重
 tags:
 - lesson
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - skill-creator
   - capture
   severity: medium
   source_ref: conversations/conv-SKILL-CREATOR需求的PHASE-2是不是还没启动.md
   scene: skill_candidate hint 判据验证
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:01:23+00:00
+  at: '2026-09-07 03:01:23+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:22Z'
+reject_reason: consolidated into 对话蒸馏管线与raw暂存区
 ---
 
 ## 背景

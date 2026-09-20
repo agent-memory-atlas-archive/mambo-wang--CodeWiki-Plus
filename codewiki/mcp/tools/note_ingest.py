@@ -12,14 +12,12 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set
 
 from codewiki.mcp.session import SessionStore
-from codewiki.src.frontmatter import parse_frontmatter
-from codewiki.src.retrieval import STOPWORDS as _STOPWORDS
-from codewiki.mcp.tools.injection_budget import estimate_tokens
 from codewiki.mcp.tools.note_freshness import freshness_window_days
 from codewiki.mcp.tools.note_writer import _norm_status, _okf_actor, _slugify, refresh_note_indexes
+
 logger = logging.getLogger(__name__)
 
 
@@ -205,7 +203,6 @@ _FRESHNESS_FALLBACK_WINDOW_DAYS = 90
 _FRESHNESS_FALLBACK_RETRIEVAL_DEFER_DAYS = 60
 
 
-
 def handle_ingest_note(
     arguments: Dict[str, Any],
     store: SessionStore,
@@ -279,6 +276,67 @@ def handle_ingest_note(
     # OKF v0.2 §5.4: write the spec vocabulary (draft|stable|deprecated);
     # legacy values are accepted and normalized for backward compatibility.
     note_status = _norm_status(arguments.get("status", "draft"))
+    # Phase5 T1: confidence dimension at write time. A draft is STILL VISIBLE
+    # with its [unconfirmed] prefix (existing product semantics — shadow is
+    # reserved for rejected/misrecalled assets, not drafts); so ingest starts
+    # weak unless the caller passes an explicit level. (Shadow at ingest would
+    # hide drafts from query_wiki by default and break the draft→confirm
+    # review flow — caught by the existing e2e tests during implementation.)
+    confidence_level = str(arguments.get("confidence_level") or "").strip().lower()
+    if confidence_level not in ("strong", "weak", "shadow"):
+        confidence_level = "weak"
+
+    # ADR-0013 (letta borrow, 方案 B): stable direct-write is the bypass
+    # around the draft→confirm gate, so it must carry an explicit reason
+    # (intent declaration — visibility/friction/attribution, NOT a
+    # verification mechanism; the schema only guarantees "filled in", not
+    # "true"). Optional structured evidence (test_ref/commit_ref/reviewed_by)
+    # reuses confirm_note's semantics: human-checkable anchors that promote
+    # confidence_level to strong. draft is exempt (confirm gate downstream).
+    reason = str(arguments.get("reason") or "").strip()
+    if note_status == "stable" and not reason:
+        return json.dumps(
+            {
+                "error": (
+                    "reason is required when status='stable' (ADR-0013): state why "
+                    "this note bypasses the draft→confirm gate, or ingest as "
+                    "draft and use confirm_note instead."
+                )
+            },
+            ensure_ascii=False,
+        )
+    evidence = arguments.get("evidence")
+    verification = None
+    if isinstance(evidence, dict):
+        _known_evidence = ("test_ref", "commit_ref", "reviewed_by")
+        verification = {
+            k: str(v)
+            for k, v in evidence.items()
+            if k in _known_evidence and str(v or "").strip()
+        }
+        unknown_evidence = set(evidence) - set(_known_evidence)
+        if unknown_evidence:
+            return json.dumps(
+                {
+                    "error": (
+                        f"evidence has unknown key(s) {sorted(unknown_evidence)}; "
+                        "recognized: test_ref, commit_ref, reviewed_by."
+                    )
+                },
+                ensure_ascii=False,
+            )
+        if verification:
+            confidence_level = "strong"
+    elif evidence:
+        return json.dumps(
+            {
+                "error": (
+                    "evidence must be an object with one of: test_ref, commit_ref, "
+                    "reviewed_by (strings)."
+                )
+            },
+            ensure_ascii=False,
+        )
 
     # Auto-match modules if not provided
     auto_matched: List[str] = []
@@ -343,7 +401,7 @@ def handle_ingest_note(
     # OKF §4/§5: producer-private fields fold under ``metadata:`` so the top
     # level only carries OKF-standard keys.  Line-based consumers (wiki_index
     # note date, lint note_clusters) still read them via the indented rows.
-    metadata_lines = [f"  date: {today}"]
+    metadata_lines = [f"  date: {today}", f"  confidence_level: {confidence_level}"]
     # Centralized layout provenance: which member repo produced this note
     # (shared-pool knowledge). "global" omits it; a list writes repos: [...].
     if _scope is None:
@@ -356,6 +414,12 @@ def handle_ingest_note(
     task_id = arguments.get("task_id")
     if task_id:
         metadata_lines.append(f"  task_id: {task_id}")
+    # Session provenance: the IDE-side session id that produced the source
+    # conversation (traceability: note → session → task binding). Omitted for
+    # taskless / sessionless notes.
+    source_session = str(arguments.get("source_session") or "").strip()
+    if source_session:
+        metadata_lines.append(f"  source_session: {json.dumps(source_session, ensure_ascii=False)}")
     if related_modules:
         metadata_lines.append(
             f"  related_modules: {json.dumps(related_modules, ensure_ascii=False)}"
@@ -372,6 +436,14 @@ def handle_ingest_note(
         metadata_lines.append(f"  source_ref: {json.dumps(source_ref, ensure_ascii=False)}")
     if scene:
         metadata_lines.append(f"  scene: {json.dumps(scene, ensure_ascii=False)}")
+    # ADR-0013: stable direct-write intent declaration + optional
+    # human-checkable verification anchors (mirrors confirm_note semantics).
+    if reason:
+        metadata_lines.append(f"  reason: {json.dumps(reason, ensure_ascii=False)}")
+    if verification:
+        metadata_lines.append(
+            f"  verification: {json.dumps(verification, ensure_ascii=False)}"
+        )
     frontmatter_lines.append("metadata:")
     frontmatter_lines.extend(metadata_lines)
     frontmatter_lines.append(f"status: {note_status}")
@@ -501,5 +573,3 @@ def handle_ingest_note(
 # ---------------------------------------------------------------------------
 #  confirm_note / reject_note (Roadmap 2.2 — knowledge flywheel)
 # ---------------------------------------------------------------------------
-
-

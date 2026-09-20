@@ -1,12 +1,11 @@
 ---
 type: pitfall
 title: 删除 raw/sources 下某 source 前先盘点引用与 source id 所有权：删后 10 页断链 + README_CN source
-  id 易主导致张冠李戴
 tags:
 - pitfall
 - weknora
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - retract_source
   - wiki_pages
@@ -17,16 +16,20 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:35:12+00:00
+  at: '2026-09-05 11:35:12+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:50Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Background
@@ -35,7 +38,7 @@ verified:
 
 ## 后果（已实测确认）
 
-- WeKnora 系 10 个页面（entities 4 + concepts 6）frontmatter 写 `resource: raw/sources/README_CN.md`、正文用 `[^src:README_CN:59]`，文件删除后**全部断链**，溯源能力丢失。
+- WeKnora 系 10 个页面（entities 4 + concepts 6）frontmatter 写 `resource: raw/sources/README_CN.md`、正文用 ``，文件删除后**全部断链**，溯源能力丢失。
 - 更隐蔽：这些页面继续用 `README_CN` 这个 source id，而它现在归 TAM 独有——按 `README_CN:59` 溯源会跳到 TAM 文档 `.env` 配置段，得到**张冠李戴的错误证据**。
 
 ## 正确做法

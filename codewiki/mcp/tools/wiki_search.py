@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
-import os
 import re
 import threading
 import time
@@ -18,8 +16,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from codewiki.src.retrieval import (
-    B as _B,
-    K1 as _K1,
+    bm25_score,
     build_indexable_text as _build_indexable_text,
     tokenize as _tokenize,
     extract_snippet as _extract_snippet,
@@ -47,7 +44,7 @@ _build_lock = threading.Lock()
 # the file-based fallback. (Architecture review 2026-09, candidate #2.)
 # ---------------------------------------------------------------------------
 
-from typing import Any, List as _List, Protocol as _Protocol, runtime_checkable as _rc
+from typing import List as _List, Protocol as _Protocol, runtime_checkable as _rc
 
 
 @_rc
@@ -708,16 +705,15 @@ def search(
         # consumed via IDE trigger, not query_wiki). Mirrors cache.py search.
         if di.get("source") == "skill":
             continue
-        s = 0.0
         tfm = di.get("term_freq", {})
         dl = di.get("doc_len", 1)
-        for qt in qts:
-            if qt not in tfm:
-                continue
-            tf = tfm[qt]
-            df = idx.doc_freq.get(qt, 1)
-            idf = max(0.0, math.log((n - df + 0.5) / (df + 0.5) + 1.0))
-            s += idf * (tf * (_K1 + 1)) / (tf + _K1 * (1 - _B + _B * dl / avg_dl))
+        tf_batch = {qt: tfm[qt] for qt in qts if qt in tfm}
+        if tf_batch:
+            # Single canonical scoring formula (retrieval kernel) — the
+            # inline copy that used to live here migrated to bm25_score.
+            s = bm25_score(tf_batch, dl, idx.doc_freq, n, avg_dl)
+        else:
+            s = 0.0
         # Authority weighting: multiply AFTER BM25, BEFORE the title floor.
         auth = float(di.get("authority") or 1.0) if apply_authority else 1.0
         s *= auth
@@ -757,18 +753,18 @@ def search(
             except OSError:
                 _est_tokens = None
         entry = {
-                "file": fk,
-                "title": idx.docs.get(fk, {}).get("title", fk),
-                "source": idx.docs.get(fk, {}).get("source", "doc"),
-                "snippet": (
-                    _extract_snippet((od / fk).read_text(encoding="utf-8", errors="replace"), qts)
-                    if (od / fk).exists()
-                    else ""
-                )[:300],
-                "relevance_score": round(s, 4),
-                "authority": round(auth, 2),
-                "matched_tokens": _matched_for_doc(idx.docs.get(fk, {}).get("term_freq", {}), qts),
-                "usage": {"hit_count": u_hits, "last_hit": u_last, "adopted_count": u_adopted},
+            "file": fk,
+            "title": idx.docs.get(fk, {}).get("title", fk),
+            "source": idx.docs.get(fk, {}).get("source", "doc"),
+            "snippet": (
+                _extract_snippet((od / fk).read_text(encoding="utf-8", errors="replace"), qts)
+                if (od / fk).exists()
+                else ""
+            )[:300],
+            "relevance_score": round(s, 4),
+            "authority": round(auth, 2),
+            "matched_tokens": _matched_for_doc(idx.docs.get(fk, {}).get("term_freq", {}), qts),
+            "usage": {"hit_count": u_hits, "last_hit": u_last, "adopted_count": u_adopted},
         }
         if _est_tokens is not None:
             entry["est_tokens"] = _est_tokens

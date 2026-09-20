@@ -1,11 +1,10 @@
 ---
 type: pitfall
 title: 测试污染真实 .meta 的 module_tree：fixture 把 module_tree.json 写成 {"test":...} 使影响分析与
-  coverage 失真；从模块页组件清单反推可逆重建
 tags:
 - pitfall
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - module_tree
   - lint_wiki
@@ -16,16 +15,20 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/代码评审与分析工具方法.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:37:45+00:00
+  at: '2026-09-05 11:37:45+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:51Z'
+reject_reason: consolidated into 代码评审与分析工具方法
 ---
 
 ## Background

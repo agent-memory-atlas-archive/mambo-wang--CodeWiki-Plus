@@ -4,18 +4,19 @@ title: retrieval_stats.db 放 repowiki/.meta 而非 .codewiki 的四个理由
 tags:
 - architecture
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - telemetry
   - repowiki-项目研究与借鉴分析
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: medium
   source_ref: conversations/conv-调研-https-github.com-akitaonrails-ai-m-输出报告.md
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:21:44+00:00
+  at: '2026-08-24 15:21:44+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

@@ -206,6 +206,7 @@ def _should_capture_l0(content: str) -> bool:
 # ``[tool: name · command]`` line each; tool results survive only as error
 # excerpts. The logic lives in codewiki.src.tool_digest (shared with the
 # stdlib-only IDE hook so the two capture paths never drift).
+from codewiki.src.secret_redact import redact_secrets
 from codewiki.src.tool_digest import digest_blocks
 
 
@@ -213,8 +214,8 @@ def _content_blocks_text(content: Any) -> Any:
     """If ``content`` is a list of content blocks (Claude/CodeBuddy format),
     flatten to text lines with two-tier tool digestion: plain text kept,
     tool calls compressed to ``[tool: …]`` lines (command/error/fix chains
-    are skill material — see tool_digest docstring), tool results kept only
-    as error excerpts. Otherwise return it unchanged.
+    are skill material — see tool_digest docstring), tool results kept as
+    error excerpts plus one-line success tails.
     """
     if not isinstance(content, list):
         return content
@@ -259,6 +260,10 @@ def _extract_transcript(conversation: Any) -> List[Dict[str, str]]:
         # blocks so the archived transcript holds the human–AI dialogue only.
         if role == "user":
             content = _strip_system_injection(content)
+        # 密钥脱敏：raw 落在 repowiki/ 下随代码提交推送，对话里出现过的
+        # token/password 会被写进公开仓库（2026-09-11 PyPI token 事故）。
+        # 正文与工具行各走一次——工具行在 tool_digest 内部已覆盖。
+        content = redact_secrets(content)
         # 宽松门（对齐 TAM shouldCaptureL0）：统一处理空内容（剥离系统注入后
         # 可能变空）与框架级结构噪声，保证据链完整；更严格的质量过滤由
         # 蒸馏侧 should_extract_l1 承担。

@@ -6,17 +6,18 @@ tags:
 - dietrichgebert
 - github
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   task_id: 他山之石
   severity: medium
   source_ref: conversations/conv-https-github.com-DietrichGebert-ponytail-研究下这个技能是如何生效的.md
   scene: 他山之石-ponytail 调研
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:21:59+00:00
-stale_after: 2027-09-05
+  at: '2026-09-05 11:21:59+00:00'
+stale_after: '2027-09-05'
 origin: conversation
 reject_reason: 用户裁决不保留：与本任务此前已拒绝的 caveman 机制笔记同类（外部技能机制解剖），非本仓库可复用知识
 ---

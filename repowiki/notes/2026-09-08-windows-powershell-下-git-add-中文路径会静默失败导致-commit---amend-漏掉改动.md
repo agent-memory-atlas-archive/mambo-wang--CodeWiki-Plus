@@ -5,22 +5,28 @@ tags:
 - pitfall
 - powershell
 metadata:
-  date: 2026-09-08
+  date: '2026-09-08'
   related_modules:
   - release
+  - skills/windows-dev-env/SKILL.md
   severity: medium
   source_ref: conversations/conv-推送代码.md
   scene: 发布推送
-status: stable
+  compiled_into: ''
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/发布与依赖治理方法.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:07:11+00:00
+  at: '2026-09-08 05:07:11+00:00'
 stale_after: '2027-03-07'
 origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-08T05:28:18Z'
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## Background

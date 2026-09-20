@@ -15,12 +15,12 @@ The SQLite path (AnalysisCache) and the legacy JSON path (wiki_search)
 both sit on this kernel so ranking semantics cannot drift between
 adapters. Constants ``K1``/``B``/``STOPWORDS`` are public API.
 """
+
 from __future__ import annotations
 
 import logging
 import math
 import re
-import time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -345,6 +345,35 @@ def _expand_with_ontology(tokens: List[str], ontology: Dict[str, List[str]]) -> 
     return result
 
 
+def bm25_score(
+    term_freqs: Dict[str, int],
+    doc_len: int,
+    doc_freqs: Dict[str, int],
+    n_docs: int,
+    avg_doc_len: float,
+    *,
+    k1: float = K1,
+    b: float = B,
+) -> float:
+    """Okapi BM25 score of one document against a query's terms.
+
+    Single canonical scoring formula (kernel's raison d'être: ranking
+    semantics must not drift between consumers). ``term_freqs`` /
+    ``doc_freqs`` are keyed by the query tokens present in the document /
+    corpus respectively. The idf term carries the ``max(0.0, ...)`` clamp
+    the legacy inline copies had (the Okapi variant is never negative, but
+    the clamp keeps exact behavioural parity with the pre-migration paths).
+    """
+    dl = doc_len or 1
+    avgdl = avg_doc_len or 1.0
+    score = 0.0
+    for qt, f in term_freqs.items():
+        df = doc_freqs.get(qt, 0)
+        idf = max(0.0, math.log((n_docs - df + 0.5) / (df + 0.5) + 1.0))
+        score += idf * (f * (k1 + 1)) / (f + k1 * (1 - b + b * dl / avgdl))
+    return score
+
+
 def _build_indexable_text(content: str, page_type: Optional[str] = None) -> str:
     """Build indexable text from content with frontmatter field boosting.
 
@@ -445,6 +474,7 @@ def _build_indexable_text(content: str, page_type: Optional[str] = None) -> str:
 _NOTE_TYPE_AUTHORITY: Dict[str, float] = {
     "decision": 0.15,
     "pitfall": 0.12,
+    "procedure": 0.12,
     "lesson": 0.10,
     "architecture": 0.10,
     "workaround": 0.05,
@@ -458,6 +488,24 @@ _SCENARIO_AUTHORITY = 0.15  # L2 scenario blocks (wiki/scenarios/)
 _DOCTRINE_AUTHORITY = 0.20  # L3 project doctrine (doctrine.md)
 _SOURCE_AUTHORITY = -0.20  # raw/sources/ third-party material
 _AUTHORITY_MIN, _AUTHORITY_MAX = 0.7, 1.3
+# Phase5 T2: confidence dimension (metadata.confidence_level), orthogonal to
+# the OKF status gate — strong floats, shadow sinks. The distill dedup recall
+# is exempted via apply_authority=False upstream, so dedup similarity is NEVER
+# polluted by confidence (T1 migration would otherwise blind conflict
+# detection when old notes drop to shadow).
+_CONFIDENCE_AUTHORITY: Dict[str, float] = {
+    "strong": 0.10,
+    "weak": 0.0,
+    "shadow": -0.30,
+}
+
+
+def _read_confidence_level(fm: Dict[str, Any], meta: Dict[str, Any]) -> str:
+    """confidence_level from frontmatter (metadata fold or top level)."""
+    raw = fm.get("confidence_level")
+    if raw is None:
+        raw = meta.get("confidence_level")
+    return str(raw or "").strip().lower()
 
 
 def _doc_authority(doc_key: str, source: str, content: str = "") -> float:
@@ -466,9 +514,12 @@ def _doc_authority(doc_key: str, source: str, content: str = "") -> float:
     Pure rules, no IO beyond the already-loaded *content*:
     - notes: ``type``/``note_type`` boost (decision > pitfall >
       lesson/architecture > workaround) combined with the OKF ``status``
-      gate (draft -0.25, stable +0.05, deprecated -0.35);
-    - wiki docs: doctrine.md +0.20, scenarios/ pages +0.15;
-    - raw/sources: -0.20 regardless of frontmatter.
+      gate (draft -0.25, stable +0.05, deprecated -0.35) and the Phase5
+      confidence dimension (strong +0.10, weak 0.0, shadow -0.30);
+    - wiki docs: doctrine.md +0.20, scenarios/ pages +0.15 (+ confidence
+      dimension when stamped);
+    - raw/sources: -0.20 regardless of frontmatter (unreviewed third-party
+      material is shadow by nature).
     """
     offset = 0.0
     dk = doc_key.replace("\\", "/").lower()
@@ -491,11 +542,18 @@ def _doc_authority(doc_key: str, source: str, content: str = "") -> float:
         status = str(fm.get("status") or meta.get("status") or "").strip().lower()
         offset += _NOTE_TYPE_AUTHORITY.get(note_type, 0.0)
         offset += _STATUS_AUTHORITY.get(status, 0.0)
+        offset += _CONFIDENCE_AUTHORITY.get(_read_confidence_level(fm, meta), 0.0)
     else:
         if dk.endswith("doctrine.md"):
             offset += _DOCTRINE_AUTHORITY
         elif "/scenarios/" in f"/{dk}":
             offset += _SCENARIO_AUTHORITY
+        # Phase5 T2: scenarios/doctrine carry confidence_level too when
+        # stamped (consolidation writes weak; doctrine migrates to strong).
+        if content:
+            fm = _parse_frontmatter_dict(content)
+            meta = fm.get("metadata") if isinstance(fm.get("metadata"), dict) else {}
+            offset += _CONFIDENCE_AUTHORITY.get(_read_confidence_level(fm, meta), 0.0)
     return max(_AUTHORITY_MIN, min(_AUTHORITY_MAX, 1.0 + offset))
 
 
@@ -705,7 +763,6 @@ def _usage_context(
     return cfg, usage_map, bool(apply_usage and cfg.get("enabled", True))
 
 
-
 # ---------------------------------------------------------------------------
 # Public interface of the retrieval kernel. The implementation above keeps
 # its historical underscore names (moved verbatim from cache.py); these
@@ -722,10 +779,19 @@ doc_authority = _doc_authority
 usage_context = _usage_context
 
 __all__ = [
-    "B", "K1", "STOPWORDS",
+    "B",
+    "K1",
+    "STOPWORDS",
     "USAGE_RANKING_DEFAULTS",
-    "build_indexable_text", "compute_usage_heat", "doc_authority",
-    "expand_with_ontology", "extract_snippet", "load_ontology",
-    "load_usage_ranking_config", "parse_frontmatter_dict",
-    "tokenize", "usage_context",
+    "bm25_score",
+    "build_indexable_text",
+    "compute_usage_heat",
+    "doc_authority",
+    "expand_with_ontology",
+    "extract_snippet",
+    "load_ontology",
+    "load_usage_ranking_config",
+    "parse_frontmatter_dict",
+    "tokenize",
+    "usage_context",
 ]

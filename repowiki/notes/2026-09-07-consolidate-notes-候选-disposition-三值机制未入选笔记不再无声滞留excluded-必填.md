@@ -5,22 +5,23 @@ tags:
 - codewiki
 - decision
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 他山之石
   related_modules:
   - note_consolidation
   - registry
   - prompts
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
   severity: medium
   source_ref: conversations/conv-https-mp.weixin.qq.com-s-NwU98lA_P7LpDdyhhkt-cg-调研一下这篇文章，看看对.md
   scene: note 聚合可审计性
-  consolidated_into:
-  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.1
-  at: 2026-09-07 01:42:36+00:00
+  at: '2026-09-07 01:42:36+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:

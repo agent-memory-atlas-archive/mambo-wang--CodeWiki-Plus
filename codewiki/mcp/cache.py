@@ -5,14 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import math
 import os
 import re
 import sqlite3
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -42,17 +40,16 @@ def _sql_chunks(items: List[Any], size: int = _SQL_CHUNK_SIZE) -> List[List[Any]
 # usage ranking) lives in codewiki/src/retrieval.py — this module is the
 # SQLite persistence adapter on top of it (architecture review 2026-09 #2).
 from codewiki.src.retrieval import (
-    K1,
-    B,
-    STOPWORDS,
-    USAGE_RANKING_DEFAULTS,
+    STOPWORDS,  # noqa: F401 — re-export: tests/test_usage_ranking imports it from here
+    USAGE_RANKING_DEFAULTS,  # noqa: F401 — re-export: tests/test_usage_ranking imports it from here
+    bm25_score,
     build_indexable_text,
     compute_usage_heat,
     doc_authority,
     expand_with_ontology,
     extract_snippet,
     load_ontology,
-    load_usage_ranking_config,
+    load_usage_ranking_config,  # noqa: F401 — re-export: tests/test_usage_ranking imports it from here
     tokenize,
     usage_context,
 )
@@ -1393,6 +1390,7 @@ class AnalysisCache:
 
             score = 0.0
             doc_matched: List[str] = []
+            tf_batch: Dict[str, int] = {}
             for qt in qts:
                 tfr = c.execute(
                     "SELECT tf FROM search_token_index WHERE token=? AND doc_key=?",
@@ -1401,11 +1399,11 @@ class AnalysisCache:
                 if not tfr:
                     continue
                 doc_matched.append(qt)
-                df = df_cache.get(qt, 1)
-                idf = max(0.0, math.log((n - df + 0.5) / (df + 0.5) + 1.0))
-                score += (
-                    idf * (tfr["tf"] * (K1 + 1)) / (tfr["tf"] + K1 * (1 - B + B * dl / avg_dl))
-                )
+                tf_batch[qt] = int(tfr["tf"])
+            if tf_batch:
+                # Single canonical scoring formula (retrieval kernel) — the
+                # inline copy that used to live here migrated to bm25_score.
+                score = bm25_score(tf_batch, dl, df_cache, n, avg_dl)
             # Authority weighting: multiply AFTER BM25, BEFORE the title floor
             # (otherwise the floor would rescue penalised draft notes).
             auth = float(doc_row["authority"] or 1.0) if apply_authority else 1.0
@@ -1511,19 +1509,19 @@ class AnalysisCache:
                     else 1.0
                 )
                 ex_entry = {
-                        "file": ex["file"],
-                        "title": doc_row["title"],
-                        "source": doc_row["source"],
-                        "snippet": snippet,
-                        "relevance_score": round(ex["score"] * ex_auth * ex_heat, 4),
-                        "authority": round(ex_auth, 2),
-                        "usage": {
-                            "hit_count": ex_hits,
-                            "last_hit": ex_last,
-                            "adopted_count": ex_adopted,
-                        },
-                        "hop": ex["hop"],
-                        "via": ex["via"],
+                    "file": ex["file"],
+                    "title": doc_row["title"],
+                    "source": doc_row["source"],
+                    "snippet": snippet,
+                    "relevance_score": round(ex["score"] * ex_auth * ex_heat, 4),
+                    "authority": round(ex_auth, 2),
+                    "usage": {
+                        "hit_count": ex_hits,
+                        "last_hit": ex_last,
+                        "adopted_count": ex_adopted,
+                    },
+                    "hop": ex["hop"],
+                    "via": ex["via"],
                 }
                 # P0-1: hop entries carry est_tokens too — callers must never
                 # face a KeyError just because a result arrived via the graph.

@@ -107,6 +107,8 @@ repowiki/.meta/locks/
 .trash/
 .codewiki/
 .workbuddy/
+# CodeBuddy team-member runtime state (mailbox/history JSON) — transient, never commit
+.codebuddy/teams/
 
 # Qoder IDE plugin skills (not part of this repo)
 .qoder/skills/

@@ -23,7 +23,7 @@ verified:
 sources:
 - id: repo://codewiki/mcp/tools/schema_generator.py#L209-L238
   resource: repo://codewiki/mcp/tools/schema_generator.py#L209-L238
-  content_hash: sha256:7b40889a3cb47f8755da1c0ac29c153fc54cb37ec93467f7ca4d1b9ff14fc399
+  content_hash: sha256:f45467b916356180d8dd21b8c1d3b6fe06df2de1dceaafbfcbc312ed41f473f5
 - id: repo://codewiki/templates/schema.yaml#L55-L65
   resource: repo://codewiki/templates/schema.yaml#L55-L65
   content_hash: sha256:40a438980aca923343a3105338e92600703381b10f6097cb7ba65aa3346ce2d6

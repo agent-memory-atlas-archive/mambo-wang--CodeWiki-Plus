@@ -23,13 +23,13 @@ verified:
 sources:
 - id: repo://codewiki/mcp/tools/init_wiki.py#L26-L27
   resource: repo://codewiki/mcp/tools/init_wiki.py#L26-L27
-  content_hash: sha256:efc10880f52a34f81189f6af2c00f744913fb17191787a3e5b13261896fcf127
+  content_hash: sha256:48cbf3bbe8e80026e4b77b8b668f561167d65cd71f663f01a92bfee69f5ea553
 - id: repo://codewiki/mcp/tools/init_wiki.py#L84-L96
   resource: repo://codewiki/mcp/tools/init_wiki.py#L84-L96
-  content_hash: sha256:21770505fbae161290c39abfee8a8b6110e694a8efffb3a67abefd78089a6872
+  content_hash: sha256:86de16c58f8241543fa4e6b984e86f7b667897a3da3f733b6e0c03d207cf0b30
 - id: repo://codewiki/mcp/tools/wiki_index.py#L418-L448
   resource: repo://codewiki/mcp/tools/wiki_index.py#L418-L448
-  content_hash: sha256:c4b2697005a8b93a30a56fbaf8f1de5784efbeb92b7d78eeecb5422cac754f0d
+  content_hash: sha256:312a8943a00d99a625017b870e3de26955e951e18574a0b5dc05743b64fbc74c
 - id: repo://codewiki/mcp/tools/change_analysis.py#L91-L130
   resource: repo://codewiki/mcp/tools/change_analysis.py#L91-L130
   content_hash: sha256:e0abb2b002450be04d3d5264bd8d77ef1c6b98abf7b60cdbbc6bf71b98116b24
@@ -41,7 +41,10 @@ sources:
   content_hash: sha256:d1b82cfb095b2d9ad0e608815e25816a2570df8072a5b84eb33ac9e8ca5bfeeb
 - id: repo://codewiki/mcp/tools/telemetry.py#L296-L340
   resource: repo://codewiki/mcp/tools/telemetry.py#L296-L340
-  content_hash: sha256:8025fc01862ec9a95b092da14d7e61abd90621583b35998a1782e9da7874e7f6
+  content_hash: sha256:8f51fa09274e99b67509f25a1a7ced633f2f2f6755f322d7aa46b002cedb283e
+- id: repo://codewiki/mcp/tools/wiki_lint.py#L2560-L2650
+  resource: repo://codewiki/mcp/tools/wiki_lint.py#L2560-L2650
+  content_hash: sha256:2f19cea4d227db15b9f2a0973e8f0e9eee7ad0e7c74fc09b9382f899687d894d
 ---
 
 # MCP_Tools_Quality 模块文档
@@ -60,7 +63,7 @@ sources:
 | _append_with_lock / _atomic_write / _parse_note_frontmatter / _extract_doc_title_and_summary / _render_index / _relocate_summary_links | 私有函数 | wiki_index.py | 加锁追加、原子写、解析笔记 frontmatter、抽取标题摘要、渲染索引页（含「入门指引」根级页面与「场景方法」分区）、把模块页 description 中的裸相对链接重定位为可自 index.md 解析的路径 |
 | _compute_health_score | 私有函数 | wiki_index.py | 计算 Wiki 健康度评分 |
 | append_log / rebuild_index | 函数 | wiki_index.py | 记录操作日志、重建整体 Wiki 索引与健康度；rebuild_index 除按页面类型收集子目录外，还收录 wiki/ 根级页面（doctrine/reading-guide 等）与 scenarios 目录 |
-| _check_broken_links / _check_coverage / _check_cycles / _check_missing_aliases / _check_no_outlinks / _check_orphan_pages / _check_overview_stale_lint / _check_stale_refs / _check_stale_sources / _check_superseded_pages / _check_undocumented / _check_unsupported_claims | 私有函数 | wiki_lint.py | 12 项质量检查：死链、覆盖率、环路、缺别名、无外链、孤儿页、概览过期、陈旧引用、陈旧源、被取代页、未文档化组件、无支撑声明。已实现系统层豁免：raw/sources（外部同步源）、conversations/（蒸馏归档）、tasks/（任务记忆）不参与链接/OKF/出链检查；index.md 等系统文件同时作为孤儿页链接来源 |
+| _check_broken_links / _check_coverage / _check_cycles / _check_missing_aliases / _check_no_outlinks / _check_orphan_pages / _check_overview_stale_lint / _check_stale_refs / _check_stale_sources / _check_superseded_pages / _check_threshold_drift / _check_undocumented / _check_unsupported_claims | 私有函数 | wiki_lint.py | 13 项质量检查：死链、覆盖率、环路、缺别名、无外链、孤儿页、概览过期、陈旧引用、陈旧源、被取代页、阈值漂移、未文档化组件、无支撑声明。已实现系统层豁免：raw/sources（外部同步源）、conversations/（蒸馏归档）、tasks/（任务记忆）不参与链接/OKF/出链检查；index.md 等系统文件同时作为孤儿页链接来源 |
 | _get_all_module_names / _get_documented_components / _get_output_dir / _load_module_tree / _walk | 私有函数 | wiki_lint.py | 收集模块名、已文档组件、输出目录、加载模块树并遍历 |
 | handle_lint_wiki | 函数 | wiki_lint.py | MCP 入口：执行全部 lint 检查并返回报告 |
 | _IndexData / _check_jieba / _extract_fm / _extract_snippet / _extract_title / _index_path / _load_index / _open_standalone_cache / _read_doc / _read_note / _resolve_db_path / _save_index / _tokenize | 私有函数 | wiki_search.py | 索引数据结构、jieba 检测、frontmatter/摘要/标题抽取、路径与 DB 解析、读写缓存与索引、文档/笔记读取、分词 |
@@ -82,7 +85,8 @@ sources:
 - **确定性评审装配**：`review_changes` 持有无 LLM 的确定性装配（Doctrine：推理留在调用方 Agent）；四轴依据冲突时裁决顺序 spec > convention > module_knowledge > general；since 模式从 HEAD 读变更源保证与 diff 严格一致。
 - **清单合并覆盖**：`get_checklist` 合并内置清单与 `<repo>/repowiki/review_checklist.yaml` 项目覆盖，同 id 条目覆盖内置、新 id 追加；模板由 `init_wiki` 拷贝且已存在则跳过（不覆盖用户自定义）。
 - **模板单源分发**：`init_wiki` 的 schema/ontology/review_checklist 三类模板一律取自包内 `codewiki/templates/`，已移除仓库根 `schema.yaml` 回退分支；模板演进只维护包内这一份，源码树与 wheel 分发（pyproject artifacts 含 `codewiki/templates/**/*`）共用同一路径，`overwrite_schema=False`（工作区重跑）时保留用户已有的 `schema.yaml`。
-- **质量门禁**：`wiki_lint` 的 12 项检查覆盖链接、覆盖、时效、一致性，输出结构化报告。
+- **质量门禁**：`wiki_lint` 的 13 项检查覆盖链接、覆盖、时效、一致性，输出结构化报告。
+- **阈值漂移守护（ADR-0013）**：`_check_threshold_drift` 扫描 CodeWiki 自身源码副本（`codewiki/mcp/registry.py`、`prompts.py`）中镜像 `limits.py` 阈值的行为契约文案，数值不一致即报 `threshold_drift` warning——行为契约副本靠 lint 守护而非 f-string 生成，保证 Agent 可读性优先。
 - **系统层豁免**：raw/sources（外部同步的源文档层）、conversations/（蒸馏归档层）、tasks/（任务记忆层）属于系统生成/同步层，其内部相对链接指向源仓库文件，且无需向 wiki 出链，`stale_refs`/`broken_links`/`no_outlinks`/OKF 合规检查对其整层跳过，避免误报。
 - **孤儿页判定**：`_check_orphan_pages` 将 index.md 等系统文件也纳入链接来源扫描（仅从「待被链接」集合排除），保证 index 内的链接计入可及性；`_strip_code_blocks` 的 inline-code 正则限定单行作用域，避免奇数个反引号跨行吞掉真实链接导致误报孤儿。
 - **评审输入归一化与启用探测**：`change_analysis._norm` 把 git diff 的变更行归一化为结构化变更源，供 `review_changes` 四轴证据装配（与 spec 发现共用同一输入基线）；`cbm_client.is_cbm_enabled` 探测 CBM 集成可用性，未启用时 `merge_cbm_and_local_results` 直接回退本地结果。

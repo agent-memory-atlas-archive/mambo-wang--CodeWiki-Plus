@@ -5,20 +5,21 @@ tags:
 - pitfall
 - powershell
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - store
   - lint
+  - wiki/scenarios/跨进程锁与临时文件治理方法.md
   severity: medium
   source_ref: conversations/conv-把项目中的.lck文件清理掉.md
   scene: .lck 清理
-  consolidated_into:
-  - wiki/scenarios/跨进程锁与临时文件治理方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:00:04+00:00
+  at: '2026-09-07 03:00:04+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:

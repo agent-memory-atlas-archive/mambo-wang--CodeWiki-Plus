@@ -5,20 +5,21 @@ tags:
 - architecture
 - tooldef
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - server
   - registry
   - prompts
   - resources
   - close_session
-  source_ref: raw\conv-user_command-commands-codewiki-增量更新-Wiki-请增量更新代码仓库的-Wiki-文档。.md
-  consolidated_into:
   - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  source_ref: raw\conv-user_command-commands-codewiki-增量更新-Wiki-请增量更新代码仓库的-Wiki-文档。.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:14:27+00:00
+  at: '2026-08-15 13:14:27+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

@@ -9,17 +9,18 @@ tags:
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-12 11:58:57+00:00
-stale_after: 2026-11-10
+  at: '2026-08-12 11:58:57+00:00'
+stale_after: '2026-11-10'
 metadata:
   date: '2026-08-12'
   origin: conversation
   related_components: []
   related_modules:
   - '""'
-  source_ref: raw\conv-system_reminder-请注意，当你在遇到无法解决的问题时，往往会出现重复行为，导致陷入循环——例如重复输出相同-8.md
-  consolidated_into:
   - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  source_ref: raw\conv-system_reminder-请注意，当你在遇到无法解决的问题时，往往会出现重复行为，导致陷入循环——例如重复输出相同-8.md
+  consolidated_into: ''
+  confidence_level: shadow
 reject_reason: 聚合进场景：对话蒸馏管线与raw暂存区
 author: mambo-wang
 ---

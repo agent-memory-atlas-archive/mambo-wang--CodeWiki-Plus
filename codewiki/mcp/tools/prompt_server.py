@@ -1111,9 +1111,7 @@ def _resolve_prompt(prompt_type: str, variables: Dict[str, Any]) -> str:
             '| Research conclusion archive | `write_doc_file(page_type="query")` |\n\n'
             "### Step 4: Draft Format\n\n"
             "Present to user for confirmation before writing:\n\n"
-            "```\n"
-            _i18n.t("tools.prompt_server.draft_template")
-            "```\n\n"
+            "```\n" + _i18n.t("tools.prompt_server.draft_template") + "```\n\n"
             "### Anti-patterns (do NOT record):\n\n"
             "- Transient variables, paths, parameters specific to this task\n"
             "- User personal preferences (belongs in agent memory, not project wiki)\n"

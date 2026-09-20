@@ -4,18 +4,19 @@ title: 修复顺序类 bug 先看数据流时序：fix 块后置导致 broken_li
 tags:
 - lesson
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - wiki_lint
   - wiki_lint fix=true 修复
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
   severity: medium
   source_ref: conversations/conv-修复-fix=true-后-broken_links-残留的问题.md
-  consolidated_into:
-  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:21:16+00:00
+  at: '2026-08-24 15:21:16+00:00'
 stale_after: '2027-02-20'
 origin: conversation
 verified:

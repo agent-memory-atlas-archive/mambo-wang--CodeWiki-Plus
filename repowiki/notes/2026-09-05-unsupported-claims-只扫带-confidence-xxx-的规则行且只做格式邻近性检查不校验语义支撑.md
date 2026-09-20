@@ -4,7 +4,7 @@ title: 'unsupported_claims 只扫带 (confidence: x.xx) 的规则行且只做格
 tags:
 - pitfall
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - wiki_lint
   severity: medium
@@ -14,16 +14,20 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识可信度组仅 2 条，待同类素材积累
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:32:17+00:00
+  at: '2026-09-05 11:32:17+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:43Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Background

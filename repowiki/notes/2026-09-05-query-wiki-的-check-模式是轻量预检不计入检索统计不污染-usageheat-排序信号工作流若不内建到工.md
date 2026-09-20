@@ -5,20 +5,21 @@ tags:
 - architecture
 - codewiki
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - knowledge_loop
   - query_wiki
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: medium
   source_ref: conversations/conv-https-github.com-thedotmack-claude-mem-blob-main-docs%2Fi18n.md
   scene: 检索透明化
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:39:41+00:00
+  at: '2026-09-05 11:39:41+00:00'
 stale_after: '2027-09-05'
 origin: conversation
 verified:

@@ -4,25 +4,26 @@ title: task_bindings 绑定文件改为一次性消费凭证：成功落盘后�
 tags:
 - decision
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   task_id: 产品维护
   related_modules:
   - task_manager
   - capture_conversation
+  - wiki/scenarios/任务记忆系统设计方法.md
   severity: high
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-repowiki-.meta-task_bindings-这里边残留的数据什么.md
-  consolidated_into:
-  - wiki/scenarios/任务记忆系统设计方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:17:27+00:00
+  at: '2026-08-24 15:17:27+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:
 - by: codewiki/5.4.2
   at: '2026-08-24T15:30:14Z'
-reject_reason: 聚合进场景：任务记忆系统设计方法
+reject_reason: 被 2026-09-11《绑定凭证消费后退役到 consumed/ 而非删除，归属继承新增 binding-archived 回退》取代：凭证机制保留，但“消费即删除
 author: mambo-wang
 ---
 

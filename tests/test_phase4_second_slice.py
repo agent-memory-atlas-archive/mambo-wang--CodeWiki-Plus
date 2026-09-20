@@ -302,25 +302,31 @@ def test_auto_push_divergence_keeps_local_commit(tmp_path):
     assert _git(repo, "status", "--porcelain").strip() == ""
 
 
-def test_auto_push_aborts_on_preexisting_staged_content(tmp_path):
-    """Real-repo acceptance finding (2026-09-02): git commit commits the
-    WHOLE index — user-staged changes must never be swept into the
-    auto_push commit.  auto_push ABORTS with a report; the user's staged
-    content is left untouched."""
+def test_auto_push_coexists_with_preexisting_staged_content(tmp_path):
+    """Real-repo acceptance finding (2026-09-02): ``git commit`` without a
+    pathspec commits the WHOLE index — user-staged changes must never be
+    swept into the auto_push commit.  Since 2026-09-20 the commit is
+    pathspec-limited to the knowledge subtree: user-staged content outside
+    ``repowiki/`` stays staged and untouched, and the knowledge sync is no
+    longer blocked by it (the old ABORT made auto_push a frequent silent
+    no-op whenever the user had anything staged)."""
     _reset_state()
     repo = _make_workspace_repo(tmp_path, "push-guard", "colocated")
     # user stages their own change (NOT under repowiki/)
     (repo / "business.py").write_text("print('user work')\n", encoding="utf-8")
     _git(repo, "add", "business.py")
-    # knowledge change exists too — the guard must still abort
+    # knowledge change exists too — the sync must proceed
     (repo / "repowiki" / "notes" / "new.md").write_text("knowledge\n", encoding="utf-8")
 
     msg = auto_push(repo / "repowiki", "close_session")
-    assert msg and "跳过自动推送" in msg
-    # user's staged content untouched, knowledge change unstaged (not lost)
-    staged = _git(repo, "diff", "--cached", "--name-only")
+    assert msg and "已推送" in msg, msg
+    # user's staged content untouched (still staged, NOT committed)
+    staged = _git(repo, "diff", "--cached", "HEAD", "--name-only")
     assert staged.strip() == "business.py"
-    assert (repo / "repowiki" / "notes" / "new.md").exists()
+    # the auto_push commit carries only the knowledge file
+    files = _git(repo, "show", "--name-only", "--pretty=format:", "HEAD")
+    assert "repowiki/notes/new.md" in files.replace("\\", "/")
+    assert "business.py" not in files
 
 
 def test_auto_push_never_commits_lock_files(tmp_path):

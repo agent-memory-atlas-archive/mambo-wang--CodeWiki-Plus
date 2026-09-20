@@ -4,23 +4,27 @@ title: Windows 上 locale.getlocale() 返回英文语言名而非 ISO 代码，�
 tags:
 - pitfall
 metadata:
-  date: 2026-09-08
+  date: '2026-09-08'
   related_modules:
   - mcp
   - i18n
   severity: medium
   source_ref: raw\conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: MCP 层 i18n
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:12:03+00:00
+  at: '2026-09-08 05:12:03+00:00'
 stale_after: '2027-03-07'
 origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-08T05:28:17Z'
+reject_reason: consolidated into MCP-Server薄壳架构与参数约定
 ---
 
 ## Background

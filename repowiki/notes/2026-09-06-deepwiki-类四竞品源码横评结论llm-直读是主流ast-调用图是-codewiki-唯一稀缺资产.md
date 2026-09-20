@@ -7,7 +7,7 @@ tags:
 - deepwiki
 - opendeepwiki
 metadata:
-  date: 2026-09-06
+  date: '2026-09-06'
   related_modules:
   - dependency_analyzer
   severity: medium
@@ -17,16 +17,20 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 竞品调研组候选，属调研结论而非调研方法，需与方法类笔记区分后成块
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/竞品调研与借鉴方法.md
+status: deprecated
 author: local
 generated:
   by: codewiki/5.5.0
-  at: 2026-09-06 08:23:37+00:00
+  at: '2026-09-06 08:23:37+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:13Z'
+reject_reason: consolidated into 竞品调研与借鉴方法
 ---
 
 ## 背景

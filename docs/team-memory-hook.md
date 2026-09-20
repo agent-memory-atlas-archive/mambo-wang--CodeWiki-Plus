@@ -92,7 +92,7 @@ python -m codewiki.mcp._ide_hook --enable --repo-path "d:/repos/CodeWiki-CN"
 
 ## 重要约束
 
-- **对话 turns 来源**：优先读 `transcript_path` 指向的文件（支持 JSON 数组、`{messages:[]}` / `{conversation:[]}` / `{turns:[]}` 包装、逐行 JSONL）；若 IDE 直接把对话**内联**在事件 JSON 里（`conversation` / `messages` / `turns` / `transcript_turns` / `chat` 任一非空数组），则直接采用内联 turns，无需 transcript 文件。若两者都缺失/不可读，脚本不再静默跳过，而是把**事件信封本身**作为最小记录落盘（frontmatter 完整 + 一条 system 说明），以便确认 hook 确实触发、并能在 `repowiki/raw/.hook-debug/` 看到 IDE 真实注入的 payload 形状。
+- **对话 turns 来源**：优先读 `transcript_path` 指向的文件（支持 JSON 数组、`{messages:[]}` / `{conversation:[]}` / `{turns:[]}` 包装、逐行 JSONL）；若 IDE 直接把对话**内联**在事件 JSON 里（`conversation` / `messages` / `turns` / `transcript_turns` / `chat` 任一非空数组），则直接采用内联 turns，无需 transcript 文件。若两者都缺失/不可读，脚本**不写任何文件**：只向 stderr 打印一条诊断（`<事件名> event has no conversation turns and no usable transcript_path`）并以退出码 0 返回。**事件信封落盘路径已移除**——把事件本身合成为一行伪对话写进 raw/ 的兜底做法，产物既无正文也无 task_id/session 归属，只会堆积成永不蒸馏的 raw 积压，且因复用 `source_session_id` 存在覆盖真实 transcript 的风险（决策见 `notes/2026-09-16-移除事件信封落盘无-transcript-的-hook-生命周期事件一律-no-op仅-stderr-诊断.md`）。要确认 IDE 真实注入的 payload 形状，看下面的诊断留痕。
 - **诊断留痕**：每次触发都会把 IDE 传入的原始 stdin 原样写入 `repowiki/raw/.hook-debug/event-<ts>.json`（不进 `query_wiki`），用于确认 CodeBuddy 实际注入的字段。定位"为何没抓到对话"时先查这里。
 - **默认关闭**：未设置环境变量且未传 `--enable` 时，脚本打印 `disabled` 并以退出码 0 返回，不写任何文件。
 - **失败不崩溃 IDE**：捕获/导入异常仅打印到 stderr，不中断 IDE。
@@ -106,6 +106,66 @@ Stop 每轮都会触发，PreCompact 也可能在会话中途触发，同一会�
 2. **会话级覆盖**：事件里的 `session_id` 作为 `source_session_id` 传入并写入 raw 文件的 `source_session` 字段；同一会话再次采集且旧文件仍为 `status: pending` 时，直接覆盖该文件（新 transcript 是旧的超集），不新建递增副本。已蒸馏（`distilled`）或 `keep_raw: true` 的文件不受影响。
 
 效果：无论三个事件在一个会话里触发多少次，`raw/` 中该会话始终只保留**最新一份完整 transcript**；蒸馏成本与只接 SessionEnd 时相同，但获得了轮次级的崩溃保险。
+
+## 档位 × 采集开关（v3 接线选择）
+
+接线有两个轴（设计依据 `docs/接线档位选择设计方案.md` §3.1，ADR-0014）：
+
+- **档位 `wiring`（读 / 生命周期侧）**：`hook`（拷脚本 + 写 settings.json/hooks.json + 注入引导段）/ `prompt`（只写注入文件，不建配置目录、不拷脚本、不写 settings）/ `auto`（按 `codewiki/hooks.yaml` 注册表判定，**默认 = 今日行为**）。
+- **采集开关 `capture`**：`on`（默认，SessionEnd/TRAE Stop 采集注册写入）/ `off`（移除采集注册，主动沉淀成为唯一记忆写入通道，采集→蒸馏链路停摆）。
+
+**主动沉淀固定启用**（ADR-0014）：不再是轴、不再有开关——`--active-settle` 参数已删除（传入即硬报错），CODEWIKI-ACTIVE-SETTLE 协议块恒渲染，任务记忆唯一通道是 `add_task_memory` 直写，蒸馏固定只产经验笔记。
+
+| 档位 | capture | 产物 | 适用 |
+|---|---|---|---|
+| `hook` | `on`（默认） | 脚本 + settings 注册 + 注入引导段 + 协议块 | 采集完整宿主（CodeBuddy/Qoder/Claude Code）默认，现状批处理 + 主动沉淀 |
+| `hook` | `off` | 同上，但无 SessionEnd（TRAE 为 Stop）采集注册 | 主动沉淀效果好、不再需要采集→蒸馏链路 |
+| `prompt` | `on` | 仅注入文件（引导段 + 协议块） | 无 shell hook 宿主（QwenWork）默认，或团队共享仓库不留脚本/settings |
+
+可用 CLI 控制：
+
+```powershell
+codewiki install-hooks --ide trae                    # 档位自动判定：TRAE → hook 档
+codewiki install-hooks --ide qwenwork                # 档位自动判定：QwenWork → prompt 档
+codewiki install-hooks --capture off                 # 停采集，主动沉淀是唯一通道
+```
+
+档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（QwenWork）走 prompt 档，无手动覆盖（`--mode` 已移除，传入即硬报错）。
+
+### 决策树（设计方案 §3.12）
+
+```
+--status 看支持性与当前采集状态
+├─ 采集完整宿主（codebuddy/claude, verified=true）
+│    ├─ 满足现状批处理 ─────────► 直接接线（默认，零回归）
+│    └─ 主动沉淀效果好、想停采集─► --capture off（主动沉淀固定启用）
+├─ 采集断供宿主（trae 企业版 / qwenwork）
+│    ─ 默认即对：档位由注册表自动判定（trae → hook 档，qwenwork → prompt 档），
+│       主动沉淀兜底 ────────────────────────────────────────► 直接装，默认已对
+```
+
+### `--status`：先看后选（只读，不改任何文件）
+
+```
+| agent     | family | registry | wiring | capture  | wired-on-disk                        | capability gap                     |
+|-----------|--------|----------|--------|----------|--------------------------------------|------------------------------------|
+| codebuddy | claude | 已验证   | hook   | on(默认) | not wired                            | -                                  |
+| trae      | trae   | 已验证   | hook   | on(默认) | not wired                            | no SessionEnd -> 主动沉淀兜底       |
+| qwenwork  | prompt | 已验证   | prompt | on(默认) | not wired                            | no auto-capture; agent-mediated    |
+```
+
+（表样示意；`wired-on-disk` 反映该仓库实际接线状态——hook 宿主显示 `hooks+settings`/`hooks(仅SS)+settings(capture off)`/`hooks(仅SS)+AGENTS`，prompt 宿主显示 `AGENTS.md only`；`capture` 来源标注 `(默认)` 或 CLI 覆盖的 `(CLI)`。）
+
+### 主动沉淀（固定启用，ADR-0014）
+
+接线即向注入文件（默认 `AGENTS.md`）写入 `CODEWIKI-ACTIVE-SETTLE` 协议块：
+
+- **停顿点四判据即写即沉淀**（任务里程碑达成 / 关键技术决策落定 / 用户话题明显转向 / 收尾轮强制兜底）：任务记忆走 `add_task_memory` 直写（无闸门，ADR-0002），通用经验走 `ingest_note(status="draft")`（**确认闸门保留**，两区制 ADR-0004）——当轮落盘，下一轮 `get_task_context` 即取。
+- **收尾轮沉淀自查（必做）**：收尾轮检查本会话是否有未沉淀的进展/决策，漏了补写（不再采集全文）。蒸馏固定只产经验笔记、不产任务记忆（通道互斥，ADR-0014）——漏沉淀的会话失去蒸馏捞回兜底，漏报率由观察期数据验证，不达标可重开 capture。**禁止手写 `raw/*.md` 文件。**
+
+### 注入文件：AGENTS.md 自动加载的核验状态（开放问题 1）
+
+hook 宿主的 SessionStart 注入与注入文件无关；**prompt 档**依赖宿主自动加载注入文件（默认 `AGENTS.md`）。`claude-code` / `cursor` 是否自动加载 `AGENTS.md` **尚未真机核验**（设计方案 §7 开放问题 1、§3.11）：核验前不臆断——prompt 档默认按 `AGENTS.md` 注入，请用户自行确认该宿主确实会自动加载，否则用 `--inject-file <path>` 覆盖指向宿主实际读取的记忆文件（如 claude 家族惯用 `CLAUDE.md`）；核验后再回填注册表 `inject_file`。
 
 ## 触发蒸馏（何时提取经验）
 
@@ -137,17 +197,21 @@ Stop 每轮都会触发，PreCompact 也可能在会话中途触发，同一会�
 python -m codewiki.mcp._ide_hook --enable --repo-path "d:/repos/CodeWiki-CN" --conversation d:/tmp/conv.json
 
 # 方式 B：模拟 CodeBuddy SessionEnd 事件（经 wrapper，验证完整链路）
+#   wrapper 是 fire-and-forget：只回报「后台采集已启动」，不回报采集结果。
+#   是否真的落盘，要等 1-2 秒后看 repowiki/raw/ 里有没有该会话的 conv-*.md。
+#   cwd 别写反斜杠路径（d:\repos 里的 \r、\C 是非法 JSON 转义，事件会被整体丢弃）。
 '{"session_id":"sess-1","transcript_path":"d:/tmp/conv.json","cwd":"d:/repos/CodeWiki-CN","hook_event_name":"SessionEnd","reason":"other"}' | python "d:/repos/CodeWiki-CN/.codebuddy/hooks/capture_session_end.py"
-# 期望 stdout: {"continue": true, "systemMessage": "...\"status\": \"captured\"..."}
+# 期望 stdout: {"continue": true, "systemMessage": "team-memory capture started in background"}
+# stdin 事件缺失或 JSON 非法时: systemMessage 为 "team-memory capture skipped: <原因>"，raw/ 不变
 
-# 方式 C：模拟 PreCompact / Stop 事件（仅 hook_event_name 与附加字段不同）
-'{"session_id":"sess-1","transcript_path":"d:/tmp/conv.json","cwd":"d:/repos/CodeWiki-CN","hook_event_name":"PreCompact","trigger":"auto"}' | python "d:/repos/CodeWiki-CN/.codebuddy/hooks/capture_session_end.py"
-'{"session_id":"sess-1","transcript_path":"d:/tmp/conv.json","cwd":"d:/repos/CodeWiki-CN","hook_event_name":"Stop","stop_hook_active":false}' | python "d:/repos/CodeWiki-CN/.codebuddy/hooks/capture_session_end.py"
+# 方式 C：验证「无正文事件不落盘」（PreCompact/Stop 已不再注册，此处仅作防回归用例）
+'{"session_id":"sess-2","cwd":"d:/repos/CodeWiki-CN","hook_event_name":"Stop","stop_hook_active":false}' | python "d:/repos/CodeWiki-CN/.codebuddy/hooks/capture_session_end.py"
+# 期望: stdout 仍返回 continue=true（不阻塞 IDE），raw/ 不新增文件
 
 # 方式 D：验证同会话覆盖去重——同一 session_id 用更长的 transcript 再采集一次
 '[{"role":"user","content":"如何初始化 wiki"},{"role":"assistant","content":"调用 init_wiki 即可"},{"role":"user","content":"追问：如何查询"}]' | Out-File -Encoding utf8 d:/tmp/conv2.json
-'{"session_id":"sess-1","transcript_path":"d:/tmp/conv2.json","cwd":"d:/repos/CodeWiki-CN","hook_event_name":"Stop","stop_hook_active":false}' | python "d:/repos/CodeWiki-CN/.codebuddy/hooks/capture_session_end.py"
-# 期望: "superseded": true，且 raw/ 中 sess-1 仍只有一个 conv-*.md 文件（内容为 3 turns）
+'{"session_id":"sess-1","transcript_path":"d:/tmp/conv2.json","cwd":"d:/repos/CodeWiki-CN","hook_event_name":"SessionEnd","reason":"other"}' | python "d:/repos/CodeWiki-CN/.codebuddy/hooks/capture_session_end.py"
+# 期望: raw/ 中 sess-1 仍只有一个 conv-*.md，内容为 3 turns（看文件系统，wrapper 不再回报 superseded）
 ```
 
 验证后清理：`repowiki/raw/conv-*.md` 为测试残留，可删除。

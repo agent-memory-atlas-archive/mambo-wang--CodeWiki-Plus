@@ -289,3 +289,17 @@ class TestDistillTaskIdFilter:
         assert "status: pending" in Path(f"{repo}/repowiki/{RAW_DIR}/conv-b.md").read_text(
             encoding="utf-8"
         )
+
+
+def test_prepare_next_carries_revision_hint(tmp_path):
+    """验收链 9（ADR-0009 D10）：prepare 的 next 提示含修订建议句——transcript
+    推翻/补充既有笔记时，新笔记须引用笔记文件名并说明变化，评审方据此更新或
+    退役旧笔记。"""
+    repo = str(tmp_path)
+    _write_raw_tasked(repo, "rev-hint", "task-one")
+
+    data = _prepare(repo, "task-one")
+
+    assert data["status"] == "prepared"
+    assert "OVERTURNS" in data["next"] and "AMENDS" in data["next"]
+    assert "cite the note file name" in data["next"]

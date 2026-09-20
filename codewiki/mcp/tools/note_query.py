@@ -12,7 +12,7 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from codewiki.mcp.session import SessionStore
 from codewiki.src.frontmatter import parse_frontmatter
@@ -23,6 +23,7 @@ from codewiki.mcp.tools.note_writer import (
     _note_source_ref,
     _resolve_within,
 )
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +45,6 @@ def _trust_tier(verified) -> str:
 # ---------------------------------------------------------------------------
 #  ingest_note
 # ---------------------------------------------------------------------------
-
 
 
 def _extract_keywords(query: str) -> List[str]:
@@ -441,6 +441,7 @@ def _query_mode_check(
     results: List[Dict[str, Any]] = []
     try:
         from codewiki.mcp.tools.wiki_search import search as bm25_search
+
         # R-05 freshness gate (build-if-missing / three-tier stale check)
         # now lives inside wiki_search.search — the seam's single owner.
         raw = bm25_search(
@@ -708,6 +709,20 @@ def _query_mode_by_file(
     max_results = int(cfg.get("max_results", 15))
     timeline = entries[:max_results]
 
+    # ADR-0007: file-scoped timeline entries that are claimants of an OPEN
+    # conflict case carry the marker too — "before you edit this file" is
+    # exactly where an unresolved contradiction must be visible.
+    try:
+        from codewiki.mcp.tools.conflict_case import load_open_conflicts
+
+        _oc = load_open_conflicts(od)
+        for e in timeline:
+            _case = _oc.get(str(e.get("file") or "").replace("\\", "/"))
+            if _case:
+                e["open_conflict"] = _case["file"]
+    except Exception as exc:  # annotation must never break the timeline
+        logger.debug("by_file open-conflict annotation skipped: %s", exc)
+
     # Telemetry only — no usage-heat hit (pre-check discipline, §2.5 Rev.2).
     for e in timeline:
         try:
@@ -908,6 +923,7 @@ def handle_query_wiki(
     coverage = None  # T1: corpus-level query-token coverage (BM25 path only)
     try:
         from codewiki.mcp.tools.wiki_search import search as bm25_search
+
         # R-05 freshness gate (build-if-missing / three-tier stale check)
         # now lives inside wiki_search.search — the seam's single owner.
         raw_results = bm25_search(
@@ -1124,6 +1140,47 @@ def handle_query_wiki(
             r for r in results if r.get("source") != "note" or r.get("task_id", "") == wanted_task
         ]
 
+    # Phase5 T3: confidence exposure + shadow gating. Every note/scenario/doc
+    # result gains a `confidence` field (strong|weak|shadow|"" legacy-unstamped);
+    # by default shadow assets are dropped (they surface only when the caller
+    # explicitly passes include_shadow=true — "reference-only" knowledge must
+    # be opt-in). Legacy assets without confidence_level are never dropped
+    # (pre-migration corpora stay searchable).
+    include_shadow = bool(arguments.get("include_shadow", False))
+    for _r in results:
+        if "confidence" in _r:
+            continue
+        _rp = output_dir / _r.get("file", "")
+        if not _rp.exists():
+            continue
+        try:
+            _fm = _extract_frontmatter_block(_rp.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            continue
+        _meta = _fm.get("metadata") if isinstance(_fm.get("metadata"), dict) else {}
+        _r["confidence"] = (
+            str(_fm.get("confidence_level") or _meta.get("confidence_level") or "").strip().lower()
+        )
+    if not include_shadow:
+        results = [r for r in results if r.get("confidence") != "shadow"]
+
+    # ADR-0007 (conflict first-class object): results whose file is a
+    # claimant of an OPEN conflict case carry an inline open_conflict marker,
+    # so the agent never reads one side of an unresolved contradiction
+    # unawares. The case files themselves are never part of the corpus.
+    _open_conflict_annotated = 0
+    try:
+        from codewiki.mcp.tools.conflict_case import load_open_conflicts
+
+        _open_cases = load_open_conflicts(output_dir)
+        for r in results:
+            _case = _open_cases.get(str(r.get("file") or "").replace("\\", "/"))
+            if _case:
+                r["open_conflict"] = _case["file"]
+                _open_conflict_annotated += 1
+    except Exception as e:  # annotation must never break the search path
+        logger.debug("open-conflict annotation skipped: %s", e)
+
     # Build context_package summary
     doc_count = sum(1 for r in results if r["source"] == "doc")
     note_count = sum(1 for r in results if r["source"] == "note")
@@ -1141,6 +1198,12 @@ def handle_query_wiki(
     if source_count:
         parts.append(f"{source_count} source(s)")
     context_package = " ".join(parts) if parts else "No relevant results found."
+    if _open_conflict_annotated:
+        context_package += (
+            f"\n⚠ {_open_conflict_annotated} result(s) are claimants of an OPEN "
+            "conflict case (see open_conflict field) — read both sides before "
+            "relying on them, and consider adjudicating via adjudicate_conflict."
+        )
 
     if results:
         top_snippets = [
@@ -1252,7 +1315,6 @@ def _record_retrieval_stats(output_dir: Path, query: str, results: List[Dict[str
             telemetry.record_hit(output_dir, str(file_path))
     except Exception as e:
         logger.debug("Failed to record retrieval stats: %s", e)
-
 
 
 def _legacy_keyword_search(

@@ -5,23 +5,24 @@ tags:
 - codewiki
 - pitfall
 metadata:
-  date: 2026-09-04
+  date: '2026-09-04'
   task_id: 产品维护
   related_modules:
   - store
   - file_lock
   - wiki_index
   - workspace_bootstrap
+  - wiki/scenarios/跨进程锁与临时文件治理方法.md
   severity: medium
   source_ref: conversations/conv-REVIEW本地变更区代码，测试相关功能.md
   scene: KnowledgeStore 跨进程锁治理
-  consolidated_into:
-  - wiki/scenarios/跨进程锁与临时文件治理方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.5.1
-  at: 2026-09-04 08:18:32+00:00
+  at: '2026-09-04 08:18:32+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:

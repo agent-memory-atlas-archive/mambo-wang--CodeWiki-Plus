@@ -4,7 +4,7 @@ title: 设计文档评审先派子代理核对代码事实：引用行号偏移 
 tags:
 - lesson
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   severity: medium
   source_ref: conversations/conv-对-docs-claude-mem借鉴详细设计方案.md-做拷问式评审（grill）：先派子代理核对方案引用的全部代码事.md
   scene: 方案评审
@@ -12,16 +12,20 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 与竞品调研组的「先过代码核对」同方法体系，下轮合并
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/代码评审与分析工具方法.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:33:43+00:00
+  at: '2026-09-05 11:33:43+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:52Z'
+reject_reason: consolidated into 代码评审与分析工具方法
 ---
 
 ## Background

@@ -8,22 +8,18 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List
 
 from codewiki.mcp.session import SessionStore
-from codewiki.src.frontmatter import parse_frontmatter
-from codewiki.src.retrieval import STOPWORDS as _STOPWORDS
-from codewiki.mcp.tools.injection_budget import estimate_tokens
 from codewiki.mcp.tools.note_writer import (
     _apply_status_to_file,
     _norm_status,
     _okf_actor,
-    _resolve_within,
+    _resolve_within,  # noqa: F401 — re-export: knowledge_loop imports it from here
     _update_note_status,
 )
+
 logger = logging.getLogger(__name__)
 
 
@@ -80,14 +76,63 @@ def handle_confirm_note(arguments: Dict[str, Any], store: SessionStore) -> str:
     if not note_file:
         return json.dumps({"error": "note_file is required (relative path within notes/)."})
 
+    # Phase5 T1: confidence dimension orthogonal to the OKF status. A plain
+    # confirm writes confidence_level=weak (confirmed but no verification
+    # evidence); an ``evidence`` object with any recognized non-empty member
+    # (test_ref / commit_ref / reviewed_by) promotes straight to strong, with
+    # the evidence recorded under metadata.verification. Unknown keys are
+    # rejected (no self-minted strong via {"foo": "bar"}).
+    evidence = arguments.get("evidence")
+    verification = None
+    confidence_level = "weak"
+    if isinstance(evidence, dict):
+        _known = ("test_ref", "commit_ref", "reviewed_by")
+        verification = {
+            k: str(v) for k, v in evidence.items() if k in _known and str(v or "").strip()
+        }
+        unknown = set(evidence) - set(_known)
+        if unknown:
+            return json.dumps(
+                {
+                    "error": (
+                        f"evidence has unknown key(s) {sorted(unknown)}; "
+                        "recognized: test_ref, commit_ref, reviewed_by."
+                    )
+                }
+            )
+        if verification:
+            confidence_level = "strong"
+    elif evidence:
+        return json.dumps(
+            {
+                "error": (
+                    "evidence must be an object with one of: test_ref, commit_ref, "
+                    "reviewed_by (strings)."
+                )
+            }
+        )
+    extra_meta = {"confidence_level": confidence_level}
+    if verification:
+        extra_meta["verification"] = verification
+
     result_json = _update_note_status(
         output_dir,
         note_file,
         "stable",
         verified_by=_okf_actor(arguments.get("by")),
         renew_stale_after=True,
+        extra_meta=extra_meta,
     )
-    return _maybe_attach_aggregation_hint(result_json, output_dir, count=1)
+    result = _maybe_attach_aggregation_hint(result_json, output_dir, count=1)
+    # Surface the confidence outcome so the caller sees what was written.
+    try:
+        parsed = json.loads(result)
+        if isinstance(parsed, dict) and "error" not in parsed:
+            parsed["confidence_level"] = confidence_level
+            result = json.dumps(parsed, indent=2, ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return result
 
 
 def handle_reject_note(arguments: Dict[str, Any], store: SessionStore) -> str:
@@ -113,7 +158,16 @@ def handle_reject_note(arguments: Dict[str, Any], store: SessionStore) -> str:
         return json.dumps({"error": "note_file is required (relative path within notes/)."})
     reason = arguments.get("reason", "")
 
-    return _update_note_status(output_dir, note_file, "deprecated", reason)
+    # Phase5 T1: a rejected asset is retired from the trusted pool — its
+    # confidence drops to shadow in the same write (orthogonal dimensions,
+    # but rejection implies not-trusted).
+    return _update_note_status(
+        output_dir,
+        note_file,
+        "deprecated",
+        reason,
+        extra_meta={"confidence_level": "shadow"},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -290,5 +344,3 @@ def handle_batch_set_status(arguments: Dict[str, Any], store: SessionStore) -> s
 # ---------------------------------------------------------------------------
 #  query_wiki
 # ---------------------------------------------------------------------------
-
-

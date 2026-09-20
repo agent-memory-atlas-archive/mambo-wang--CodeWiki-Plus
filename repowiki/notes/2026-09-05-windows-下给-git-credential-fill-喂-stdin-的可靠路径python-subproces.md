@@ -1,23 +1,23 @@
 ---
 type: lesson
 title: Windows 下给 git credential fill 喂 stdin 的可靠路径：Python subprocess 精确 stdin；无 gh
-  CLI 时可复用 GCM 凭证调 GitHub REST API
 tags:
 - github
 - lesson
 - powershell
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   severity: medium
   source_ref: conversations/conv-发布新的pypi版本，并发布git-release.md
   scene: 发布流程
   consolidated_into:
   - wiki/scenarios/发布与依赖治理方法.md
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:30:39+00:00
+  at: '2026-09-05 11:30:39+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:

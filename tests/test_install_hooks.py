@@ -11,11 +11,13 @@ Covered:
 """
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
+import codewiki
 from codewiki.cli.commands.install_hooks import install_hooks
 from codewiki.cli.utils.ide_config import (
     AGENT_FILE,
@@ -26,8 +28,8 @@ from codewiki.cli.utils.ide_config import (
     merge_settings_json,
 )
 from codewiki.mcp.prompts import (
-    _QWENWORK_CAPTURE_END,
-    _QWENWORK_CAPTURE_START,
+    _ACTIVE_SETTLE_END,
+    _ACTIVE_SETTLE_START,
     _TASK_MEMORY_AGENTS_END,
     _TASK_MEMORY_AGENTS_START,
 )
@@ -36,7 +38,9 @@ HOOK_SOURCES = {
     "capture_session_end.py": "import json\n\nprint('ok')\n",
     "task_session_start.py": "import os\n\nprint('ok')\n",
 }
-AGENT_SOURCE = "---\nname: distill-worker\ntoolsMCP: codewiki\n---\nworker\n"
+AGENT_SOURCE = (
+    "---\nname: distill-worker\nmcpServers:\n  - codewiki\n---\nworker\n"
+)
 AGENT_SOURCE_CLAUDE = (
     "---\nname: distill-worker\n"
     "tools: Read, Write, mcp__codewiki__distill_conversation\n---\nworker\n"
@@ -346,11 +350,15 @@ def test_install_updates_existing_agents_section(tmp_path, fake_pkg):
     )
     install_for_ide(str(tmp_path), "claude-code")
     text = agents_md.read_text(encoding="utf-8")
-    # Prefix/suffix untouched, stale block replaced.
+    # Prefix untouched, stale block replaced.
     assert text.startswith("prefix\n\n")
-    assert text.endswith("\n\nsuffix\n")
     assert "stale block" not in text
     assert text.count(_TASK_MEMORY_AGENTS_START) == 1
+    # ADR-0014: the ACTIVE-SETTLE protocol block is always rendered and
+    # appended at the end of the file (after the user's suffix content).
+    assert "suffix" in text
+    assert _ACTIVE_SETTLE_START in text
+    assert text.rstrip().endswith(_ACTIVE_SETTLE_END.strip())
 
 
 def test_unknown_ide_raises(tmp_path):
@@ -382,7 +390,32 @@ def test_install_codebuddy_keeps_default_agent_variant(tmp_path, fake_pkg):
     install_for_ide(str(tmp_path), "codebuddy")
     installed = (tmp_path / ".codebuddy" / "agents" / AGENT_FILE).read_text(encoding="utf-8")
     assert installed == AGENT_SOURCE
-    assert "toolsMCP: codewiki" in installed
+    assert "mcpServers:" in installed
+    assert "toolsMCP" not in installed  # 非官方字段，静默无效
+
+
+# ---------------------------------------------------------------------------
+# 打包源变体守门：install-hooks 对 agent 定义是**强制覆盖拷贝**，所以只修
+# `.codebuddy/agents/` 下的已装副本，下次接线就会被旧 schema 覆盖回去
+# （2026-09-11 的那次修复正是这样丢的）。守门必须盯住随包发布的源变体。
+# ---------------------------------------------------------------------------
+
+
+def test_packaged_codebuddy_variant_grants_mcp_without_tools_whitelist():
+    """CodeBuddy 变体必须用 `mcpServers` 授权 MCP，且不得出现 `tools:` 白名单。
+
+    regression：该变体曾写 `tools: ReadFile` + `toolsMCP: codewiki`——`tools:`
+    是白名单，把 MCP 工具全部挡掉；`toolsMCP` 又非官方字段。worker 因此
+    「0 tool uses、空转、只回一句话」，连 `distill_conversation(mode="prepare")`
+    都没调起来，补蒸馏整条链路静默失效。
+    """
+    variant = Path(codewiki.__file__).resolve().parent / "agents" / AGENT_FILE
+    frontmatter = variant.read_text(encoding="utf-8").split("---")[1]
+
+    assert "mcpServers:" in frontmatter
+    assert "codewiki" in frontmatter
+    assert "toolsMCP" not in frontmatter, "toolsMCP 非官方字段，静默无效"
+    assert not re.search(r"^tools:", frontmatter, re.M), "tools: 白名单会挡掉全部 MCP 工具"
 
 
 def test_install_agent_variant_missing_falls_back_to_default(tmp_path, fake_pkg):
@@ -390,6 +423,109 @@ def test_install_agent_variant_missing_falls_back_to_default(tmp_path, fake_pkg)
     install_for_ide(str(tmp_path), "qoder")
     installed = (tmp_path / ".qoder" / "agents" / AGENT_FILE).read_text(encoding="utf-8")
     assert installed == AGENT_SOURCE  # degraded but still wired
+
+
+# ---------------------------------------------------------------------------
+# TRAE wiring（hooks.json 家族：顶层 version 字段、Stop 替代 SessionEnd、
+# 不写 matcher —— 依据 docs.trae.cn 官方 Hook 规范，2026-09 真机核验）
+# ---------------------------------------------------------------------------
+
+
+def test_install_trae_writes_hooks_json(tmp_path, fake_pkg):
+    result = install_for_ide(str(tmp_path), "trae")
+
+    hooks_file = tmp_path / ".trae" / "hooks.json"
+    assert hooks_file.is_file()
+    data = json.loads(hooks_file.read_text(encoding="utf-8"))
+    # TRAE hooks.json 顶层要求 version 字段（schema 版本，当前仅支持 1）。
+    assert data["version"] == 1
+    # TRAE 无 SessionEnd 事件——Stop 替代；无 SessionStart/SessionEnd 混入。
+    assert set(data["hooks"]) == {"SessionStart", "Stop", "UserPromptSubmit"}
+    start = data["hooks"]["SessionStart"][0]
+    assert "matcher" not in start  # matcher 对这三个事件无效，不写
+    assert start["hooks"][0]["command"] == 'python ".trae/hooks/task_session_start.py"'
+    assert start["hooks"][0]["timeout"] == 15
+    stop = data["hooks"]["Stop"][0]
+    assert "matcher" not in stop
+    assert stop["hooks"][0]["command"] == 'python ".trae/hooks/capture_session_end.py"'
+    assert stop["hooks"][0]["timeout"] == 30
+    prompt = data["hooks"]["UserPromptSubmit"][0]
+    assert prompt["hooks"][0]["command"] == PROMPT_HOOK_CMD
+    # hook 脚本物理拷贝 + claude 家族 subagent 变体。
+    assert (tmp_path / ".trae" / "hooks" / "capture_session_end.py").is_file()
+    assert (tmp_path / ".trae" / "hooks" / "task_session_start.py").is_file()
+    installed = (tmp_path / ".trae" / "agents" / AGENT_FILE).read_text(encoding="utf-8")
+    assert installed == AGENT_SOURCE_CLAUDE
+    assert result["settings_written"] is True
+
+
+def test_install_trae_idempotent_and_keeps_unrelated(tmp_path, fake_pkg):
+    (tmp_path / ".trae").mkdir()
+    (tmp_path / ".trae" / "hooks.json").write_text(
+        json.dumps(
+            {"version": 1, "hooks": {"PreToolUse": [{"matcher": "RunCommand", "hooks": []}]}},
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    first = install_for_ide(str(tmp_path), "trae")
+    second = install_for_ide(str(tmp_path), "trae")
+    assert first["settings_changed"] is True
+    assert second["settings_changed"] is False
+
+    data = json.loads((tmp_path / ".trae" / "hooks.json").read_text(encoding="utf-8"))
+    # 用户的无关 hook（PreToolUse + matcher）原样保留。
+    assert data["hooks"]["PreToolUse"] == [{"matcher": "RunCommand", "hooks": []}]
+    # 幂等：每个事件只有一个注册条目。
+    assert len(data["hooks"]["SessionStart"]) == 1
+    assert len(data["hooks"]["Stop"]) == 1
+    assert len(data["hooks"]["UserPromptSubmit"]) == 1
+
+
+def test_install_trae_reuses_matcher_entry_without_duplication(tmp_path, fake_pkg):
+    # 用户手抄了 claude 格式条目（带 matcher）进 hooks.json：接线必须复用
+    # 该条目，而不是追加第二个条目导致 IDE 双重触发同一命令。
+    (tmp_path / ".trae").mkdir()
+    (tmp_path / ".trae" / "hooks.json").write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "hooks": {
+                    "SessionStart": [
+                        {
+                            "matcher": "startup",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": 'python ".trae/hooks/task_session_start.py"',
+                                    "timeout": 15,
+                                }
+                            ],
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    install_for_ide(str(tmp_path), "trae")
+    data = json.loads((tmp_path / ".trae" / "hooks.json").read_text(encoding="utf-8"))
+    starts = data["hooks"]["SessionStart"]
+    assert len(starts) == 1  # 未追加第二个条目
+    assert len(starts[0]["hooks"]) == 1  # 条目内命令无重复
+
+
+def test_detect_finds_trae_dir(tmp_path):
+    (tmp_path / ".trae").mkdir()
+    assert detect_ide_dirs(str(tmp_path)) == ["trae"]
+
+
+def test_cli_ide_trae_flag(tmp_path, fake_pkg):
+    (tmp_path / ".trae").mkdir()
+    runner = CliRunner()
+    result = runner.invoke(install_hooks, ["--repo-path", str(tmp_path), "--ide", "trae"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / ".trae" / "hooks.json").is_file()
 
 
 # ---------------------------------------------------------------------------
@@ -497,6 +633,8 @@ def test_detect_never_auto_detects_qwenwork(tmp_path):
 
 
 def test_install_qwenwork_writes_protocol_without_dirs(tmp_path):
+    from codewiki.mcp.prompts import _ACTIVE_SETTLE_END, _ACTIVE_SETTLE_START
+
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "AGENTS.md").write_text("# Project\n\nexisting content\n", encoding="utf-8")
@@ -513,7 +651,8 @@ def test_install_qwenwork_writes_protocol_without_dirs(tmp_path):
     assert not (repo / ".codebuddy").exists()
 
     text = (repo / "AGENTS.md").read_text(encoding="utf-8")
-    assert _QWENWORK_CAPTURE_START in text and _QWENWORK_CAPTURE_END in text
+    # 主动沉淀协议块（CODEWIKI-ACTIVE-SETTLE）泛化取代旧 CODEWIKI-QWENWORK 块
+    assert _ACTIVE_SETTLE_START in text and _ACTIVE_SETTLE_END in text
     assert 'source_session_id="qwenwork-' in text
     assert "capture_conversation" in text
     # Existing content and the shared task-memory section are both present.
@@ -558,6 +697,8 @@ def test_install_qwenwork_replaces_stale_protocol_without_touching_rest(tmp_path
 
 
 def test_cli_ide_qwenwork_flag(tmp_path):
+    from codewiki.mcp.prompts import _ACTIVE_SETTLE_START
+
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "AGENTS.md").write_text("# Project\n", encoding="utf-8")
@@ -567,7 +708,7 @@ def test_cli_ide_qwenwork_flag(tmp_path):
     assert result.exit_code == 0, result.output
     assert "prompt wiring" in result.output
     text = (repo / "AGENTS.md").read_text(encoding="utf-8")
-    assert _QWENWORK_CAPTURE_START in text
+    assert _ACTIVE_SETTLE_START in text
 
 
 def test_cli_auto_detect_skips_qwenwork_hint(tmp_path):

@@ -4,19 +4,20 @@ title: write_doc_file 默认 status=stable，与笔记/蒸馏的 draft 语义分
 tags:
 - decision
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - doc_writer
   - prompt_server
   - knowledge_loop
   - distill_conversation
-  source_ref: raw\conv-使用codewiki-mcp扫描生成的代码wiki为什么status是draft.md
-  consolidated_into:
   - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  source_ref: raw\conv-使用codewiki-mcp扫描生成的代码wiki为什么status是draft.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:16:10+00:00
+  at: '2026-08-15 13:16:10+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

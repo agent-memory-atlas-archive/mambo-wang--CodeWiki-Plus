@@ -83,6 +83,8 @@ _PUSH_ON_WRITE = frozenset(
         "refresh_doctrine",
         "flag_issue",
         "stamp_evidence",
+        "flag_conflict",
+        "adjudicate_conflict",
     }
 )
 
@@ -788,7 +790,7 @@ _register(
         name="lint_wiki",
         description=(
             "Check documentation-code consistency. Works with or without an active session. "
-            "Runs 22 available checks: stale_refs (docs reference deleted components), "
+            "Runs 25 available checks: stale_refs (docs reference deleted components), "
             "broken_links (markdown links to non-existent pages), "
             "undocumented (high-impact components without docs), "
             "cycles (circular module dependencies), coverage (documentation coverage gaps), "
@@ -819,7 +821,10 @@ _register(
             "trigger semantics / frontmatter completeness / 8KB body cap / "
             "sensitive strings / revisions audit trail; warnings for possibly-"
             "stale source materials and draft-vs-effect-zone drift after "
-            "install). "
+            "install), "
+            "open_conflicts (ADR-0007 conflict cases that are open beyond the "
+            "adjudication window or whose claimant files went missing — "
+            "adjudicate via adjudicate_conflict). "
             "Run checks=['all'] for a comprehensive audit. "
             "After fixing issues, use flag_issue to track remaining problems. "
             "MANDATORY FINAL STEP: after lint passes (or issues are tracked), you MUST call "
@@ -863,6 +868,8 @@ _register(
                             "skill_lint",
                             "layout_violations",
                             "team_layout_gitignore",
+                            "open_conflicts",
+                            "threshold_drift",
                         ],
                     },
                     "description": 'Which checks to run (default: ["all"])',
@@ -962,6 +969,16 @@ _register(
                     "type": "string",
                     "description": "Repository path. Derives output_dir = repo_path/repowiki.",
                 },
+                "confidence_level": {
+                    "type": "string",
+                    "enum": ["strong", "weak", "shadow"],
+                    "description": (
+                        "Phase5 confidence dimension (default: weak — a draft is still "
+                        "visible with its [unconfirmed] prefix; shadow is reserved for "
+                        "rejected/misrecalled assets). Only pass explicitly when the "
+                        "knowledge's verification state is already known."
+                    ),
+                },
                 "scope": {
                     "description": (
                         "Centralized-layout shared-pool scope. Omit to auto-stamp the "
@@ -1016,9 +1033,44 @@ _register(
                     "type": "string",
                     "enum": ["draft", "stable"],
                     "description": (
-                        "Initial lifecycle status (OKF v0.2 vocabulary, default: draft). "
-                        "Use 'stable' only when the knowledge is already human-verified."
+                        "OKF status (default: draft → confirm_note gate). 'stable' is a "
+                        "direct-write bypass of that gate and REQUIRES the 'reason' "
+                        "parameter (ADR-0013)."
                     ),
+                },
+                "reason": {
+                    "type": "string",
+                    "description": (
+                        "ADR-0013: REQUIRED when status='stable' — state why this note "
+                        "bypasses the draft→confirm gate (e.g. 'user explicitly approved "
+                        "in this session'). Intent declaration for audit trail, NOT a "
+                        "verification mechanism. Optional (but recommended) for draft."
+                    ),
+                },
+                "evidence": {
+                    "type": "object",
+                    "description": (
+                        "ADR-0013 方案 B: optional human-checkable verification anchors "
+                        "(test_ref / commit_ref / reviewed_by). Mirrors confirm_note "
+                        "semantics: providing any recognized member promotes "
+                        "confidence_level to strong and records metadata.verification. "
+                        "Unknown keys are rejected."
+                    ),
+                    "properties": {
+                        "test_ref": {
+                            "type": "string",
+                            "description": "Test file path or test id that verifies this knowledge",
+                        },
+                        "commit_ref": {
+                            "type": "string",
+                            "description": "Commit hash that introduced/verified this knowledge",
+                        },
+                        "reviewed_by": {
+                            "type": "string",
+                            "description": "Human reviewer id who approved this knowledge",
+                        },
+                    },
+                    "additionalProperties": False,
                 },
                 "task_id": {
                     "type": "string",
@@ -1128,6 +1180,15 @@ _register(
                     "type": "boolean",
                     "description": "Include ingested notes in search (default: true)",
                 },
+                "include_shadow": {
+                    "type": "boolean",
+                    "description": (
+                        "Include shadow-confidence assets in results (default: false). "
+                        "Shadow = rejected, misrecalled or unverified-draft knowledge; "
+                        "it surfaces only on explicit request. Results carry a "
+                        "`confidence` field (strong|weak|shadow|empty-legacy)."
+                    ),
+                },
                 "include_sources": {
                     "type": "boolean",
                     "description": "Include imported source documents in search (default: true)",
@@ -1228,7 +1289,9 @@ _register(
             "Confirm a draft note, promoting it to stable domain knowledge (OKF v0.2 lifecycle). "
             "Records a verified event ({by, at}) in the note's frontmatter and renews its stale_after date. "
             "Stable notes are returned by query_wiki without the [unconfirmed] annotation. "
-            "Use after a developer reviews and validates an LLM-generated note."
+            "Phase5 confidence: a plain confirm writes confidence_level=weak; passing "
+            "evidence ({test_ref|commit_ref|reviewed_by}) records metadata.verification "
+            "and promotes straight to strong."
         ),
         inputSchema={
             "type": "object",
@@ -1246,6 +1309,15 @@ _register(
                     "description": (
                         "OKF actor id recording who verified the note, e.g. 'human:mambo-wang' "
                         "for a person or 'codewiki/5.2.0' for a tool (default: tool actor id)"
+                    ),
+                },
+                "evidence": {
+                    "type": "object",
+                    "description": (
+                        "Verification evidence — any non-empty member promotes the note "
+                        "to confidence_level=strong and is recorded in metadata.verification. "
+                        "Recognized keys: test_ref (test id/path), commit_ref (commit hash), "
+                        "reviewed_by (reviewer id)."
                     ),
                 },
             },
@@ -1345,6 +1417,108 @@ _register(
         },
     ),
     handler_path="codewiki.mcp.tools.note_lifecycle:handle_reject_note",
+    mode="thread",
+)
+
+# -------------------------------------------------------------------
+#  Conflict cases (ADR-0007, 冲突一等对象)
+# -------------------------------------------------------------------
+
+_register(
+    Tool(
+        name="flag_conflict",
+        description=(
+            "Declare an unresolved contradiction between two repowiki pages "
+            "(usually notes) as a first-class conflict case (ADR-0007). "
+            "Creates conflicts/<case>.md with claimants + status=open. "
+            "Idempotent per open pair: re-flagging a pair with an existing "
+            "OPEN case returns that case instead of creating a duplicate. "
+            "Cases are governance metadata, never indexed into search; "
+            "query_wiki results hitting a claimant of an open case carry an "
+            "open_conflict marker. Manual declaration only — there is no "
+            "auto-detection (deliberate: no slot-registry base, and weak "
+            "conflict candidates measured mostly false positives)."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo_path": {
+                    "type": "string",
+                    "description": "Repository path. Derives output_dir = repo_path/repowiki.",
+                },
+                "claimants": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": (
+                        "Exactly 2 conflicting pages, repowiki-relative "
+                        "(e.g. 'notes/a.md', 'wiki/modules/b.md'; bare "
+                        "'a.md' resolves against notes/)"
+                    ),
+                },
+                "description": {
+                    "type": "string",
+                    "description": "What the contradiction is (required, one or two sentences)",
+                },
+                "group_key": {
+                    "type": "string",
+                    "description": (
+                        "Optional caller-supplied identity for the conflict "
+                        "group; defaults to a hash of the claimant pair"
+                    ),
+                },
+                "by": {
+                    "type": "string",
+                    "description": "Optional OKF actor id recorded as flagged_by",
+                },
+            },
+            "required": ["claimants", "description"],
+        },
+    ),
+    handler_path="codewiki.mcp.tools.conflict_case:handle_flag_conflict",
+    mode="thread",
+)
+
+_register(
+    Tool(
+        name="adjudicate_conflict",
+        description=(
+            "Resolve an open conflict case (ADR-0007). Actions: keep_a "
+            "(keep claimant A, deprecate B via the reject_note primitive), "
+            "keep_b (mirror), coexist (both sides valid, no deprecation), "
+            "reject (the conflict was a false positive — both stay, case "
+            "closed). Records resolution / resolved_by / resolved_at in the "
+            "case frontmatter; the ledger is git. Only open cases can be "
+            "adjudicated."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "repo_path": {
+                    "type": "string",
+                    "description": "Repository path. Derives output_dir = repo_path/repowiki.",
+                },
+                "conflict_file": {
+                    "type": "string",
+                    "description": "Conflict case filename (relative to conflicts/ or full relpath)",
+                },
+                "action": {
+                    "type": "string",
+                    "enum": ["keep_a", "keep_b", "coexist", "reject"],
+                    "description": "Adjudication action",
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "Optional adjudication reason (recorded and shown to future readers)",
+                },
+                "by": {
+                    "type": "string",
+                    "description": "Optional OKF actor id recorded as resolved_by",
+                },
+            },
+            "required": ["conflict_file", "action"],
+        },
+    ),
+    handler_path="codewiki.mcp.tools.conflict_case:handle_adjudicate_conflict",
     mode="thread",
 )
 
@@ -1672,7 +1846,7 @@ _register(
                 },
                 "note_type": {
                     "type": "string",
-                    "description": "Force note_type for all produced notes (decision/lesson/pitfall/architecture/workaround).",
+                    "description": "Force note_type for all produced notes (decision/lesson/pitfall/architecture/procedure/workaround).",
                 },
                 "related_modules": {
                     "type": "array",
@@ -1872,12 +2046,27 @@ _register(
                 },
                 "mode": {
                     "type": "string",
-                    "enum": ["prepare", "submit"],
+                    "enum": ["prepare", "submit", "install", "retire"],
                     "description": (
                         "prepare: return candidates + skill index + conflict "
                         "pre-check + capacity warning + writing system prompt. "
                         "submit: validate and record the agent-written skill "
-                        "report (install/retire are a later ticket)."
+                        "report. install: copy a draft into the effect zone "
+                        ".codebuddy/skills/ (draft -> stable). retire: mark a "
+                        "draft deprecated and remove its effect copy."
+                    ),
+                },
+                "name": {
+                    "type": "string",
+                    "description": (
+                        "install/retire only: the draft skill slug (directory "
+                        "name under repowiki/skills/)."
+                    ),
+                },
+                "reason": {
+                    "type": "string",
+                    "description": (
+                        "retire only: why the skill is being retired (audit trail; required)."
                     ),
                 },
                 "topic": {
@@ -1894,8 +2083,7 @@ _register(
                         "enum": ["scenarios", "notes", "issues"],
                     },
                     "description": (
-                        "prepare only: restrict the returned candidate kinds "
-                        "(default: all three)."
+                        "prepare only: restrict the returned candidate kinds (default: all three)."
                     ),
                 },
                 "limit": {
@@ -2677,15 +2865,28 @@ _register(
         name="add_task_memory",
         description=(
             "Append a memory entry to the CURRENT USER's per-user memory file "
-            "memories/<user_id>.md (atomic, append-only; each user writes only "
+            "memories/<user_id>.md (atomic; each user writes only "
             "their own file — git-level conflict isolation). Task memories are "
-            "task-scoped progress knowledge, distinct from wiki notes."
+            "task-scoped progress knowledge, distinct from wiki notes. "
+            "ADR-0009: optional 'supersedes' retires a referenced entry "
+            "(persistent id like '#a3f2' or lazy ordinal like '#e03' as shown "
+            "in get_task_context); the retired entry keeps its text, gains a "
+            "superseded marker, and is skipped by injection/search. A write "
+            "check rejects near-duplicates (difflib > 0.85) — supersede or "
+            "merge instead of re-adding."
         ),
         inputSchema={
             "type": "object",
             "properties": {
                 "task_id": {"type": "string", "description": "Task id."},
                 "content": {"type": "string", "description": "Memory text (markdown)."},
+                "supersedes": {
+                    "type": "string",
+                    "description": (
+                        "Optional entry id this memory replaces (persistent '#a3f2' "
+                        "or lazy '#e03'). The referenced entry is marked superseded."
+                    ),
+                },
                 "session_id": {"type": "string", "description": "Optional active session id."},
                 "repo_path": {"type": "string", "description": "Repository path."},
             },
@@ -2775,7 +2976,7 @@ _register(
                     "type": "string",
                     "description": (
                         "The caller-written summary (required for mode='submit', "
-                        "max 2048 chars). Covers key facts, settled decisions, open "
+                        "max 4096 chars). Covers key facts, settled decisions, open "
                         "items, and context still relevant to future work."
                     ),
                 },
@@ -2786,6 +2987,107 @@ _register(
         },
     ),
     handler_path="codewiki.mcp.tools.task_manager:handle_compact_task_memories",
+    mode="thread",
+)
+
+_register(
+    Tool(
+        name="search_task_memories",
+        description=(
+            "Entry-level keyword recall over ONE task's memories — the "
+            "complement of get_task_context's tail injection. Answers 'which "
+            "OLD entry said X', including entries truncated away by "
+            "max_memories and entries already compacted into the archive "
+            "(marked archived=true; full text in memories-archive/<owner>.md). "
+            "In-memory BM25 over the task's own corpus: always fresh, never "
+            "persisted, never part of the query_wiki corpus. Privacy mirrors "
+            "the layered reader: defaults to the current user's own memories "
+            "(live + legacy + archives); include_others=true opts into other "
+            "users' memories. Read-only — no usage-heat events. Use when "
+            "resuming a long task and a detail you need isn't in the recent "
+            "window or the compaction summary."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string",
+                    "description": "Task id (required — single-task scope).",
+                },
+                "query": {"type": "string", "description": "Keywords to recall entries by."},
+                "include_archive": {
+                    "type": "boolean",
+                    "description": "Search compacted entries in memories-archive/ too (default true).",
+                    "default": True,
+                },
+                "include_others": {
+                    "type": "boolean",
+                    "description": "Also search other users' memories (default false — search is never broader than reading).",
+                    "default": False,
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Max entries returned (default 10, max 20).",
+                    "default": 10,
+                },
+                "session_id": {"type": "string", "description": "Optional active session id."},
+                "repo_path": {"type": "string", "description": "Repository path."},
+            },
+            "required": ["task_id", "query"],
+        },
+    ),
+    handler_path="codewiki.mcp.tools.task_manager:handle_search_task_memories",
+    mode="thread",
+)
+
+_register(
+    Tool(
+        name="report_outcome",
+        description=(
+            "Report how USING a doc turned out: success or failure — the third "
+            "telemetry event after hit (I saw it) and adopted (I cited it). "
+            "Call at the natural end of a task (tests green / failure located), "
+            "the only moment the result can be honestly judged. Binary result, "
+            "no grading; note is an optional one-line context and failure "
+            "reasons are the most valuable part (they feed negative_examples "
+            "in distill/consolidate prepare). Thin telemetry shell: appends one "
+            "event to the caller's jsonl stream, never touches frontmatter, no "
+            "confirm gate. task_id is best-effort: pass it explicitly, or pass "
+            "source_session_id to inherit the session's task binding. "
+            "Consumption is observe-only (aggregate_usage / wiki_stats outcome "
+            "section) — no ranking or confidence side effects."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "doc": {
+                    "type": "string",
+                    "description": "The used doc's path (query_wiki file field shape, e.g. notes/x.md).",
+                },
+                "result": {
+                    "type": "string",
+                    "enum": ["success", "failure"],
+                    "description": "Binary outcome of using the doc. No grading.",
+                },
+                "note": {
+                    "type": "string",
+                    "description": "Optional one-line context. For failures: WHY it went wrong.",
+                },
+                "task_id": {
+                    "type": "string",
+                    "description": "Optional explicit task anchor (else resolved from source_session_id binding).",
+                },
+                "source_session_id": {
+                    "type": "string",
+                    "description": "Optional IDE/source session id — resolves task_id from its binding and links the event to that session's adoption key.",
+                },
+                "session_id": {"type": "string", "description": "Optional active session id."},
+                "repo_path": {"type": "string", "description": "Repository path."},
+            },
+            "required": ["doc", "result"],
+        },
+    ),
+    handler_path="codewiki.mcp.tools.outcome_report:handle_report_outcome",
     mode="thread",
 )
 

@@ -4,7 +4,7 @@ title: stale_evidence 只驱动复核提醒：仅处理带 content_hash 的条�
 tags:
 - architecture
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   task_id: 产品维护
   related_modules:
   - wiki-lint
@@ -16,16 +16,20 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: OKF sources 组候选，待该组单立场景
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:14:01+00:00
+  at: '2026-09-05 11:14:01+00:00'
 stale_after: '2027-09-05'
 origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:41Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## 结论

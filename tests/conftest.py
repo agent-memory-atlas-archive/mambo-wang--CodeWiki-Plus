@@ -12,8 +12,26 @@ import json
 import git
 import pytest
 
+from codewiki.mcp import i18n
 from codewiki.mcp.session import SessionStore
 from codewiki.mcp.tools.analysis import handle_analyze_repo
+
+
+@pytest.fixture(autouse=True)
+def _pin_language_zh(monkeypatch):
+    """Pin the process language to ``zh`` for every test.
+
+    i18n resolution falls back to the OS locale (zh* -> zh, anything else
+    -> en), so locale-sensitive assertions (e.g. log shard headers) pass on
+    a Chinese Windows dev box but fail on an English-locale CI runner.
+    Pinning makes test outcomes locale-independent.
+    """
+    monkeypatch.setenv("CODEWIKI_LANG", "zh")
+    original = i18n.lang()
+    i18n.set_lang("zh")
+    yield
+    i18n.set_lang(original)
+
 
 PY_A = '''"""module a"""\ndef func_a():\n    return 1\n'''
 

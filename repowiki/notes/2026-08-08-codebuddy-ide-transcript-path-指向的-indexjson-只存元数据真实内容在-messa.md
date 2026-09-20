@@ -6,8 +6,8 @@ tags:
 status: deprecated
 generated:
   by: codewiki/5.2.1
-  at: 2026-08-08 15:19:35+00:00
-stale_after: 2026-11-06
+  at: '2026-08-08 15:19:35+00:00'
+stale_after: '2026-11-06'
 metadata:
   date: '2026-08-08'
   origin: conversation
@@ -16,9 +16,10 @@ metadata:
   - team-memory
   - ide-hook
   - '""'
-  source_ref: raw\conv-20260808T145202Z.md
-  consolidated_into:
   - wiki/scenarios/IDE-Hook采集链路方法.md
+  source_ref: raw\conv-20260808T145202Z.md
+  consolidated_into: ''
+  confidence_level: shadow
 reject_reason: consolidated into IDE-Hook采集链路方法
 author: mambo-wang
 ---

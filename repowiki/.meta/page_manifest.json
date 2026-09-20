@@ -137,58 +137,103 @@
       "written_at": "2026-09-08T05:54:02Z"
     },
     "wiki/scenarios/发布与依赖治理方法.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "b88a49a2dd3c157f70abe4d5c9148bcd56a84f48",
       "components": [],
       "files": [],
       "source_fingerprint": null,
-      "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:54:14Z"
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T02:01:51Z"
     },
     "wiki/scenarios/对话蒸馏管线与raw暂存区.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "d1f75b45f2b67b60d44d008db344b3527c079e43",
       "components": [],
       "files": [],
       "source_fingerprint": null,
-      "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:54:25Z"
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T01:59:28Z"
     },
     "wiki/scenarios/MCP-Server薄壳架构与参数约定.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "6e552c9c8e6ff32c9b39f0e1d49d79412f1dcd5b",
       "components": [],
       "files": [],
       "source_fingerprint": null,
-      "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:54:39Z"
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T02:02:23Z"
     },
     "wiki/scenarios/IDE-Hook采集链路方法.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "a56d62bbf47979bc77053c1040d1214b393ad0ea",
       "components": [],
       "files": [],
       "source_fingerprint": null,
-      "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:55:03Z"
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T02:03:22Z"
     },
     "wiki/scenarios/Wiki页面生成约定与数据结构.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "92bb7bb20109350ff1bda3c0d0519918cfbcc7fa",
       "components": [],
       "files": [],
       "source_fingerprint": null,
-      "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:55:14Z"
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T02:02:53Z"
     },
     "wiki/scenarios/多仓工作区初始化与增量分析.md": {
-      "git_head": "f08feabcc27a7f2198e51ce0d085c4c058c2d5dc",
+      "git_head": "92de166f314f7c98c5bd638282f3e9569482d8bd",
+      "components": [],
+      "files": [],
+      "source_fingerprint": null,
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-18T06:08:42Z"
+    },
+    "wiki/queries/参考项目记忆存储与压缩机制对比-2026-09.md": {
+      "git_head": "81f4c6dc01b272634fcaff6fd428237a661c629f",
       "components": [],
       "files": [],
       "source_fingerprint": null,
       "repo": "CodeWiki-CN",
-      "producer": "codewiki/5.8.0",
-      "written_at": "2026-09-08T05:55:26Z"
+      "producer": "codewiki/5.9.0",
+      "written_at": "2026-09-12T00:55:39Z"
+    },
+    "wiki/scenarios/任务记忆系统设计方法.md": {
+      "git_head": "51d27d7a0d4b4912caf4a5240d186848f06c9022",
+      "components": [],
+      "files": [],
+      "source_fingerprint": null,
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T02:00:33Z"
+    },
+    "wiki/scenarios/代码评审与分析工具方法.md": {
+      "git_head": "acbb924518068fa447c11aa7d899a49dafad33f6",
+      "components": [],
+      "files": [],
+      "source_fingerprint": null,
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-18T06:08:11Z"
+    },
+    "wiki/scenarios/竞品调研与借鉴方法.md": {
+      "git_head": "446fbe3351e58d7d0a5455a8e69c41ab418af2e1",
+      "components": [],
+      "files": [],
+      "source_fingerprint": null,
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T01:58:27Z"
+    },
+    "wiki/scenarios/技能提取与注入资产治理.md": {
+      "git_head": "c1661cd08e7d1adbecafc060eb9256e84929412b",
+      "components": [],
+      "files": [],
+      "source_fingerprint": null,
+      "repo": "CodeWiki-Plus",
+      "producer": "codewiki/5.10.1",
+      "written_at": "2026-09-20T02:04:18Z"
     }
   }
 }

@@ -7,22 +7,26 @@ tags:
 - sessionend
 - sessionstart
 metadata:
-  date: 2026-09-08
+  date: '2026-09-08'
   related_modules:
   - hooks
   severity: medium
   source_ref: conversations/conv-@settings.json-5-5-sessionStart和sessionEnd的matcher是否需要优化，发现某.md
   scene: hook 采集
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/IDE-Hook采集链路方法.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:02:10+00:00
+  at: '2026-09-08 05:02:10+00:00'
 stale_after: '2027-03-07'
 origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-08T05:28:18Z'
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## Background

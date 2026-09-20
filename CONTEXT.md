@@ -81,8 +81,79 @@ import 全仓归零。
 _Avoid_: 把 skill 当 scenario 的替身——一个进系统提示改变行为，一个进检索
 供查阅；素材过期联动（stale）走技能自身标注，不改写素材源。
 
+**tri-state gate（三态门控）** — 语义归并类新能力的统一开关词汇：`off`（不采集不
+生效）/ `observe`（采集并记录「本应做什么」，不改核心结果）/ `enforce`（真正改变
+结果）。纪律：新能力默认 `observe`，用离线数据证明收益且无误伤后才升 `enforce`。
+本仓已有等价物（draft 笔记不生效、`low_adoption` 仅 warning、lint 只报不改、采集
+hook 默认关）统一归入此词汇，不另造机制；登记面见 `docs/capability-matrix.md`。
+_Avoid_: 为单个能力发明第四种状态、或绕过 observe 直接 enforce。
+
+**conflict case（冲突案卷）** — 一对互相矛盾的 Wiki 笔记的裁决记录，顶级 `conflicts/`
+页面类型（ADR-0007）：frontmatter 携带 `claimants`（当事笔记）、`status:
+open|resolved`、`resolution` 与裁决人/时间。是治理元数据不是知识——不进检索语料，
+由检索在命中 claimant 时附加「存在未裁决冲突」标注。裁决动作集
+`keep_a/keep_b/coexist/reject`，内部复用 `reject_note` 原语；账本即 git。只做
+Agent 手动声明，不做自动发现（无 slot 底座 + 弱冲突误报前科，ADR-0007）。
+_Avoid_: 把案卷写成普通 note（污染检索语料）、双向 `conflict_with` 引用（易漂移）。
+
+**memory recall（任务记忆检索）** — 任务记忆的条目级按需召回（`search_task_memories`），
+与注入路径（`get_task_context` 尾部整取）互补：一个管「开始任务时带什么」，一个管
+「按关键词找回被截断/压缩的旧条目」。条目级颗粒度（`### 日期` 一条一记录），检索时
+内存直算（永远新鲜、零持久化，不与 wiki 索引互作），archive 参与召回（压缩与检索
+正交：压缩省注入成本，检索是主动付费的找回）。默认只搜本人，搜索侧隐私姿态不宽于
+读取侧。自动压缩由 get_task_context 携带 compaction_work 驱动（与 compact 的
+prepare 同一构造点），Agent 顺手 submit，无需用户确认（ADR-0002 直写语义延伸，
+可逆操作）。
+_Avoid_: 把任务记忆并进 query_wiki 语料（分轨）、为检索持久化索引（wiki 全量重建
+会静默清掉且污染语料统计）、为索引加后台进程（成本不可见）。
+
+**outcome（使用结果信号）** — telemetry 第三事件类型（与 hit「看到」、adopted「引用」
+并列）：用了某条知识之后任务结果是 success 还是 failure，双挂 doc（哪个知识）+
+task_id（哪次任务经历）。采集是遥测不是落盘知识——免确认闸门（ADR-0002 同理）、
+不碰 frontmatter；Agent 在任务自然收尾时经 `report_outcome` 顺手报（唯一能诚实
+判断成败的时点），adopted 关联只在同任务谱系内抄 key（跨任务不挂）。消费全
+observe：aggregate_usage/wiki_stats 的 success/failure 聚合、蒸馏 prepare 的
+negative_examples 提示；自动降权不实施（小数据下误伤率高，升 enforce 需数据
+说话，disputed_assets 预留判据见设计文档 §五）。失败的一句话 note 比失败本身
+值钱（蒸馏反哺的原料）。
+_Avoid_: 多档 result 分级（伪精度）、任务中途自报误用（Agent 判不了）、未攒数据
+就影响排序或生命周期。
+
+**主动沉淀（active settle）** — Agent 在自然停顿点直写任务记忆（`add_task_memory`）与
+草稿笔记（`ingest_note(status="draft")`）的 prompt 驱动写入路径，与批处理路径（收尾
+采集 → 下轮蒸馏）分轨互补：一个答"及时性"，一个答"漏网经验的兜底"。触发判据四条：
+任务里程碑达成、关键技术决策落定、用户话题明显转向、收尾轮（强制兜底）。接线模型上
+它是叠加标志（`active_settle`），不是 `wiring` 档位：trae/qwenwork 等采集链路断供的
+宿主默认开，hook 宿主可显式开成"prompt 写 + hook 读"共存。记忆闸门保持无（ADR-0002），
+笔记闸门保持有（两区制，ADR-0004）。_Avoid_: 字面每轮沉淀（记忆追加无去重，会把
+记忆灌爆并反复触发压缩阈值）。
+
+**原料标记（active_settle marker）** — `capture_conversation` 落盘的 `conv-*.md`
+frontmatter 顶层单行键 `active_settle: true`，声明"本会话任务记忆已由 Agent 直写"。
+蒸馏见到标记即**只产笔记、跳过记忆生成**——确定性规则，不靠提示约束，防止主动沉淀与
+蒸馏再生的记忆双写（任务记忆追加无去重，双写即噪声）。无标记的存量行为不变。
+frontmatter 单行键约束见 "frontmatter module" 词条（stdlib-only hook 逐行扫描）。
+
+**退役（retired）** — 「新知识推翻旧知识」的统一降状态语义，跨通道一个概念两份实现：
+笔记通道走 `reject_note`（置 deprecated），任务记忆通道走 supersede（置 superseded）。
+共同纪律：**降状态、不物理删**（原文保留供审计/回溯），注入与检索路径跳过已退役条目。
+_Avoid_: 把 superseded 与 deprecated 当两个概念各造一套机制；物理删除被推翻的条目。
+
+**写入检查（write check）** — 任务记忆写入路径的确定性质量门（difflib 相似度去重 +
+每压缩窗口软上限），与笔记通道的确认闸门（confirm gate）区分命名：一个零 LLM、写入即检、
+fail-open（超限警告放行不硬拒），一个 LLM 重活、draft→confirm 两段式。两者互补不互替：
+写入检查防"灌爆"，确认闸门防"噪声知识进库"。
+_Avoid_: 把写入检查做成硬拒绝（违反 fail-open 边界）；与确认闸门混用术语。
+
 ## Key decisions
 
 - [ADR-0001 — 任务记忆保持 Markdown，不迁移 JSONL](adr/0001-task-memory-stays-markdown.md)（2026-08-24）
 - [ADR-0002 — 任务记忆直写落盘，不设确认闸门](adr/0002-task-memories-direct-write.md)（2026-08-24）
 - [ADR-0003 — 对端新鲜度判据用 git 提交时间而非 mtime](adr/0003-possibly-stale-uses-git-commit-time.md)（2026-09-02）
+- [ADR-0004 — 技能与场景分轨，两区制守确认闸门](adr/0004-skill-scenario-split-two-zone-gate.md)（2026-09-06）
+- [ADR-0005 — 证据漂移信号仅在代码变更路径参与增量决策，no_changes 路径保持静默](adr/0005-evidence-drift-silent-on-no-changes.md)（2026-09-06）
+- [ADR-0006 — 会话绑定凭证退役而非销毁，归属继承三级回退](adr/0006-session-binding-attribution-tombstone.md)（2026-09-11）
+- [ADR-0007 — 冲突案卷是独立页面类型，不是笔记](adr/0007-conflict-case-page-type.md)（2026-09-12）
+- [ADR-0008 — 主动沉淀与蒸馏双写路径用原料标记确定性去重](adr/0008-active-settle-deterministic-dedup.md)（2026-09-17）
+- [ADR-0009 — 任务记忆退役（supersede）与写入检查](adr/0009-task-memory-supersede-and-write-check.md)（2026-09-18）
+- [ADR-0010 — 任务记忆通道互斥：补蒸馏路径固定只产经验笔记](adr/0010-task-memory-channel-mutual-exclusion.md)（2026-09-18）

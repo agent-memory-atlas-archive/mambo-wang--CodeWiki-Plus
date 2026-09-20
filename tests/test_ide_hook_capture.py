@@ -3,10 +3,11 @@
 Covers the issues found in the review of commit 2e8c78c:
 
 1. **Data loss (critical)**: a SessionEnd/Stop/PreCompact event without an
-   inline transcript synthesizes a 1-line "event envelope". If that envelope
-   carried ``source_session_id``, capture_conversation's session-scoped
-   supersede logic would overwrite the previously captured full transcript
-   with the diagnostic one-liner. The envelope must NOT carry it.
+   inline transcript used to synthesize a 1-line "event envelope" record.
+   Envelope records are no longer persisted at all (they carried no
+   task_id/session and piled up as never-distilled noise in raw/); the hook
+   diagnoses on stderr only. A lifecycle event without a usable transcript
+   must not touch the already-captured full transcript either way.
 
 2. **Inline turns multi-key support**: IDEs inline conversations under several
    common keys (conversation / messages / turns / transcript_turns / chat).
@@ -103,8 +104,8 @@ def test_envelope_does_not_supersede_full_transcript(enable_hook, monkeypatch, t
     assert f'source_session: "{sid}"' in full_text
 
     # 2) SessionEnd fires for the SAME session but WITHOUT any transcript.
-    #    Before the fix, the synthesized envelope carried source_session_id and
-    #    supersede-replaced the full transcript -> data loss.
+    #    Envelope records are no longer persisted: the hook must be a no-op
+    #    on disk (stderr diagnosis only), leaving the full transcript intact.
     rc2 = _run_hook_stdin(
         monkeypatch,
         {
@@ -117,17 +118,12 @@ def test_envelope_does_not_supersede_full_transcript(enable_hook, monkeypatch, t
     assert rc2 == 0
 
     files = _raw_files(repo)
-    # Envelope must be a NEW file, not a replacement of the full transcript.
-    assert len(files) == 2
+    # No envelope file: the full transcript remains the only capture.
+    assert len(files) == 1
 
-    texts = [p.read_text(encoding="utf-8") for p in files]
-    # The full transcript must survive intact.
-    assert any("real question with substance" in t for t in texts)
-    # The envelope exists and carries NO source_session id.
-    envelopes = [t for t in texts if "event envelope preserved" in t]
-    assert len(envelopes) == 1
-    assert 'source_session: ""' in envelopes[0]
-    assert f'source_session: "{sid}"' not in envelopes[0]
+    full_text = files[0].read_text(encoding="utf-8")
+    assert "real question with substance" in full_text
+    assert f'source_session: "{sid}"' in full_text
 
 
 def test_envelope_only_fires_for_lifecycle_events(enable_hook, monkeypatch, tmp_path, capsys):
@@ -714,10 +710,14 @@ def test_filename_collision_appends_suffix(tmp_path):
 
     conv = [{"role": "user", "content": "重复的开场白"}, {"role": "assistant", "content": "回答"}]
     _json.loads(
-        _cap.handle_capture_conversation({"repo_path": str(out.parent), "conversation": conv}, _Store())
+        _cap.handle_capture_conversation(
+            {"repo_path": str(out.parent), "conversation": conv}, _Store()
+        )
     )
     _json.loads(
-        _cap.handle_capture_conversation({"repo_path": str(out.parent), "conversation": conv}, _Store())
+        _cap.handle_capture_conversation(
+            {"repo_path": str(out.parent), "conversation": conv}, _Store()
+        )
     )
     # Second capture supersedes the first (same source_session empty) — but here
     # neither has source_session_id, so they are both written. Ensure distinct.
@@ -731,18 +731,27 @@ def test_filename_collision_appends_suffix(tmp_path):
 # --------------------------------------------------------------------------- #
 # skill-creator §9: two-tier tool digestion (command→error→fix chains)
 # --------------------------------------------------------------------------- #
-def test_tool_digest_keeps_calls_drops_success_results():
+def test_tool_digest_keeps_calls_and_success_tails():
     from codewiki.src.tool_digest import digest_blocks
 
     lines = digest_blocks(
         [
             {"type": "thinking", "text": "internal"},
-            {"type": "tool-call", "toolName": "Bash", "args": {"command": "git push origin develop"}},
+            {
+                "type": "tool-call",
+                "toolName": "Bash",
+                "args": {"command": "git push origin develop"},
+            },
             {"type": "tool-result", "text": "Everything up-to-date"},
             {"type": "text", "text": "pushed"},
         ]
     )
-    assert lines == ["[tool: Bash · git push origin develop]", "pushed"]
+    # thinking dropped; the call, its success tail and the text survive in order
+    assert lines == [
+        "[tool: Bash · git push origin develop]",
+        "[tool-ok: Everything up-to-date]",
+        "pushed",
+    ]
 
 
 def test_tool_digest_keeps_error_excerpts():
@@ -755,22 +764,29 @@ def test_tool_digest_keeps_error_excerpts():
                 "type": "tool-result",
                 "text": "error: Unknown option '--no-dev'. Did you mean '--no-group dev'?\nexit code 2",
             },
-            {"type": "tool-call", "toolName": "Bash", "args": {"command": "uv sync --no-group dev"}},
+            {
+                "type": "tool-call",
+                "toolName": "Bash",
+                "args": {"command": "uv sync --no-group dev"},
+            },
             {"type": "tool-result", "text": "Installed 42 packages"},
         ]
     )
-    # the command→error→fix chain survives in order; the success result drops
-    assert len(lines) == 3
+    # command→error→fix chain survives in order, and the fix's success tail too
+    assert len(lines) == 4
     assert lines[0] == "[tool: Bash · uv sync --no-dev]"
     assert lines[1].startswith("[tool-error: error: Unknown option '--no-dev'")
     assert lines[2] == "[tool: Bash · uv sync --no-group dev]"
+    assert lines[3] == "[tool-ok: Installed 42 packages]"
 
 
 def test_tool_digest_is_error_flag_and_budget():
     from codewiki.src.tool_digest import digest_blocks
 
     # is_error flag alone promotes the excerpt even without fingerprints
-    lines = digest_blocks([{"type": "tool-result", "is_error": True, "text": "weird failure shape"}])
+    lines = digest_blocks(
+        [{"type": "tool-result", "is_error": True, "text": "weird failure shape"}]
+    )
     assert lines and lines[0].startswith("[tool-error: weird failure shape")
 
     # long payloads are clipped, not dumped wholesale
@@ -778,3 +794,91 @@ def test_tool_digest_is_error_flag_and_budget():
         [{"type": "tool-call", "toolName": "Bash", "args": {"command": "x" * 500}}]
     )
     assert len(lines[0]) <= 161  # 160 budget + ellipsis char
+
+
+# --------------------------------------------------------------------------- #
+# procedure capture (2026-09-10): successful results of COMMAND tools survive
+# as one-line tails, so a procedure that ran clean is still distillable.
+# --------------------------------------------------------------------------- #
+def test_success_result_survives_as_one_line():
+    from codewiki.src.tool_digest import digest_blocks
+
+    lines = digest_blocks(
+        [
+            {"type": "tool-call", "toolName": "Bash", "args": {"command": "uv build"}},
+            {
+                "type": "tool-result",
+                "text": (
+                    "Successfully built dist/codewiki_plus-5.8.0-py3-none-any.whl\n"
+                    "dist/codewiki_plus-5.8.0.tar.gz"
+                ),
+            },
+        ]
+    )
+    assert lines[0] == "[tool: Bash · uv build]"
+    # tail only — one line of evidence, not the whole output
+    assert lines[1] == "[tool-ok: dist/codewiki_plus-5.8.0.tar.gz]"
+
+
+def test_mcp_tool_success_kept_blocklist_not_allowlist():
+    from codewiki.src.tool_digest import digest_blocks
+
+    # The point of a blocklist: mcp__<server>__ tools are never in any
+    # hand-written name list, yet they ARE the steps of this project's own
+    # workflows (capture/distill/confirm/skill_creator).
+    lines = digest_blocks(
+        [
+            {
+                "type": "tool-call",
+                "toolName": "mcp__codewiki__skill_creator",
+                "args": {"mode": "submit"},
+            },
+            {"type": "tool-result", "text": '{"status": "completed"}'},
+        ]
+    )
+    assert lines[1] == '[tool-ok: {"status": "completed"}]'
+
+
+def test_edit_tool_call_dropped_wholesale():
+    from codewiki.src.tool_digest import digest_blocks
+
+    # Edits dominate the call count and carry old_str/new_str bulk; the
+    # change itself is recoverable from git, so neither call nor result is
+    # recorded (unlike read-only tools, which keep their call line).
+    lines = digest_blocks(
+        [
+            {
+                "type": "tool-call",
+                "toolName": "replace_in_file",
+                "args": {"filePath": "a.py"},
+            },
+            {"type": "tool-result", "text": "Successfully edited a.py"},
+        ]
+    )
+    assert lines == []
+
+
+def test_read_only_tool_success_excluded():
+    from codewiki.src.tool_digest import digest_blocks
+
+    # Read-only output is bulk without procedural signal
+    lines = digest_blocks(
+        [
+            {"type": "tool-call", "toolName": "Read", "args": {"file_path": "a.py"}},
+            {"type": "tool-result", "text": "print('hello')\n" * 200},
+        ]
+    )
+    assert lines == ["[tool: Read · a.py]"]
+
+
+def test_detail_switch_off_restores_legacy_behaviour(monkeypatch):
+    from codewiki.src.tool_digest import digest_blocks
+
+    monkeypatch.setenv("CODEWIKI_RAW_TOOL_DETAIL", "off")
+    lines = digest_blocks(
+        [
+            {"type": "tool-call", "toolName": "Bash", "args": {"command": "uv build"}},
+            {"type": "tool-result", "text": "Successfully built"},
+        ]
+    )
+    assert lines == ["[tool: Bash · uv build]"]

@@ -11,17 +11,18 @@ aliases:
 - install-hooks
 - settings.json 重复注册
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - cli
+  - wiki/scenarios/IDE-Hook采集链路方法.md
   severity: low
   root_cause: merge_settings_json 按 command 原始字符串精确匹配去重，而 Path 拼接在 Windows 生成反斜杠路径，与手动配置的正斜杠路径字符串不同，等价命令被判为不同条目。
-  consolidated_into:
-  - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 13:46:28+00:00
+  at: '2026-08-24 13:46:28+00:00'
 stale_after: '2027-02-20'
 verified:
 - by: codewiki/5.4.2

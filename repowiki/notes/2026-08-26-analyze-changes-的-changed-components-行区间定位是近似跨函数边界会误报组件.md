@@ -4,22 +4,26 @@ title: analyze_changes 的 changed_components 行区间定位是近似，跨函�
 tags:
 - pitfall
 metadata:
-  date: 2026-08-26
+  date: '2026-08-26'
   related_modules:
   - change_analysis
+  - wiki/scenarios/代码评审与分析工具方法.md
   source_ref: conversations/conv-user_command-commands-codewiki-变更评估与代码评审（修改后）-请对最近代码变更做影响范围评-2.md
   consolidated_into:
+  - ''
   - wiki/scenarios/代码评审与分析工具方法.md
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.3
-  at: 2026-08-25 17:03:02+00:00
+  at: '2026-08-25 17:03:02+00:00'
 stale_after: '2027-02-22'
 origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-08-25T17:03:48Z'
 author: wandering-bug
+reject_reason: consolidated into 代码评审与分析工具方法
 ---
 
 ## 背景

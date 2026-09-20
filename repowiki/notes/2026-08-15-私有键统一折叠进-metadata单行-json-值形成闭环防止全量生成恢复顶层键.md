@@ -4,17 +4,18 @@ title: 私有键统一折叠进 metadata:（单行 JSON 值）形成闭环，防
 tags:
 - decision
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - codewiki/mcp/tools/doc_writer.py
   - codewiki/src/frontmatter.py
   - codewiki/mcp/tools/knowledge_loop.py
   source_ref: raw\conv-https-mp.weixin.qq.com-s-vzBQPjrRDhDfq3U51DBfaQ-看下我们项目符不符合ok.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 09:08:34+00:00
-stale_after: 2026-11-13
+  at: '2026-08-15 09:08:34+00:00'
+stale_after: '2026-11-13'
 origin: conversation
 reject_reason: 用户评审后拒绝全部蒸馏草稿
 author: mambo-wang

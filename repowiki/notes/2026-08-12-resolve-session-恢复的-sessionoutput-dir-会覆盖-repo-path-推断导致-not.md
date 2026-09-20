@@ -1,17 +1,22 @@
 ---
 type: pitfall
-title: "resolve_session 恢复的 session.output_dir 会覆盖 repo_path 推断，导致 Note not found"
-tags: ["pitfall"]
+title: resolve_session 恢复的 session.output_dir 会覆盖 repo_path 推断，导致 Note not found
+tags:
+- pitfall
 status: deprecated
-generated: { by: codewiki/5.2.2, at: 2026-08-12T11:59:13Z }
-stale_after: 2026-11-10
-
+generated:
+  by: codewiki/5.2.2
+  at: '2026-08-12T11:59:13Z'
+stale_after: '2026-11-10'
 metadata:
-  date: "2026-08-12"
-  origin: "conversation"
+  date: '2026-08-12'
+  origin: conversation
   related_components: []
-  related_modules: ["mcp", "\"\""]
-  source_ref: "raw\\conv-user_command-commands-codewiki-蒸馏对话提取经验-把已采集的对话（repowiki-raw.md"
+  related_modules:
+  - mcp
+  - '""'
+  source_ref: raw\conv-user_command-commands-codewiki-蒸馏对话提取经验-把已采集的对话（repowiki-raw.md
+  confidence_level: shadow
 author: mambo-wang
 ---
 

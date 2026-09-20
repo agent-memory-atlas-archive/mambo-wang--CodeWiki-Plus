@@ -4,7 +4,7 @@ title: skill_candidate hint 设计裁决进展：蒸馏+session-start 双提醒�
 tags:
 - decision
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - skill-creator
   - distill
@@ -15,11 +15,12 @@ metadata:
     verdict: excluded
     at: '2026-09-08'
     reason: 设计未定稿的中间进展记录，裁决仍在推进，属临时状态而非可复用方法
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:01:26+00:00
+  at: '2026-09-07 03:01:26+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:

@@ -12,15 +12,28 @@
 #   false = 理论支持（家族归并推导，未经真机验证——接线后必须跑
 #           模拟事件验证，失败即反馈修订本注册表）
 #
-# user_prompt 故意只填 claude 家族：cursor / codex 的事件名是归并推导的猜测，
+# user_prompt 只填 claude/trae 家族：其余家族的事件名是归并推导的猜测，
 # 未经真机验证，按「缺失回退默认源」处理，不写进注册表。
+#
+# 主动沉淀（ADR-0014）固定启用，不再有 per-agent 的 active_settle 字段：
+# 任务记忆唯一通道是 add_task_memory 直写，蒸馏固定只产经验笔记。
 
 version: 1
 
 families:
+  # prompt 家族：宿主无 shell hook 机制（wiring: prompt），靠注入文件
+  # 自动加载 + Agent 中介执行。config_file / events 为空占位——不参与
+  # 事件映射，仅为让 agent 能以家族层表达（见 docs/接线档位选择设计方案.md §3.5）
+  prompt:
+    config_file: null
+    events: {}
+    wiring: prompt
+
   # Claude 格式：settings.json + PascalCase 事件 + hookSpecificOutput
   claude:
     config_file: settings.json
+    # 可选字段：家族默认档位（解析顺序 agent > family > 默认「hook」）
+    wiring: hook
     events:
       session_start: [SessionStart]
       session_end: [SessionEnd]
@@ -30,7 +43,7 @@ families:
 
   # Cursor 格式：hooks.json + camelCase 事件。
   # 注意采集降级：Cursor 无 SessionEnd 等价事件，stop 不携带
-  # transcript_path —— 该家族会话采集只能落"事件信封"，
+  # transcript_path —— 该家族会话无正文可采（仅事件级诊断、不落盘），
   # 完整对话蒸馏不可用（prompt 指引须向用户显式声明）。
   cursor:
     config_file: hooks.json
@@ -45,12 +58,29 @@ families:
       session_start: [SessionStart]
       session_end: [SessionEnd]
 
+  # TRAE 格式（docs.trae.cn 官方 Hook 规范，2026-09 真机核验）：
+  # 独立的 hooks.json（顶层 {"version": 1, "hooks": {...}}）+ PascalCase
+  # 事件。无 SessionEnd 事件——Stop 每轮 Query 结束触发且不携带
+  # transcript_path（仅 last_assistant_message），hook 采集无正文可采
+  # （_ide_hook 仅 stderr 诊断、不落盘），对话捕获主动沉淀为主、收尾轮
+  # 保险采集（见 docs/接线档位选择设计方案.md v2；prompt 指引须向用户
+  # 显式声明该降级）。
+  # SessionStart/UserPromptSubmit 载荷与 claude 家族兼容
+  # （hookSpecificOutput.additionalContext 注出格式），脚本零改动。
+  trae:
+    config_file: hooks.json
+    events:
+      session_start: [SessionStart]
+      session_end: [Stop]
+      user_prompt: [UserPromptSubmit]
+
 agents:
   # ── 已验证支持（日常使用背书）────────────────────────────
   - id: codebuddy
     family: claude
     config_dir: .codebuddy
     verified: true
+    wiring: hook            # 显式化（与家族默认一致）
 
   - id: qoder
     family: claude
@@ -61,6 +91,17 @@ agents:
     family: claude
     config_dir: .claude
     verified: true
+
+  - id: trae
+    family: trae
+    config_dir: .trae
+    verified: true
+
+  - id: qwenwork
+    family: prompt
+    config_dir: null        # 无仓库标记，不参与自动探测
+    verified: true
+    protocol: qwenwork      # 宿主专属协议段
 
   # ── 理论支持（家族归并推导，未经真机验证）────────────────
   - id: cursor
@@ -78,11 +119,6 @@ agents:
   - id: gemini-cli
     family: claude
     config_dir: .gemini
-    verified: false
-
-  - id: trae
-    family: claude
-    config_dir: .trae
     verified: false
 
   - id: windsurf

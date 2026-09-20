@@ -4,18 +4,19 @@ title: OKF §7 actor 约定是 codewiki/<version>，旧格式 agent:codewiki/ �
 tags:
 - architecture
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - config
   - doc_writer
   - knowledge_loop
-  source_ref: raw\conv-使用codewiki-mcp扫描生成的代码wiki为什么status是draft.md
-  consolidated_into:
   - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  source_ref: raw\conv-使用codewiki-mcp扫描生成的代码wiki为什么status是draft.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:16:11+00:00
+  at: '2026-08-15 13:16:11+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

@@ -4,24 +4,28 @@ title: record_hit 同日聚合只查最后一行，交错写入下退化为纯�
 tags:
 - pitfall
 metadata:
-  date: 2026-08-26
+  date: '2026-08-26'
   related_modules:
   - mcp/tools/telemetry
+  - wiki/scenarios/代码评审与分析工具方法.md
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-repowiki-.meta-telemetry-Administrator..md
   scene: telemetry 统计修复
   consolidated_into:
+  - ''
   - wiki/scenarios/代码评审与分析工具方法.md
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.3
-  at: 2026-08-25 21:57:39+00:00
+  at: '2026-08-25 21:57:39+00:00'
 stale_after: '2027-02-22'
 origin: conversation
 verified:
 - by: human:Administrator
   at: '2026-08-26T04:31:04Z'
 author: mambo-wang
+reject_reason: consolidated into 代码评审与分析工具方法
 ---
 
 ## Background

@@ -82,6 +82,7 @@ prompts:
     args:
       repo_path: "Repo root path (relative paths resolve against the current working directory; defaults to cwd)"
       enable_task_management: "Enable cross-session task memory: true/1 appends task-management setup instructions (register the SessionEnd capture hook + write the task guidance block into AGENTS.md so new sessions prompt the user to bind or create a task); empty/false skips it. Disabled by default."
+      capture: "Capture switch: off removes the SessionEnd capture registration, making active settle the only memory channel; default on"
 
   init-workspace:
     title: "Initialize multi-repo Wiki workspace"
@@ -186,6 +187,7 @@ prompts:
     args:
       action: "Action to perform: enable | disable; leave empty to inspect the current state first and follow the user's intent"
       repo_path: "Repo root path (relative paths resolve against the current working directory; defaults to cwd)"
+      capture: "Capture switch: off removes the SessionEnd capture registration, making active settle the only memory channel; default on"
 
   distill-conversations:
     title: "Distill conversations into memories and experience"
@@ -216,6 +218,13 @@ prompts:
     description: "Rewrite a frequently adopted stable note (wiki_stats.promotion_candidates) into a de-personalized formal wiki page: type routing (pitfall/bug_fix/workaround → query, lesson/decision/architecture → concept) → write_doc_file creates the new page (must be draft; remind the user to confirm) → edit_doc_file back-annotates the original note's metadata.promoted_to. The original note is neither deleted nor demoted — it stays as an audit trail anchor."
     args:
       note_file: "Relative path of the note to promote (e.g. notes/xxx.md); leave empty to let the user pick from wiki_stats promotion_candidates"
+      repo_path: "Repo root path (relative paths resolve against the current working directory; defaults to cwd)"
+
+  retract-source:
+    title: "Retract an imported external document"
+    description: "Remove or retire a source document imported by ingest_source: look up its identifier in source_registry.json → dry_run preview → user confirmation → retract_source (flag_stale only marks it and keeps the file / remove_refs moves it to .trash and cleans source_refs) → lint for leftover references."
+    args:
+      name: "Source identifier (the name registered by ingest_source); leave empty to list the registry and let the user choose"
       repo_path: "Repo root path (relative paths resolve against the current working directory; defaults to cwd)"
 
 # ---------------------------------------------------------------------------
@@ -326,20 +335,16 @@ artifacts:
       {modules_block}
       ### Usage advice
 
-      1. **Before coding**: search `query_wiki` for the relevant module docs to learn the architecture conventions and dependencies
+      1. **Before coding**: search `query_wiki` for module docs to learn the architecture conventions and dependencies
       2. **When deciding**: search `query_wiki` for existing `decision` notes so the same ground is not covered twice
-      3. **After an important decision**: archive it with `ingest_note` so future agents and teammates can find it
-      4. **Ongoing maintenance**: run `lint_wiki` to catch docs that went stale and keep them in sync with the code
+      3. **After an important decision**: archive with `ingest_note`; **when corrected/criticized by the user**: reflect → draft → archive after confirmation (three-step flow and archiving example: `get_prompt(name="ingest-note")`)
+      4. **Ongoing maintenance**: run `lint_wiki` to catch docs that went stale
 
       ### Cite your sources explicitly
 
-      When answering about this repo's knowledge or code, **cite the source at every key claim** — never write "according to the docs/code" without naming it:
-
-      - Citing a doc/note found via `query_wiki` → annotate `（source: <file>）`, where `<file>` matches the `file` field of the search result exactly (e.g. `notes/xxx.md`, `wiki/modules/yyy.md`)
-      - Citing a code fact (function/class/config/behavior assertion) → annotate `<code file>:<line>` (e.g. `codewiki/mcp/tools/adoption.py:32`). Use the line numbers you actually read from the code or search results — **do not copy line numbers from docs that may be stale**
-      - When the basis comes from this session's own code inspection rather than a doc → say so, e.g. `source: code inspection — <code file>:<line>`
-
-      In-body citations are a traceability promise for humans; the trailing `codewiki:referenced-docs` comment remains the machine adoption signal. The two coexist and do not interfere.
+      - Citing a `query_wiki` result → annotate `（source: <file>）`, matching the returned `file` field exactly
+      - Citing a code fact → annotate `<code file>:<line>`, using the line numbers you actually read
+      - When the basis comes from this session's own code inspection → say so
 
       ### Adoption declaration (retrieval feedback)
 
@@ -349,88 +354,17 @@ artifacts:
       <!-- codewiki:referenced-docs: ["notes/pitfall-xxx.md", "wiki/modules/yyy.md"] -->
       ```
 
-      Paths must match the `file` field returned by query_wiki exactly. Declared documents earn an adoption count (`usage.adopted_count`) and rank higher in future retrievals (adoption weight is 2x plain recall); notes that are frequently retrieved but never adopted get flagged by the `low_adoption` check in `lint_wiki` as "needs a more actionable rewrite".
-
-      **Note**: only declare docs you genuinely used — this is a signal that teaches the knowledge base what is actually useful, not a polite acknowledgement. Forgetting is fine (missed reports are tolerable); declaring docs you did not use is not.
-
-      ### Correction detection and experience capture
-
-      When the user corrects, complains, or supplies context you lacked, that may be experience worth keeping. Handle it as follows:
-
-      **Correction signals (any one triggers):**
-
-      - The user explicitly rejects your output: "no", "that's wrong", "that's not it", "it should be…"
-      - The user expresses frustration about the same mistake recurring: "again…", "last time too…", "why again…"
-      - The user is still unhappy after you revised your output — the misunderstanding is fundamental
-      - The user adds critical context you did not know: "don't you know…", "this project has always…", "we agreed…"
-      - The user points out that a method name / Javadoc disagrees with actual behavior, or flags a legacy quirk in the code
-
-      **Three-step flow:**
-
-      1. **Reflect**: state plainly what you got wrong, what the correct approach is, and the root cause (missing project context? misread code?)
-      2. **Draft a note**: structure the lesson as background (the scenario where you erred), the correct approach, and root-cause analysis
-      3. **Ask for confirmation**: show the draft to the user and ask "shall I record this to the Wiki?" — **you must get explicit confirmation before calling `ingest_note`**; never save silently
-
-      **Archiving example:**
-
-      ```json
-      {{
-        "note_type": "lesson",
-        "title": "OrderService.process() only validates parameters, it does not run business logic",
-        "content": "## Background\n\nThe agent assumed OrderService.process() contained the full business logic and made a wrong design assumption from the method name.\n\n## Correct approach\n\nprocess() only validates and formats inputs; the actual business handling lives in OrderService.execute(). In legacy projects, method names drifting from behavior is common — read the implementation rather than trusting the name.\n\n## Root cause\n\nA decade-old project: methods were refactored repeatedly but never renamed.",
-        "related_modules": ["order"]
-      }}
-      ```
-
-      **Note**: not every correction deserves a note. Only record what has reuse value — temporary adjustments specific to this task, personal preferences and the like do not. Test: would this help a future agent or a new teammate in the same situation?
+      Paths must match the `file` field returned by query_wiki exactly. Declared documents earn an adoption count and rank higher in future retrievals; notes frequently retrieved but never adopted get flagged by the `low_adoption` check in `lint_wiki`. Only declare docs you genuinely used — missed reports are tolerable, false declarations are not.
 
       ### Proactive knowledge capture
 
-      Do not wait for a correction. When these signals appear in the conversation, reflect and extract knowledge proactively:
+      Trigger signals (any one): root cause found after multi-step debugging, a choice made among two or more options, code behavior disagreeing with docs/naming, implicit project knowledge supplied by the user, an investigation converging on a clear conclusion, a reusable pattern found.
 
-      **Trigger signals (any one activates reflection):**
+      **Four-question filter (all must pass):** useful in a future conversation without this context? another agent/new teammate benefits directly? `query_wiki` confirms no existing coverage? a "fact/decision/pattern/lesson" rather than temporary task state?
 
-      - You found the root cause after a multi-step debug session (especially after taking a detour)
-      - Two or more options were discussed and one was chosen
-      - Actual code behavior disagrees with docs / naming / comments
-      - The user supplied implicit project knowledge (conventions, historical reasons, "we always do it this way")
-      - An exploratory investigation converged on a clear conclusion
-      - You found a reusable pattern, toolchain trick, or environment setup tip
+      **Routing table:** tech choice → `ingest_note(note_type="decision")`; pitfall → `pitfall`; lesson learned → `lesson`; architecture finding → `architecture`; temporary workaround (with restore conditions) → `workaround`; multi-option comparison → `write_doc_file(page_type="comparison")`; archived research conclusion → `write_doc_file(page_type="query")`.
 
-      **Four-question filter (all must pass to be worth recording):**
-
-      1. Will it still be useful in a future conversation without this context?
-      2. Would another agent or a new teammate benefit directly in the same situation?
-      3. Did `query_wiki` confirm existing docs do not cover it?
-      4. Is it a "fact / decision / pattern / lesson" rather than "temporary state of this task"?
-
-      **Routing table:**
-
-      | Knowledge type | How to write it |
-      |---------|---------|
-      | Tech choice / trade-off made | `ingest_note(note_type="decision")` |
-      | Pitfall / easy-to-miss trap | `ingest_note(note_type="pitfall")` |
-      | Lesson learned (debugging, corrected assumptions) | `ingest_note(note_type="lesson")` |
-      | Architecture-level finding | `ingest_note(note_type="architecture")` |
-      | Temporary workaround (with restore conditions) | `ingest_note(note_type="workaround")` |
-      | Multi-option comparison (with a table) | `write_doc_file(page_type="comparison")` |
-      | Archived research conclusion | `write_doc_file(page_type="query")` |
-
-      **Execution flow:**
-
-      1. After a trigger fires, review the relevant conversation and extract candidate items
-      2. Run each candidate through the four-question filter and drop those that fail
-      3. Check `query_wiki` for existing coverage (avoid duplicates)
-      4. Pick the write method from the routing table and draft structured content (background → conclusion → root cause → scope)
-      5. Show the draft to the user and ask for confirmation — **write only after confirmation**
-      6. Several candidates may accumulate in one conversation; present them together at a natural pause (task done, topic switch) instead of interrupting repeatedly
-
-      **Do not record:**
-
-      - Temporary variables, paths or parameters relevant only to this task
-      - Personal user preferences (that belongs in agent memory, not the project Wiki)
-      - Information already stated plainly in code comments or the README
-      - Unverified guesses or "maybe / probably" level inferences
+      Execution details (structured template, dedup check, confirmation flow): `get_prompt(name="ingest-note")`. Do not record: temporary variables/paths/parameters of this task, personal user preferences, information already stated in code comments or the README, unverified guesses.
 
       ### Output language (language gate)
 
@@ -537,7 +471,7 @@ tools:
     low_adoption_suggestion: "Recalled often but adopted zero times: content is likely relevant but not actionable enough. Consider rewriting it in a more executable form (concrete steps / commands / expected results) — draft it via distill_conversation then confirm_note, or update it directly with edit_doc_file on {rel_path}."
     check_done: "Lint complete: {count} issue(s)"
   task_manager:
-    compact_instruction: "Read entries_to_compress (if existing_summary is non-empty it holds the previously compressed summary — the new summary should supersede it) and write a Markdown summary of the task's early memories in English, at most {max_chars} characters. Cover: key facts and decisions already made, open questions, and context that may still affect later work (past pitfalls, conventions, external dependencies). Drop pure process detail, keep conclusions. Then call compact_task_memories(mode='submit', task_id=..., summary=...)."
+    compact_instruction: "Read entries_to_compress (if existing_summary is non-empty it holds the previously compressed summary — the new summary should supersede it) and write a Markdown summary of the task's early memories in English, at most {max_chars} characters. Cover: key facts and decisions already made, open questions, and context that may still affect later work (past pitfalls, conventions, external dependencies). Drop pure process detail, keep conclusions. Then call compact_task_memories(mode='submit', task_id=..., summary=...). If submit reports exceeding the limit, the error states the overage — trim by that amount and retry."
   prompt_server:
     draft_template: |
       📝 Knowledge capture candidates ({n})

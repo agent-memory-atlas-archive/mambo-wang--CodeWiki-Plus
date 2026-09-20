@@ -4,17 +4,18 @@ title: task_bindings 只与任务存在性挂钩，不校验活跃/完成状态
 tags:
 - architecture
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   task_id: 产品维护
   related_modules:
   - task_manager
-  source_ref: raw\conv-@d-repos-CodeWiki-CN-repowiki-raw-conv-蒸馏的时候是如何判断某个对话时关联到哪个任.md
-  consolidated_into:
   - wiki/scenarios/任务记忆系统设计方法.md
+  source_ref: raw\conv-@d-repos-CodeWiki-CN-repowiki-raw-conv-蒸馏的时候是如何判断某个对话时关联到哪个任.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:12:25+00:00
+  at: '2026-08-15 13:12:25+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

@@ -6,8 +6,8 @@ tags:
 - CodeWiki-CN
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:55:03+00:00
-stale_after: 2026-12-07
+  at: '2026-09-08 05:55:03+00:00'
+stale_after: '2026-12-07'
 aliases:
 - IDE-Hook采集链路方法
 status: stable
@@ -21,8 +21,19 @@ metadata:
   - notes/2026-09-04-在-codebuddy-使用跨-agent-技能纯-skillmd-直接装-codebuddyskillshooks-需.md
   - notes/2026-09-07-npx-skills-add-非交互环境停-tui用--y-跳过-a-指定-agentuniversal-目录始终落盘.md
   - notes/2026-09-07-powershell-管道给-stdin-注入-utf-8-bom-致-jsonloads-失败stdin-解码须-ut.md
+  - notes/2026-08-23-distill-worker-subagent-定义随包发布hook-启用时自动拷贝到项目-codebuddyagent.md
+  - notes/2026-08-23-hook-采集机制仅正式接线-codebuddyreadme-措辞用仅接线支持.md
+  - notes/2026-09-07-skill-creator-工具设计定档scenario-直译-mode-c-两区制确认闸门不建自动评分门控.md
+  - notes/2026-09-07-userpromptsubmit-的-ide-hook
+  - notes/2026-09-08-codebuddy-hooks-matcher-语义sessionstart-只匹配-sourcestartupsess.md
+  - notes/2026-09-10-弹框工具的-options-条数建议会诱导-agent-拆成多框须在注入文案里显式覆盖.md
+  summary: 补入 Hooks matcher 官方语义、弹框 options 条数建议诱导拆框的注入覆盖
+  heat: 6
+  confidence_level: weak
+---enable-是-draft-技能提示通道advisory只.md
   summary: 补入多宿主家族分发变体、MCP 不透传自定义子代理的绕法、hook 防御清单与 stdin BOM 容错
   heat: 4
+  confidence_level: weak
 ---
 ## 工作场景
 IDE hook 采集链路（capture_session_end.py → _ide_hook.py → capture_conversation）、subagent 定义分发与跨 Agent 技能安装。适用于开发/排查 IDE 对话采集、hook 注入引导、多宿主 subagent 与技能分发。
@@ -39,14 +50,17 @@ IDE hook 采集链路（capture_session_end.py → _ide_hook.py → capture_conv
 6. 配置合并用 `copy.deepcopy`；`hooks.get(event, [])` 取值后必须写回。
 7. hook 采集机制仅正式接线 CodeBuddy（底层已兼容 Claude Code），README 用「仅接线支持」措辞；扩展只需生成对应 settings.json 注册同一批 wrapper。
 8. distill-worker.md 权威版本存 `codewiki/agents/`（随包发布），hook 启用时自动拷贝到 `.codebuddy/agents/`；pyproject package-data 须声明 `"agents/*.md"`。
-9. **多宿主分发按家族发变体**：CodeBuddy 认 `tools: ReadFile` + `toolsMCP` 等私有字段，claude 家族（Qoder/Claude Code/Gemini CLI）认 `name/description` + 可选 tools，喂错家族解析出空工具集直接拒绝加载；目标文件名恒定，变体缺失回退默认源（降级不断线）。同名 ≠ 同 schema，同 schema ≠ 同权限模型，两层都要实测。
+9. **多宿主分发按家族发变体**：CodeBuddy 变体用 `mcpServers: [codewiki]` 授权 MCP（**勿写 `tools:` 白名单**——写了就只给列表内的工具、MCP 工具全被挡掉；**勿用 `toolsMCP`**——非官方字段、静默无效），claude 家族（Qoder/Claude Code/Gemini CLI）认 `name/description` + 可选 tools，喂错家族解析出空工具集直接拒绝加载；目标文件名恒定，变体缺失回退默认源（降级不断线）。同名 ≠ 同 schema，同 schema ≠ 同权限模型，两层都要实测。改定义必须改随包源变体（`codewiki/agents/*.md`）并加源变体守门测试——只修 `.codebuddy/agents/` 已装副本会被 install-hooks 强制覆盖打回。
 10. **MCP 不透传自定义子代理**：claude 家族变体省略 tools 行（继承最稳），不要枚举 `mcp__` 限定名；确需 MCP 时改 spawn 宿主**内置** general-purpose 子代理、以 distill-worker.md 正文当剧本。验证用子代理自己的 `mcp_list`；改完定义必须新开会话（subagent 注册表是启动时快照）。
 11. **hook 防御清单**：规则单事实源 + 运行时读取注入（不硬编码拷贝）；`requireSibling()` 校验兄弟模块形状、缺失降级；stdin 加 watchdog + unref 防挂起；按首个完整 JSON 触发而非等 EOF（Windows 管道 close 延迟）；hook 永不非零退出；fail-open 优先；per-session 状态而非全局标志；SessionStart 对 compact/resume 也重注入（防压缩后行为漂移）+ UserPromptSubmit 每轮轻提醒。
 12. **stdin 解码一律 `utf-8-sig` + `lstrip("\ufeff")`**（PowerShell 管道可能注入多个 BOM）；验证 hook 优先用 `--conversation <file>` 文件方式而非管道。
 13. **非交互装技能**：`npx skills add` 加 `-y` 跳过 TUI、`-a codebuddy` 指定 agent；Universal 目录 `~/.agents/skills/` 始终落盘（TUI 未完成也已安装）；纯 SKILL.md 技能可直接复制到 `~/.codebuddy/skills/<id>/`，新会话生效（无 hook 时档位状态不持久化，压缩后可能漂移需重说一次）。
+14. **UserPromptSubmit 的 _ide_hook --enable 是 draft 技能提示通道（advisory）**：只提示不捕获，从 stdin 读事件载荷，把 prompt 与 `repowiki/skills/*/SKILL.md` 中 `status: draft` 的未安装技能做 containment 匹配后提示。
+15. **CodeBuddy Hooks matcher 语义**：SessionStart 只匹配 source=startup、SessionEnd 只匹配 reason=other，空串匹配全部——取值已是官方唯一合法值，不存在「换成更宽/更具体的值就能多覆盖官方场景」的写法。
+16. **弹框工具的 options 条数建议会诱导 Agent 拆成多框**：ask_followup_question 的 schema 建议 2-4 个 options，Agent 为遵守建议把 9 个任务拆进多个 question 或分多次弹框——须在注入文案里显式覆盖（「一框列全，选项条数不受建议限制」）。
 
 ## 判断逻辑
-- transcript 噪声只保留 user/assistant；SessionEnd envelope 用 user 角色（system 会被静默丢弃）。
+- transcript 噪声只保留 user/assistant；hook 无 transcript 的生命周期事件（SessionEnd/Stop/PreCompact）一律 no-op，只留 stderr 诊断、不落盘（事件信封路径已移除）。
 - 注入系统三类失效：规则漂移（两处拷贝/被压缩剪掉）、进程脆弱（缺文件/管道延迟）、资源浪费（全量注入超预算）——防御要逐条对应。
 - 多宿主分发不能假设宿主能力一致，按家族裁剪而非共用一份。
 

@@ -5,7 +5,7 @@ tags:
 - permissionerror
 - pitfall
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 发版本
   related_modules:
   - store
@@ -13,16 +13,20 @@ metadata:
   severity: medium
   source_ref: conversations/conv-发布新版本.md
   scene: v5.7.0 发布闸门
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/发布与依赖治理方法.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 02:59:50+00:00
+  at: '2026-09-07 02:59:50+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:19Z'
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## 背景

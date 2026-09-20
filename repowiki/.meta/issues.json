@@ -178,12 +178,21 @@
       "issue_type": "custom",
       "page_path": "notes/",
       "description": "BATCH: 76 note pages marked superseded (info). Archive/delete only after human review - retirement is a knowledge decision, not a lint fix.",
-      "severity": "info",
+      "severity": "warning",
       "created_at": "2026-09-06T18:22:01.366847",
-      "updated_at": "2026-09-06T18:22:01.366847",
+      "updated_at": "2026-09-20T12:56:09.877040",
       "status": "open",
-      "occurrences": 1,
-      "updates": []
+      "occurrences": 3,
+      "updates": [
+        {
+          "timestamp": "2026-09-20T12:55:56.556074",
+          "description": "okf_conformance: 10 个笔记含非 OKF 顶层键 source_conversations（应折叠进 metadata:）。根因在 distill_conversation._merge_source_into_note 直接写顶层键（distill_conversation.py:600），需工具侧修复后批量迁移，不宜手工改文件。"
+        },
+        {
+          "timestamp": "2026-09-20T12:56:09.877040",
+          "description": "low_adoption: 21 条笔记高频召回但零采纳（最高 101 次）。多数是「事实记录型」笔记而非「可执行 SOP 型」——检索命中但无法直接引用为操作步骤。建议按主题分批重写为带具体步骤/命令/预期结果的形式，或聚合进场景页。"
+        }
+      ]
     },
     "d7c43aab": {
       "id": "d7c43aab",
@@ -205,6 +214,90 @@
       "severity": "warning",
       "created_at": "2026-09-06T19:45:11.933179",
       "updated_at": "2026-09-06T19:45:11.933179",
+      "status": "open",
+      "occurrences": 1,
+      "updates": []
+    },
+    "de02f59d": {
+      "id": "de02f59d",
+      "issue_type": "outdated_content",
+      "page_path": "skills/repowiki-conclusion-update/SKILL.md",
+      "description": "skill_lint: 源材料 notes/2026-09-10-已落库结论变更的更新流程... 已 deprecated（聚合进 wiki/scenarios/Wiki页面生成约定与数据结构.md）。SKILL.md 内容仍有效，但 source_refs 应更新为指向场景页，避免后续误判过时。",
+      "severity": "warning",
+      "created_at": "2026-09-20T12:55:42.848381",
+      "updated_at": "2026-09-20T12:55:42.848381",
+      "status": "open",
+      "occurrences": 1,
+      "updates": []
+    },
+    "27e0270c": {
+      "id": "27e0270c",
+      "issue_type": "outdated_content",
+      "page_path": "skills/windows-dev-env/SKILL.md",
+      "description": "skill_lint: 源材料 notes/2026-09-10-命令链中途-shell-从-powershell-漂到-cmd... 已 deprecated（聚合进 wiki/scenarios/发布与依赖治理方法.md）。SKILL.md 内容仍有效，source_refs 应更新为场景页。",
+      "severity": "warning",
+      "created_at": "2026-09-20T12:55:47.349215",
+      "updated_at": "2026-09-20T12:55:47.349215",
+      "status": "open",
+      "occurrences": 1,
+      "updates": []
+    },
+    "f26cecf1": {
+      "id": "f26cecf1",
+      "issue_type": "outdated_content",
+      "page_path": "skills/windows-python-release/SKILL.md",
+      "description": "skill_lint: 源材料 notes/2026-09-10-codewiki-手动发布完整流程... 已 deprecated（聚合进 wiki/scenarios/发布与依赖治理方法.md）。SKILL.md 内容仍有效，source_refs 应更新为场景页。",
+      "severity": "warning",
+      "created_at": "2026-09-20T12:55:51.295611",
+      "updated_at": "2026-09-20T12:55:51.295611",
+      "status": "open",
+      "occurrences": 1,
+      "updates": []
+    },
+    "7e1c681d": {
+      "id": "7e1c681d",
+      "issue_type": "custom",
+      "page_path": "skills/",
+      "description": "okf_conformance: 4 个 SKILL.md 含非 OKF 顶层键 name/at/by（应折叠进 metadata:）。根因在 skill_creator 生成 frontmatter 的方式，需生成器修复后重装，不宜手工改。",
+      "severity": "warning",
+      "created_at": "2026-09-20T12:56:00.294360",
+      "updated_at": "2026-09-20T12:56:00.294360",
+      "status": "open",
+      "occurrences": 1,
+      "updates": []
+    },
+    "554e8a65": {
+      "id": "554e8a65",
+      "issue_type": "low_coverage",
+      "page_path": "codewiki/cli/",
+      "description": "coverage: 文档覆盖率 66.0%（1188/1799 组件）。isolated_components 显示大量 CLI 层组件（config.py、git_manager.py、html_generator.py、utils/errors.py 等）无文档。建议优先补 CLI 层模块文档。",
+      "severity": "info",
+      "created_at": "2026-09-20T12:56:14.760360",
+      "updated_at": "2026-09-20T12:56:14.760360",
+      "status": "open",
+      "occurrences": 1,
+      "updates": []
+    },
+    "e34bf0e7": {
+      "id": "e34bf0e7",
+      "issue_type": "no_outlinks",
+      "page_path": "wiki/scenarios/",
+      "description": "no_outlinks: 15 个 wiki 页面无出链（doctrine.md、reading-guide.md、comparisons/1、queries/1、scenarios/11）。场景页是聚合产物，建议在场景页底部加「来源笔记」[[wikilink]] 回链，同时提升对应笔记的入度。",
+      "severity": "info",
+      "created_at": "2026-09-20T12:56:20.302478",
+      "updated_at": "2026-09-20T12:56:20.302478",
+      "status": "open",
+      "occurrences": 1,
+      "updates": []
+    },
+    "db5aa51c": {
+      "id": "db5aa51c",
+      "issue_type": "custom",
+      "page_path": "notes/low-adoption-batch",
+      "description": "low_adoption: 21 条笔记高频召回但零采纳（最高 101 次，如 untracked-新文件不在分析图谱内、distill-submit-超时不幂等、Windows-PowerShell-环境坑）。多数是「事实记录型」而非「可执行 SOP 型」。建议按主题分批重写为带具体步骤/命令/预期结果的形式，或聚合进场景页。",
+      "severity": "warning",
+      "created_at": "2026-09-20T12:56:42.789475",
+      "updated_at": "2026-09-20T12:56:42.789475",
       "status": "open",
       "occurrences": 1,
       "updates": []

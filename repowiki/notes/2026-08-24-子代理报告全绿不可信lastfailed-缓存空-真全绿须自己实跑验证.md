@@ -4,18 +4,19 @@ title: 子代理报告「全绿」不可信：lastfailed 缓存空 ≠ 真全绿
 tags:
 - lesson
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - tests
   - teamai-cli-调研与借鉴分析
+  - wiki/scenarios/发布与依赖治理方法.md
   severity: high
   source_ref: conversations/conv-研究一下-https-github.com-Tencent-teamai-cli，看下跟CodeWiki的对比和可借鉴之.md
-  consolidated_into:
-  - wiki/scenarios/发布与依赖治理方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:16:04+00:00
+  at: '2026-08-24 15:16:04+00:00'
 stale_after: '2027-02-20'
 origin: conversation
 verified:

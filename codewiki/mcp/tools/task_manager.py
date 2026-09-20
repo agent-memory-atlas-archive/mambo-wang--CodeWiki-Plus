@@ -53,9 +53,7 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -69,9 +67,12 @@ from codewiki.src.store import slugify as _slugify
 from codewiki.src.store import (
     KnowledgeStore,
     SUMMARY_HEADING,
+    entry_id,
+    entry_is_superseded,
     entry_sort_key,
     locked_rmw,
     locked_write,
+    new_entry_id,
     parse_frontmatter,
     split_entries,
 )
@@ -187,14 +188,20 @@ def _write_task_file(output_dir: Path, task: Dict[str, Any], description: str) -
     KnowledgeStore(output_dir).write_task_file(task, description)
 
 
-# Compaction thresholds and keep-window (see docs/任务记忆存储与加载扩展性
-# 设计方案.md §3 Q6/Q7; ADR-0001). The compact tool is a stateless two-phase
-# (prepare/submit) MCP tool — the LLM summary is produced by the CALLER, never
-# by this tool (same constraint as distill_conversation's Mode C).
-_COMPACTION_THRESHOLD_COUNT = 40
-_COMPACTION_THRESHOLD_BYTES = 24 * 1024
-_COMPACTION_KEEP = 20
-_COMPACTION_SUMMARY_MAX_CHARS = 2048
+# Compaction thresholds live in limits.py (ADR-0013 single-source module);
+# re-exported here under their historical private names so existing imports
+# and tests keep working.
+from codewiki.mcp.tools.limits import (  # noqa: E402
+    COMPACTION_KEEP as _COMPACTION_KEEP,
+    COMPACTION_SUMMARY_MAX_CHARS as _COMPACTION_SUMMARY_MAX_CHARS,
+    COMPACTION_THRESHOLD_BYTES as _COMPACTION_THRESHOLD_BYTES,
+    COMPACTION_THRESHOLD_COUNT as _COMPACTION_THRESHOLD_COUNT,
+)
+from codewiki.mcp.tools.limits import (  # noqa: E402
+    COMPACTION_LEVEL_ORANGE as _COMPACTION_LEVEL_ORANGE,
+    COMPACTION_LEVEL_YELLOW as _COMPACTION_LEVEL_YELLOW,
+)
+
 _SUMMARY_HEADING = SUMMARY_HEADING  # re-export of the shared store constant
 
 
@@ -213,6 +220,33 @@ def _compaction_needed(total_entries: int, mem_bytes: int) -> bool:
     return total_entries > _COMPACTION_KEEP and (
         total_entries > _COMPACTION_THRESHOLD_COUNT or mem_bytes > _COMPACTION_THRESHOLD_BYTES
     )
+
+
+# ADR-0009 D9: compaction level — yellow/orange/red at 75%/87.5%/100% of the
+# existing thresholds (count and bytes, whichever is worse).
+
+
+def _compaction_level(total_entries: int, mem_bytes: int) -> str:
+    """ADR-0009 D9: green/yellow/orange/red signal over the hot layer.
+
+    ``compaction_due`` (red) keeps its existing semantics — beyond the keep
+    window AND at least one threshold exceeded. yellow/orange are pure
+    observe signals (no behaviour change), interpolated from the same
+    thresholds so no new judgement criteria are introduced. Boundaries are
+    inclusive (D9: yellow ≥75%, orange ≥87.5% of a threshold).
+    """
+    if _compaction_needed(total_entries, mem_bytes):
+        return "red"
+    for level, fraction in (
+        ("orange", _COMPACTION_LEVEL_ORANGE),
+        ("yellow", _COMPACTION_LEVEL_YELLOW),
+    ):
+        if (
+            total_entries >= _COMPACTION_THRESHOLD_COUNT * fraction
+            or mem_bytes >= _COMPACTION_THRESHOLD_BYTES * fraction
+        ):
+            return level
+    return "green"
 
 
 # Layered loading (multi-user split design §4.3): warm layer shape constants.
@@ -271,6 +305,36 @@ def _render_warm_author(owner: str, summary: str, entries: List[str], include_en
     return "\n\n".join(p for p in parts if p)
 
 
+def _entry_display_ids(entries: List[str]) -> Dict[int, str]:
+    """ADR-0009: display id per entry (by index) — the persistent id from the
+    heading when present, else a lazy ordinal ``#e01`` assigned in
+    chronological order. The file on disk is never rewritten; the ordinal is
+    stable as long as the file is unchanged (same rule as supersede matching
+    in the store)."""
+    ids: Dict[int, str] = {}
+    ordinal = 0
+    order = sorted(range(len(entries)), key=lambda i: _entry_sort_key(entries[i]))
+    for i in order:
+        pid = entry_id(entries[i])
+        if pid:
+            ids[i] = pid
+        else:
+            ordinal += 1
+            ids[i] = f"#e{ordinal:02d}"
+    return ids
+
+
+def _annotate_entry(entry: str, display_id: str) -> str:
+    """Render an entry with its display id on the heading line (lazy ordinals
+    only — persistent ids are already on the heading)."""
+    if entry_id(entry):
+        return entry
+    m = _ENTRY_TS_RE.match(entry)
+    if m:
+        return entry.replace(m.group(0), f"{m.group(0)} {display_id}", 1)
+    return entry
+
+
 def _load_memories_layered(
     output_dir: Path, task_id: str, max_memories: Optional[int], include_warm_entries: bool
 ) -> Tuple[str, int, bool, bool]:
@@ -280,10 +344,15 @@ def _load_memories_layered(
     + most recent ``max_memories`` entries — a task whose only hot file is the
     legacy file renders byte-identically to the pre-split single-file reader.
     Warm layer (each other user's file): summary + last _WARM_RECENT_ENTRIES
-    entries, degraded to one-line hints past the per-author budget.
+    entries, degraded to one-line entries past the per-author budget.
+
+    ADR-0009: superseded entries are filtered out of the hot layer injection;
+    lazy ordinal ids are annotated onto legacy headings so the agent can
+    reference them for supersede.
 
     Returns (rendered_text, total_entries_all_files, hot_truncated,
-    compaction_due). ``compaction_due`` is computed over the HOT layer only —
+    compaction_due, compaction_level). ``compaction_due`` and
+    ``compaction_level`` are computed over the HOT layer only —
     only the current user's own (+ legacy) files are theirs to compact.
     """
     uid = _current_user_id()
@@ -294,24 +363,36 @@ def _load_memories_layered(
     own_has = own is not None and (own[1] or own[2])
     leg_has = leg is not None and (leg[1] or leg[2])
 
-    hot_total = len(own[2] if own else []) + len(leg[2] if leg else [])
+    hot_entries = (own[2] if own else []) + (leg[2] if leg else [])
+    hot_total = len(hot_entries)
     hot_bytes = (own[3] if own else 0) + (leg[3] if leg else 0)
     compaction_due = _compaction_needed(hot_total, hot_bytes)
+    compaction_level = _compaction_level(hot_total, hot_bytes)
 
-    def _hot_single(parsed) -> Tuple[str, int, bool]:
-        """Single hot file: byte-compatible with the legacy single-file reader."""
-        raw, summary, entries, _ = parsed
+    # ADR-0009: display ids over the FULL hot layer (before filtering and
+    # truncation), so an entry's lazy ordinal does not shift when superseded
+    # entries disappear or max_memories truncates.
+    display_ids = _entry_display_ids(hot_entries)
+    live_idx = [i for i, e in enumerate(hot_entries) if not entry_is_superseded(e)]
+    live = [hot_entries[i] for i in live_idx]
+
+    def _render_hot(summary: str, entries: List[str], idxs: List[int]) -> Tuple[str, int, bool]:
         total = len(entries)
         if max_memories is None or max_memories <= 0 or max_memories >= total:
-            return raw, total, False
-        body = "\n\n".join(entries[-max_memories:])
+            kept, kept_idx, truncated = entries, idxs, False
+        else:
+            kept, kept_idx, truncated = entries[-max_memories:], idxs[-max_memories:], True
+        annotated = [
+            _annotate_entry(e, display_ids[i]) for e, i in zip(kept, kept_idx)
+        ]
+        body = "\n\n".join(annotated)
         rendered = f"{summary}\n\n{body}" if summary else body
-        return rendered, total, True
+        return rendered, total, truncated
 
     if own_has and not leg_has:
-        hot_rendered, hot_entries_total, hot_truncated = _hot_single(own)
+        hot_rendered, hot_entries_total, hot_truncated = _render_hot(own[1], live, live_idx)
     elif leg_has and not own_has:
-        hot_rendered, hot_entries_total, hot_truncated = _hot_single(leg)
+        hot_rendered, hot_entries_total, hot_truncated = _render_hot("", live, live_idx)
     elif own_has and leg_has:
         # Both hot files: merge chronologically. Legacy summary is annotated;
         # the current user's own summary stays canonical.
@@ -320,12 +401,15 @@ def _load_memories_layered(
             summaries.append(own[1])
         if leg[1]:
             summaries.append(leg[1].replace(_SUMMARY_HEADING, _SUMMARY_HEADING + "（legacy）", 1))
-        merged = sorted(own[2] + leg[2], key=_entry_sort_key)
+        order = sorted(range(len(live)), key=lambda i: _entry_sort_key(live[i]))
+        merged = [live[i] for i in order]
+        merged_idx = [live_idx[i] for i in order]
         if max_memories is None or max_memories <= 0 or max_memories >= len(merged):
-            kept, hot_truncated = merged, False
+            kept, kept_idx, hot_truncated = merged, merged_idx, False
         else:
-            kept, hot_truncated = merged[-max_memories:], True
-        hot_rendered = "\n\n".join(summaries + kept)
+            kept, kept_idx, hot_truncated = merged[-max_memories:], merged_idx[-max_memories:], True
+        annotated = [_annotate_entry(e, display_ids[i]) for e, i in zip(kept, kept_idx)]
+        hot_rendered = "\n\n".join(summaries + annotated)
         hot_entries_total = len(merged)
     else:
         hot_rendered, hot_entries_total, hot_truncated = "", 0, False
@@ -345,7 +429,7 @@ def _load_memories_layered(
     if warm_blocks:
         sections.append(_WARM_SECTION_HEADING + "\n\n" + "\n\n".join(warm_blocks))
     rendered = "\n\n".join(sections)
-    return rendered, total_all, hot_truncated, compaction_due
+    return rendered, total_all, hot_truncated, compaction_due, compaction_level
 
 
 def _parse_max_memories(arguments: Dict[str, Any], default: int) -> Optional[int]:
@@ -504,7 +588,7 @@ def handle_get_task(arguments: Dict[str, Any], store: SessionStore) -> str:
         m = re.match(r"\A---\s*\n.*?\n---\s*\n?(.*)", text, re.DOTALL)
         description = (m.group(1) if m else text).strip()
 
-    memories, mem_total, mem_truncated, _due = _load_memories_layered(
+    memories, mem_total, mem_truncated, _due, _level = _load_memories_layered(
         output_dir,
         task_id,
         _parse_max_memories(arguments, default=5),
@@ -633,8 +717,113 @@ def handle_set_session_task(arguments: Dict[str, Any], store: SessionStore) -> s
     )
 
 
+# ADR-0009 write check constants (design doc D3/D4/D5):
+_WRITE_CHECK_SIMILARITY = 0.85  # difflib ratio above which a write is rejected
+_WRITE_CHECK_TAIL = 10  # compare against the most recent N live entries
+_WRITE_WINDOW_SOFT_LIMIT = 5  # per compaction window: warn (never block) past this
+
+
+def _read_text_or_empty(path: Path) -> str:
+    """Best-effort read; empty string when missing/unreadable."""
+    try:
+        return path.read_text(encoding="utf-8-sig", errors="replace")
+    except OSError:
+        return ""
+
+
+def _entry_body(entry: str) -> str:
+    """Entry text without its heading line (and any superseded marker)."""
+    lines = entry.splitlines()
+    if lines and lines[0].startswith("### "):
+        lines = lines[1:]
+    return "\n".join(lines).strip()
+
+
+def _write_check(
+    output_dir: Path, task_id: str, content: str
+) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
+    """ADR-0009 write check: deterministic dedup + window soft limit.
+
+    Returns (allow, rejection_payload, hint). ``rejection_payload`` is set
+    when a near-duplicate (difflib ratio > 0.85) exists in the comparison
+    scope (tail of live entries + compaction summary); ``hint`` is set when
+    the write is allowed but the compaction window is over the soft limit
+    (fail-open: warn, never block).
+    """
+    import difflib
+
+    ks = KnowledgeStore(output_dir)
+    own_path, legacy_path, _ = ks.collect_memory_files(task_id, _current_user_id())
+    own = _parse_memory_file(own_path)
+    leg = _parse_memory_file(legacy_path)
+    hot_entries = (own[2] if own else []) + (leg[2] if leg else [])
+    live = [e for e in hot_entries if not entry_is_superseded(e)]
+
+    # Comparison scope: tail of live entries + compaction summary (D5).
+    # Entry bodies only — the timestamp/id heading differs by construction and
+    # would dilute the ratio of an otherwise-identical duplicate.
+    # Short texts (< 20 chars) skip the dedup: a one-char difference in a
+    # tiny string yields a high ratio with no meaningful signal (fail-open).
+    scope_texts = [
+        _entry_body(e) for e in live[-_WRITE_CHECK_TAIL:] if len(_entry_body(e)) >= 20
+    ]
+    # Summaries are compared individually (D5): concatenating them into one
+    # long text dilutes the ratio and lets "repeats a conclusion the summary
+    # already covers" slip through. The canonical summary heading is stripped
+    # first — same rationale as entry headings (it differs by construction).
+    summaries = [
+        s[len(_SUMMARY_HEADING) :].strip() if s.startswith(_SUMMARY_HEADING) else s
+        for p in (own, leg)
+        if p and p[1]
+        for s in [p[1]]
+    ]
+    scope_texts.extend(s for s in summaries if s)
+
+    best_ratio, best_entry = 0.0, None
+    for e in scope_texts:
+        ratio = difflib.SequenceMatcher(None, content, e).ratio()
+        if ratio > best_ratio:
+            best_ratio, best_entry = ratio, e
+    if best_ratio > _WRITE_CHECK_SIMILARITY and best_entry is not None:
+        return (
+            False,
+            {
+                "error": (
+                    f"Rejected: {best_ratio:.2f} similar to an existing entry "
+                    f"(threshold {_WRITE_CHECK_SIMILARITY}). Supersede it or merge "
+                    "and rewrite, then retry."
+                ),
+                "similar_to": best_entry,
+                "similarity": round(best_ratio, 2),
+            },
+            None,
+        )
+
+    # Window soft limit: live entries of the caller's own file (the summary
+    # section is the compaction boundary — a file WITH a summary has already
+    # been compacted, so its live entries are the post-compaction window; a
+    # file WITHOUT one has never been compacted, so all its live entries are
+    # the window). The count INCLUDES the entry being appended (验收链 5:
+    # the 6th write in a fresh window carries the hint). Fail-open: warn only.
+    hint = None
+    window_entries = [e for e in (own[2] if own else []) if not entry_is_superseded(e)]
+    if len(window_entries) + 1 > _WRITE_WINDOW_SOFT_LIMIT:
+        hint = (
+            f"{len(window_entries) + 1} entries in the current compaction window "
+            f"(soft limit {_WRITE_WINDOW_SOFT_LIMIT}) — consider compacting via "
+            "compact_task_memories(mode='prepare')."
+        )
+    return True, None, hint
+
+
 def handle_add_task_memory(arguments: Dict[str, Any], store: SessionStore) -> str:
-    """Append a memory entry to the current user's per-user memory file."""
+    """Append a memory entry to the current user's per-user memory file.
+
+    ADR-0009: optional ``supersedes`` marks the referenced entry as retired
+    (single-line marker under its heading; original text preserved). The
+    write check rejects near-duplicates deterministically and warns (never
+    blocks) past the per-window soft limit.
+    """
     session_id = arguments.get("session_id")
     session = store.get(session_id) if session_id else None
     try:
@@ -644,6 +833,7 @@ def handle_add_task_memory(arguments: Dict[str, Any], store: SessionStore) -> st
 
     task_id = str(arguments.get("task_id") or "").strip()
     content = str(arguments.get("content") or "").strip()
+    supersedes = str(arguments.get("supersedes") or "").strip() or None
     if not task_id:
         return json.dumps({"error": "task_id is required."})
     if not content:
@@ -653,16 +843,78 @@ def handle_add_task_memory(arguments: Dict[str, Any], store: SessionStore) -> st
     if _find_by_id(tasks, task_id) is None:
         return json.dumps({"error": f"Task '{task_id}' does not exist."})
 
-    KnowledgeStore(output_dir).append_memories(task_id, [content], user=_current_user_id())
+    ks = KnowledgeStore(output_dir)
+    uid = _current_user_id()
 
-    return json.dumps(
-        {
-            "ok": True,
-            "task_id": task_id,
-            "appended_chars": len(content),
-        },
-        ensure_ascii=False,
+    # ADR-0009 write check (skip when superseding — the new entry is by
+    # definition a revision of the old one, similarity is expected).
+    hint = None
+    if not supersedes:
+        allow, rejection, hint = _write_check(output_dir, task_id, content)
+        if not allow:
+            return json.dumps(rejection, ensure_ascii=False)
+
+    # ADR-0009 验收链 2: validate the ref BEFORE appending — a bad ref must
+    # return an error and leave no orphan new entry on disk. The real marker
+    # write happens after the append (same locked_rmw ordering as before).
+    if supersedes:
+        err = ks.supersede_memory(
+            task_id, user=uid, ref=supersedes, new_id="", dry_run=True
+        )
+        if err:
+            return json.dumps(
+                {"error": err, "supersedes": supersedes}, ensure_ascii=False
+            )
+
+    # Generate the new entry's persistent id first (it is referenced by the
+    # supersede marker), then append, then mark the old entry.
+    own_path = ks.memory_path_for(task_id, uid)
+    new_id = new_entry_id(
+        entry_id(e) for e in split_entries(_read_text_or_empty(own_path)) if entry_id(e)
     )
+    ks.append_memories(task_id, [content], user=uid, entry_id_override=new_id)
+
+    superseded_ref = None
+    if supersedes:
+        err = ks.supersede_memory(task_id, user=uid, ref=supersedes, new_id=new_id)
+        if err:
+            # The append already happened; report the supersede failure
+            # explicitly (never silent) but keep the write.
+            return json.dumps(
+                {
+                    "ok": True,
+                    "task_id": task_id,
+                    "entry_id": new_id,
+                    "appended_chars": len(content),
+                    "supersede_error": err,
+                },
+                ensure_ascii=False,
+            )
+        superseded_ref = supersedes
+
+    # Hot-layer count for the write-side signal (D4/Q10): computed over the
+    # post-write hot layer.
+    own = _parse_memory_file(own_path)
+    leg = _parse_memory_file(ks.legacy_memory_path(task_id))
+    hot_total = len(own[2] if own else []) + len(leg[2] if leg else [])
+    hot_bytes = (own[3] if own else 0) + (leg[3] if leg else 0)
+
+    resp: Dict[str, Any] = {
+        "ok": True,
+        "task_id": task_id,
+        "entry_id": new_id,
+        "appended_chars": len(content),
+        "hot_entries": f"{hot_total}/{_COMPACTION_THRESHOLD_COUNT}",
+    }
+    if superseded_ref:
+        resp["superseded"] = superseded_ref
+    if hint:
+        resp["hint"] = hint
+    if _compaction_needed(hot_total, hot_bytes):
+        resp["hint"] = (
+            (resp.get("hint") + " ") if resp.get("hint") else ""
+        ) + f"Hot layer at {hot_total} entries — compaction due, see get_task_context."
+    return json.dumps(resp, ensure_ascii=False)
 
 
 def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> str:
@@ -702,16 +954,36 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
     # pull-style signal over the HOT layer — the only files the current user
     # may compact (file-domain, author-exclusive) — meaning it exceeded the
     # compaction thresholds AND has entries beyond the keep window.
-    memories, mem_total, mem_truncated, compaction_due = _load_memories_layered(
+    memories, mem_total, mem_truncated, compaction_due, compaction_level = _load_memories_layered(
         output_dir,
         task_id,
         _parse_max_memories(arguments, default=20),
         include_warm_entries=True,
     )
 
+    # Auto-compaction driver (docs/任务记忆检索与自动压缩设计.md D6): when
+    # compaction is due, carry the PREPARED work inline so the calling agent
+    # cannot miss it — it writes the summary and submits without a user gate
+    # (ADR-0002 extension: compaction is reversible via the archives). The
+    # payload comes from the SAME helper compact_task_memories(mode="prepare")
+    # serves (single source of truth — the two must never drift apart).
+    compaction_work: Optional[Dict[str, Any]] = None
+    if compaction_due:
+        payload = _prepare_compaction_payload(output_dir, task_id)
+        if payload is not None:
+            payload["submit"] = (
+                "compact_task_memories(mode='submit', task_id=..., summary=<按 "
+                "instruction 写的摘要>) — 压缩直写落盘，无需用户确认（原文进 "
+                "memories-archive，可回溯）。"
+            )
+            compaction_work = payload
+
     # Discover related notes by frontmatter task_id. The ``status`` field lets
     # the host agent tell drafts apart from confirmed knowledge when injecting
     # this context (draft → must be labelled "待确认", never cited as settled).
+    # Phase5 T3: shadow-confidence notes (rejected / misrecalled / unverified)
+    # are excluded from task context — context assembly must not feed
+    # reference-only knowledge into a fresh session unawares.
     related_notes: List[Dict[str, str]] = []
     notes_dir = output_dir / "notes"
     if notes_dir.exists():
@@ -721,6 +993,8 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
             except OSError:
                 continue
             if _extract_fm(text, "task_id") != task_id:
+                continue
+            if _extract_fm(text, "confidence_level") == "shadow":
                 continue
             title = _extract_fm(text, "title") or nf.stem
             status = _extract_fm(text, "status") or "stable"
@@ -784,6 +1058,9 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
             "memories_total": mem_total,
             "memories_truncated": mem_truncated,
             "compaction_due": compaction_due,
+            # ADR-0009 D9: graded signal; compaction_due stays as the red alias.
+            "compaction_level": compaction_level,
+            **({"compaction_work": compaction_work} if compaction_work else {}),
             "related_notes": related_notes,
             "pending_raw_count": len(pending_raws),
             "pending_raws": pending_payload,
@@ -797,6 +1074,7 @@ def handle_get_task_context(arguments: Dict[str, Any], store: SessionStore) -> s
 # --------------------------------------------------------------------------- #
 # Memory compaction (P1 — see docs/任务记忆存储与加载扩展性设计方案.md §5.2)
 # --------------------------------------------------------------------------- #
+
 
 def _compact_instruction(max_chars: int) -> str:
     """Localized compaction instruction.
@@ -846,6 +1124,56 @@ def _compact_threshold_state(
     entries.sort(key=lambda oe: _entry_sort_key(oe[1]))
     needed = _compaction_needed(len(entries), hot_bytes)
     return own_path, legacy_path, summaries, entries, hot_bytes, needed
+
+
+def _prepare_compaction_payload(output_dir: Path, task_id: str) -> Optional[Dict[str, Any]]:
+    """Shared prepare payload for compaction work (single source of truth).
+
+    Used by both ``compact_task_memories(mode="prepare")`` and the
+    get_task_context auto-compaction driver (``compaction_work``) — the
+    two must never drift apart. Returns None when compaction is not due.
+    """
+    _own, _leg, summaries, entries, _bytes, needed = _compact_threshold_state(output_dir, task_id)
+    if not needed:
+        return None
+    # ADR-0009 D8: superseded entries are the lowest-value content — they go
+    # to the compress set FIRST (oldest superseded first), then live entries
+    # oldest-first, until the keep window boundary.
+    compress, _keep = _split_compaction(entries)
+    return {
+        "entries_to_compress": [e for _, e in compress],
+        "existing_summary": "\n\n".join(s for s in summaries if s),
+        "keep_recent": _COMPACTION_KEEP,
+        "summary_max_chars": _COMPACTION_SUMMARY_MAX_CHARS,
+        "summary_heading": _SUMMARY_HEADING,
+        "archive_owners": sorted({owner for owner, _ in compress}),
+        "instruction": _compact_instruction(_COMPACTION_SUMMARY_MAX_CHARS),
+    }
+
+
+def _split_compaction(entries: List[Tuple[str, str]]) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+    """ADR-0009 D8: pick the compress set with superseded entries first.
+
+    ``entries`` is the chronological hot layer [(owner, entry)]. The compress
+    set is the oldest ``len - keep`` entries, but superseded entries are
+    pulled to the front of the candidate queue (they are retired — keeping
+    them live in the hot layer is dead weight). Keep-set membership is
+    unchanged: exactly the most recent ``keep`` live entries stay.
+
+    Returns (compress_set, keep_set) — membership by index, so duplicate
+    texts never cause a keep entry to be dropped via equality comparison.
+    """
+    n_compress = len(entries) - _COMPACTION_KEEP
+    if n_compress <= 0:
+        return [], list(entries)
+    superseded = [oe for oe in entries if entry_is_superseded(oe[1])]
+    live = [oe for oe in entries if not entry_is_superseded(oe[1])]
+    # Superseded first (chronological), then live oldest-first.
+    picked = superseded[:n_compress]
+    picked.extend(live[: n_compress - len(picked)])
+    picked_ids = {id(oe) for oe in picked}
+    keep = [oe for i, oe in enumerate(entries) if id(oe) not in picked_ids]
+    return picked, keep
 
 
 def handle_compact_task_memories(arguments: Dict[str, Any], store: SessionStore) -> str:
@@ -913,25 +1241,19 @@ def handle_compact_task_memories(arguments: Dict[str, Any], store: SessionStore)
             ensure_ascii=False,
         )
 
-    compress = entries[:-_COMPACTION_KEEP]
-    keep = entries[-_COMPACTION_KEEP:]
-    existing_summary = "\n\n".join(s for s in summaries if s)
+    compress, keep = _split_compaction(entries)
     archive_owners = sorted({owner for owner, _ in compress})
 
     if mode == "prepare":
+        payload = _prepare_compaction_payload(output_dir, task_id)
+        assert payload is not None  # needed=True was checked above
         return json.dumps(
             {
                 "ok": True,
                 "mode": "prepare",
                 "task_id": task_id,
                 "compaction_needed": True,
-                "entries_to_compress": [e for _, e in compress],
-                "existing_summary": existing_summary,
-                "keep_recent": _COMPACTION_KEEP,
-                "summary_max_chars": _COMPACTION_SUMMARY_MAX_CHARS,
-                "summary_heading": _SUMMARY_HEADING,
-                "archive_owners": archive_owners,
-                "instruction": _compact_instruction(_COMPACTION_SUMMARY_MAX_CHARS),
+                **payload,
             },
             ensure_ascii=False,
         )
@@ -947,7 +1269,8 @@ def handle_compact_task_memories(arguments: Dict[str, Any], store: SessionStore)
             {
                 "error": (
                     f"summary exceeds {_COMPACTION_SUMMARY_MAX_CHARS} chars "
-                    f"(got {len(new_summary)}); shorten it."
+                    f"(got {len(new_summary)}, over by {len(new_summary) - _COMPACTION_SUMMARY_MAX_CHARS}); "
+                    f"shorten it by at least {len(new_summary) - _COMPACTION_SUMMARY_MAX_CHARS} chars."
                 )
             }
         )
@@ -1021,3 +1344,59 @@ def handle_compact_task_memories(arguments: Dict[str, Any], store: SessionStore)
         },
         ensure_ascii=False,
     )
+
+
+# --------------------------------------------------------------------------- #
+# search_task_memories (memory recall — docs/任务记忆检索与自动压缩设计.md D2)
+# --------------------------------------------------------------------------- #
+
+
+def handle_search_task_memories(arguments: Dict[str, Any], store: SessionStore) -> str:
+    """Entry-level keyword recall over ONE task's memories.
+
+    The complement of get_task_context's tail injection: answers "which OLD
+    entry (truncated away by max_memories, or already compacted into the
+    archive) said X". In-memory BM25 over the task's own corpus — always
+    fresh, never persisted, never coupled to the wiki search index.
+
+    Privacy mirrors the layered reader: defaults to the current user's own
+    live file + legacy + their archives; ``include_others=true`` opts into
+    other users' memories. Read-only: no usage-heat events, no git sync.
+    """
+    session_id = arguments.get("session_id")
+    session = store.get(session_id) if session_id else None
+    try:
+        output_dir = _resolve_output_dir(session, arguments)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
+    task_id = str(arguments.get("task_id") or "").strip()
+    if not task_id:
+        return json.dumps({"error": "task_id is required."})
+    query = str(arguments.get("query") or "").strip()
+    if not query:
+        return json.dumps({"error": "query is required."})
+    try:
+        max_results = min(20, max(1, int(arguments.get("max_results", 10))))
+    except (TypeError, ValueError):
+        max_results = 10
+
+    result = KnowledgeStore(output_dir).search_memories(
+        task_id,
+        query,
+        uid=_current_user_id(),
+        include_archive=bool(arguments.get("include_archive", True)),
+        include_others=bool(arguments.get("include_others", False)),
+        max_results=max_results,
+    )
+    if "error" in result:
+        return json.dumps(result, ensure_ascii=False)
+    result["ok"] = True
+    archived_hits = sum(1 for r in result["results"] if r.get("archived"))
+    if archived_hits:
+        result["hint"] = (
+            f"{archived_hits} result(s) come from the compaction archive — "
+            "the entry's full text lives in memories-archive/<owner>.md (append-only); "
+            "read that file for the full context around the snippet."
+        )
+    return json.dumps(result, ensure_ascii=False)

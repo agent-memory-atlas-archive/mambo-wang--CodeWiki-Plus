@@ -50,6 +50,14 @@ child process owns cleanup of the temp event file (via the
 ``CODEWIKI_HOOK_EVENT_FILE`` env var) and still has its own internal try/except
 so a failure never surfaces to the IDE.
 
+Because the child is detached, the success line means only "a capture was
+started", never "the capture landed" — the raw file in ``repowiki/raw/`` is the
+only real evidence. The one thing this wrapper can and does decide up front is
+whether a *usable event* was handed to it: an absent or unparseable stdin
+payload is reported as ``skipped`` (with the reason) instead of the
+fire-and-forget success line, so a miswired hook never looks like a successful
+capture while silently dropping the conversation.
+
 Stdout is emitted in the CodeBuddy-expected ``{continue, systemMessage}`` shape.
 """
 
@@ -104,24 +112,36 @@ def _codewiki_launch_env():
     )
 
 
-def _read_event() -> dict:
+def _read_event() -> tuple[dict, str]:
+    """Read the hook event from stdin.
+
+    Returns ``(event, error)``. ``error`` is a short, user-actionable reason why
+    no usable event could be read. The caller must NOT report a started capture
+    in that case: without an event there is no ``transcript_path``, so the child
+    would no-op — and a false success message hides precisely the failure this
+    hook is hardest to debug (detached, silent, no log line).
+    """
     if sys.stdin.isatty():
-        return {}
+        return {}, "no event on stdin (invoked interactively)"
     try:
         # Read raw bytes and decode leniently: PowerShell pipes may prepend one
         # or more UTF-8 BOMs, which would break json.loads.
         raw_bytes = sys.stdin.buffer.read()
         raw = raw_bytes.decode("utf-8-sig", errors="replace")
         raw = raw.lstrip("\ufeff").strip()
-    except Exception:
-        return {}
+    except Exception as e:  # noqa: BLE001 - never crash the IDE hook
+        return {}, f"could not read stdin: {e}"
     if not raw:
-        return {}
+        return {}, "no event on stdin"
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError as e:
+        return {}, f"stdin is not valid JSON: {e}"
+    if not isinstance(data, dict):
+        return {}, "stdin JSON is not an object"
+    if not data:
+        return {}, "no event on stdin (empty JSON object)"
+    return data, ""
 
 
 def _resolve_repo_path(event: dict) -> str:
@@ -148,7 +168,16 @@ def _resolve_repo_path(event: dict) -> str:
 
 
 def main() -> int:
-    event = _read_event()
+    event, event_err = _read_event()
+    if event_err:
+        # Honest no-op: the IDE session still ends cleanly, but the user learns
+        # that nothing was captured instead of reading a bogus success line.
+        print(
+            json.dumps(
+                {"continue": True, "systemMessage": f"team-memory capture skipped: {event_err}"}
+            )
+        )
+        return 0
     repo_path = _resolve_repo_path(event)
 
     env, import_err = _codewiki_launch_env()

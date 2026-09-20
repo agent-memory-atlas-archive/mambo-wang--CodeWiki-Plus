@@ -1,11 +1,10 @@
 ---
 type: pitfall
 title: registry backfill 在提前 return 分支会丢失：version_sibling 拦截时须 _save_registry，且任何被算过的条目都要标记
-  backfilled
 tags:
 - pitfall
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   related_modules:
   - source_ingest
   - registry
@@ -16,16 +15,20 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:35:09+00:00
+  at: '2026-09-05 11:35:09+00:00'
 stale_after: '2027-03-04'
 origin: conversation
 verified:
 - by: codewiki/5.6.0
   at: '2026-09-05T12:47:37Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Background

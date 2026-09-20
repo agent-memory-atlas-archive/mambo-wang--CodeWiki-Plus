@@ -71,13 +71,16 @@ _MAX_SKILLS = 12
 _ORANGE_SKILLS = 9
 _STALE_DAYS = 90
 _SUMMARY_CHARS = 300
-_CANDIDATE_LIMIT = 30
+_CANDIDATE_LIMIT = 60
 _DESCRIPTION_MIN_CHARS = 10
 # Design §4.5: name/description conflict pre-check threshold.
 _CONFLICT_JACCARD = 0.6
 # Only high-value note types are skill material (design §2/§4.1); task
 # memories are explicitly excluded (ADR-0002 direct-write, no gate).
-_SKILL_NOTE_TYPES = ("pitfall", "lesson", "decision")
+# `procedure` (2026-09-10) is first in the list on purpose: multi-step action
+# sequences are the closest thing to a skill's backbone, whereas pitfall/
+# lesson/decision only supply the per-step caveats.
+_SKILL_NOTE_TYPES = ("procedure", "pitfall", "lesson", "decision")
 
 # Design §4.3-5 / lint 无敏感串: absolute paths and secret keys are rejected.
 _ABS_PATH_RE = re.compile(r"(/Users/|/home/|[A-Za-z]:\\)")
@@ -125,8 +128,9 @@ _FRAGMENTATION_DISCIPLINE = (
 
 _SKILL_WRITING_SYSTEM = (
     "You are the SKILL Compiler (skill-creator, Mode C).\n"
-    "Compile CONFIRMED knowledge (scenario blocks, stable pitfall/lesson/"
-    "decision notes, open issues on existing skills) into behaviour-"
+    "Compile CONFIRMED knowledge (scenario blocks, stable procedure/"
+    "pitfall/lesson/decision notes, open issues on existing skills) into "
+    "behaviour-"
     "instruction SKILL.md drafts. A skill changes how the IDE agent BEHAVES "
     "when its description matches — it is not retrievable knowledge.\n\n"
     "WRITING RULES (mandatory, design §4.3):\n"
@@ -143,9 +147,13 @@ _SKILL_WRITING_SYSTEM = (
     "scenario instead of restating it.\n"
     "5. NO absolute paths (/Users/..., C:\\..., D:\\repos) and NO secrets or "
     "API keys — submit rejects them.\n"
-    "6. Material boundary: scenarios + stable pitfall/lesson/decision notes "
-    "+ open issues only. Task memories are NOT skill material (ADR-0002: "
-    "direct-write, no confirmation gate).\n\n"
+    "6. Material boundary: scenarios + stable procedure/pitfall/lesson/"
+    "decision notes + open issues only. Task memories are NOT skill "
+    "material (ADR-0002: direct-write, no confirmation gate).\n"
+    "7. A skill's 核心 SOP must be the PROCEDURE BACKBONE — the ordered "
+    "steps with their checkpoints. Pitfalls are annotations on those steps, "
+    "never substitutes for them; a body whose steps are all caveats is not "
+    "a skill.\n\n"
     "STRATEGY (anti-fragmentation):\n"
     "1. Default is UPDATE; at most ONE new skill per batch.\n"
     "2. Before CREATE, read >= 2 most-similar existing skills; the conflict "
@@ -236,9 +244,7 @@ def _scan_skills(output_dir: Path) -> List[Dict[str, Any]]:
                 "status": str(fm.get("status") or "draft"),
                 "description": str(fm.get("description") or ""),
                 "summary": str(meta.get("summary") or "")[:_SUMMARY_CHARS],
-                "source_refs": [
-                    _norm_rel(str(r), output_dir) for r in refs if str(r).strip()
-                ],
+                "source_refs": [_norm_rel(str(r), output_dir) for r in refs if str(r).strip()],
             }
         )
     return out
@@ -257,15 +263,24 @@ def _absorbed_paths(skills: List[Dict[str, Any]]) -> Set[str]:
 # --------------------------------------------------------------------------- #
 def _candidate_scenarios(
     output_dir: Path, absorbed: Set[str], limit: int
-) -> List[Dict[str, Any]]:
-    """Live scenario blocks not yet absorbed by any skill."""
+) -> Tuple[List[Dict[str, Any]], int]:
+    """Live scenario blocks not yet absorbed by any skill.
+
+    Returns ``(entries, available)`` — *available* is the count BEFORE the
+    cap, so the caller can report truncation instead of hiding it.
+
+    Newest first by mtime. The previous implementation walked files in name
+    order and broke at ``limit``; filenames start with a date, so it always
+    returned the OLDEST material and silently dropped everything recent
+    (a 2026-09-10 note never surfaced while 2026-08 ones did).
+    """
     from codewiki.mcp.tools.page_router import get_page_type_dir
 
     sdir = get_page_type_dir("scenario", output_dir)
-    out: List[Dict[str, Any]] = []
+    items: List[Tuple[float, Dict[str, Any]]] = []
     if not sdir.is_dir():
-        return out
-    for p in sorted(sdir.glob("*.md")):
+        return [], 0
+    for p in sdir.glob("*.md"):
         if not p.is_file():
             continue
         if _read_body(p) == _SOFT_DELETE_MARKER:
@@ -276,30 +291,40 @@ def _candidate_scenarios(
         fm = _read_frontmatter(p) or {}
         meta = fm.get("metadata") if isinstance(fm.get("metadata"), dict) else {}
         body = _read_body(p)
-        out.append(
-            {
-                "file": rel,
-                "title": str(fm.get("title") or p.stem),
-                "summary": str(meta.get("summary") or "")[:_SUMMARY_CHARS],
-                "est_tokens": _est_tokens(body),
-            }
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        items.append(
+            (
+                mtime,
+                {
+                    "file": rel,
+                    "title": str(fm.get("title") or p.stem),
+                    "summary": str(meta.get("summary") or "")[:_SUMMARY_CHARS],
+                    "est_tokens": _est_tokens(body),
+                },
+            )
         )
-        if len(out) >= limit:
-            break
-    return out
+    items.sort(key=lambda t: t[0], reverse=True)
+    return [e for _, e in items[:limit]], len(items)
 
 
 def _candidate_notes(
     output_dir: Path, absorbed: Set[str], limit: int
-) -> List[Dict[str, Any]]:
-    """Stable pitfall/lesson/decision notes not yet absorbed by any skill."""
+) -> Tuple[List[Dict[str, Any]], int]:
+    """Stable pitfall/lesson/decision/procedure notes not yet absorbed.
+
+    Returns ``(entries, available)``; newest first by mtime — see
+    ``_candidate_scenarios`` for why name-order was wrong.
+    """
     from codewiki.src.config import NOTES_DIR
 
     ndir = Path(output_dir) / NOTES_DIR
-    out: List[Dict[str, Any]] = []
+    items: List[Tuple[float, Dict[str, Any]]] = []
     if not ndir.is_dir():
-        return out
-    for p in sorted(ndir.glob("*.md")):
+        return [], 0
+    for p in ndir.glob("*.md"):
         if not p.is_file():
             continue
         fm = _read_frontmatter(p) or {}
@@ -312,18 +337,36 @@ def _candidate_notes(
         if rel in absorbed:
             continue
         body = _read_body(p)
-        out.append(
-            {
-                "file": rel,
-                "title": str(fm.get("title") or p.stem),
-                "note_type": str(fm.get("type") or ""),
-                "preview": body[:_SUMMARY_CHARS],
-                "est_tokens": _est_tokens(body),
-            }
+        ntype = str(fm.get("type") or "")
+        # Notes are scored too (2026-09-10): they are the primary skill
+        # material, so surface the verdict instead of making the caller guess.
+        try:
+            from codewiki.src.skill_match import score_skill_material
+
+            worth = bool(
+                score_skill_material(body, kind="note", note_type=ntype).get("worth_compiling")
+            )
+        except Exception:  # advisory only — a scoring failure must not filter
+            worth = False
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        items.append(
+            (
+                mtime,
+                {
+                    "file": rel,
+                    "title": str(fm.get("title") or p.stem),
+                    "note_type": ntype,
+                    "worth_compiling": worth,
+                    "preview": body[:_SUMMARY_CHARS],
+                    "est_tokens": _est_tokens(body),
+                },
+            )
         )
-        if len(out) >= limit:
-            break
-    return out
+    items.sort(key=lambda t: t[0], reverse=True)
+    return [e for _, e in items[:limit]], len(items)
 
 
 def _open_issues_per_skill(output_dir: Path) -> List[Dict[str, Any]]:
@@ -370,9 +413,7 @@ def _skill_capacity(live_count: int) -> Dict[str, Any]:
     }
 
 
-def _conflict_precheck(
-    topic: Optional[str], skills: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+def _conflict_precheck(topic: Optional[str], skills: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Jaccard(>0.6) conflict pre-check of *topic* against existing skills."""
     if not (topic or "").strip():
         return {
@@ -494,14 +535,12 @@ def _validate_entry(
     if action == "created" and path.is_file():
         return _err(
             "name_conflict",
-            f"skills/{name}/SKILL.md already exists; use action='updated' "
-            "(or retire + re-create).",
+            f"skills/{name}/SKILL.md already exists; use action='updated' (or retire + re-create).",
         )
     if action == "updated" and not path.is_file():
         return _err(
             "not_found",
-            f"skills/{name}/SKILL.md not found; action='updated' requires an "
-            "existing draft.",
+            f"skills/{name}/SKILL.md not found; action='updated' requires an existing draft.",
         )
 
     return (
@@ -519,9 +558,7 @@ def _validate_entry(
     )
 
 
-def _render_skill_doc(
-    fm: Dict[str, Any], body: str
-) -> str:
+def _render_skill_doc(fm: Dict[str, Any], body: str) -> str:
     from codewiki.src.frontmatter import render_frontmatter
 
     return render_frontmatter(fm) + "\n" + body + "\n"
@@ -744,9 +781,7 @@ def _mode_retire(arguments: Dict[str, Any], output_dir: Path) -> str:
     if not name:
         return json.dumps({"error": "retire requires 'name' and 'reason'."})
     if not reason:
-        return json.dumps(
-            {"error": "retire requires 'reason' (audit trail, design §4.1)."}
-        )
+        return json.dumps({"error": "retire requires 'reason' (audit trail, design §4.1)."})
     draft = _skills_dir(output_dir) / name / "SKILL.md"
     if not draft.is_file():
         return json.dumps({"error": f"draft skills/{name}/SKILL.md not found."})
@@ -831,8 +866,10 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
 
     mode = str(arguments.get("mode") or "prepare").lower()
     if mode in ("install", "retire"):
-        return _mode_install(arguments, output_dir) if mode == "install" else _mode_retire(
-            arguments, output_dir
+        return (
+            _mode_install(arguments, output_dir)
+            if mode == "install"
+            else _mode_retire(arguments, output_dir)
         )
     if mode not in ("prepare", "submit"):
         return json.dumps(
@@ -851,20 +888,20 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
         if isinstance(raw_sources, str):
             raw_sources = [raw_sources]
         if isinstance(raw_sources, list):
-            mapped = {
-                _KIND_ALIASES.get(str(s).strip().lower()) for s in raw_sources
-            } - {None}
+            mapped = {_KIND_ALIASES.get(str(s).strip().lower()) for s in raw_sources} - {None}
             if mapped:
                 kinds = mapped
 
         skills = _scan_skills(output_dir)
         absorbed = _absorbed_paths(skills)
-        scenarios = (
-            _candidate_scenarios(output_dir, absorbed, limit)
-            if "scenarios" in kinds
-            else []
+        scenarios, scen_avail = (
+            _candidate_scenarios(output_dir, absorbed, limit) if "scenarios" in kinds else ([], 0)
         )
-        notes = _candidate_notes(output_dir, absorbed, limit) if "notes" in kinds else []
+        notes, note_avail = (
+            _candidate_notes(output_dir, absorbed, limit) if "notes" in kinds else ([], 0)
+        )
+        scen_trunc = scen_avail > len(scenarios)
+        note_trunc = note_avail > len(notes)
         open_issues = _open_issues_per_skill(output_dir) if "issues" in kinds else []
         capacity = _skill_capacity(len(skills))
         conflict = _conflict_precheck(arguments.get("topic"), skills)
@@ -877,11 +914,15 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
                     "scenarios": scenarios,
                     "notes": notes,
                     "total": len(scenarios) + len(notes),
+                    "available": {
+                        "scenarios": scen_avail,
+                        "notes": note_avail,
+                    },
+                    "truncated": scen_trunc or note_trunc,
                 },
                 "open_issues_by_skill": open_issues,
                 "skills_index": [
-                    {k: s[k] for k in ("name", "file", "status", "summary")}
-                    for s in skills
+                    {k: s[k] for k in ("name", "file", "status", "summary")} for s in skills
                 ],
                 "conflict_precheck": conflict,
                 "capacity": capacity,
@@ -938,7 +979,9 @@ def handle_skill_creator(arguments: Dict[str, Any], store: Any) -> str:
     seen_names: Set[str] = set()
     for entry in entries:
         if not isinstance(entry, dict):
-            errors.append({"name": "<invalid>", "rule": "entry_invalid", "message": "not an object"})
+            errors.append(
+                {"name": "<invalid>", "rule": "entry_invalid", "message": "not an object"}
+            )
             continue
         err, values = _validate_entry(entry, output_dir)
         if err:

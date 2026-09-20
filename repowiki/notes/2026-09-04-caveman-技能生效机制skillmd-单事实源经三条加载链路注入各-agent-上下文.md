@@ -6,7 +6,7 @@ tags:
 - architecture
 - juliusbrussee
 metadata:
-  date: 2026-09-04
+  date: '2026-09-04'
   task_id: 他山之石
   severity: medium
   source_ref: conversations/conv-https-github.com-JuliusBrussee-caveman.git-研究下这个技能是如何生效的.md
@@ -15,12 +15,12 @@ metadata:
     verdict: excluded
     at: '2026-09-08'
     reason: frontmatter 已带 reject_reason（用户审阅判定不需要此条笔记），且其多宿主分发结论与同批 caveman hook
-      防御笔记重叠
+  confidence_level: weak
 status: stable
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.5.1
-  at: 2026-09-04 04:13:37+00:00
+  at: '2026-09-04 04:13:37+00:00'
 stale_after: '2027-09-04'
 origin: conversation
 reject_reason: 用户审阅后判定不需要此条笔记

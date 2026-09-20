@@ -37,6 +37,10 @@ TASKS_DIR = "tasks"
 TASKS_INDEX_FILENAME = ".index.json"
 TASKS_MEMORIES_FILENAME = "memories.md"
 TASK_BINDINGS_DIR = "task_bindings"
+# Retired (consumed) vouchers live in a subdirectory of TASK_BINDINGS_DIR. They
+# keep session→task attribution alive after the live voucher is consumed, which
+# the directory-scoped gitignore entry already covers.
+CONSUMED_BINDINGS_DIR = "consumed"
 SOURCE_REGISTRY_FILENAME = "source_registry.json"
 ISSUES_FILENAME = "issues.json"
 PROJECT_FILENAME = "project.json"
@@ -84,6 +88,13 @@ PAGE_TYPE_DIRS = {
 # page type routes through SKILLS_DIR via page_router + schema declaration.
 SKILLS_DIR = "skills"  # draft zone, relative to output_dir (repowiki root)
 SKILL_EFFECT_DIR = ".codebuddy/skills"  # effect zone, relative to repo root
+
+# ADR-0007 (conflict first-class object): top-level conflicts/ directory —
+# governance metadata (adjudication records), NOT knowledge. Same layout
+# family as skills/: lives at the repowiki ROOT, never indexed into the
+# search corpus, excluded from the generic lint audits; its health is owned
+# by the dedicated open_conflicts lint check.
+CONFLICTS_DIR = "conflicts"
 
 
 # Files excluded from wiki index and search (system files).

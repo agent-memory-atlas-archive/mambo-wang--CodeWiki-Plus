@@ -39,6 +39,7 @@
 - [第 8 篇：四维代码评审——让踩过的坑自动变成 CHECKLIST](https://mp.weixin.qq.com/s/wH_mjG5IL-0qo_qDFpODuw)（2026-08）
 - [第 9 篇：多仓Harness集中式管理方案](https://mp.weixin.qq.com/s/pA1CsLSAIqbeVqFV4-kVQQ)（2026-09）
 - [第 10 篇：如何让AI写的Wiki可信——项目知识全生命周期管理](https://mp.weixin.qq.com/s/OdESdERtINqYTBkIIVFWlQ)（2026-09）
+- [第 11 篇：从对话中提炼经验编译成技能——谷歌 WikiSkill 落地实践](https://mp.weixin.qq.com/s/jpGqKd_pU-aLp2c9CryzgA)（2026-09-09）
 
 
 
@@ -55,7 +56,7 @@ CodeWiki-Plus 是一个由 AI IDE（CodeBuddy、Cursor、Claude Desktop 等）�
 
 实际上，CodeWiki 的核心工具链——AST 解析、依赖图、Mermaid 校验——完全不需要 LLM。真正需要 LLM 智能的 4 个环节（模块聚类、文档撰写、子模块递归、总览合成），恰好是 AI IDE 的 Agent 最擅长做的事情。
 
-因此，我们将 CodeWiki 的 MCP Server 从"黑盒式一键生成"拆分为**40 个细粒度工具**，让它退化为纯工具链服务器。AI IDE 的 Agent 通过 MCP 协议调用这些工具，用自己的推理能力完成全部文档生成工作：
+因此，我们将 CodeWiki 的 MCP Server 从"黑盒式一键生成"拆分为**53 个细粒度工具**，让它退化为纯工具链服务器。AI IDE 的 Agent 通过 MCP 协议调用这些工具，用自己的推理能力完成全部文档生成工作：
 
 ```
 改造前：
@@ -71,16 +72,17 @@ CodeWiki-Plus 是一个由 AI IDE（CodeBuddy、Cursor、Claude Desktop 等）�
 | 能力维度 | 上游 CodeWiki | CodeWiki-Plus |
 |----------|--------------|---------------|
 | LLM 配置 | 必须自行配置 API Key | 零配置，IDE 自身模型驱动 |
-| 生成模式 | 黑盒一键生成 | 40 个细粒度工具，Agent 全程可控 |
+| 生成模式 | 黑盒一键生成 | 53 个细粒度工具，Agent 全程可控 |
 | 文档质量 | 通用描述 | Evidence-Based 断言（代码引用 + 置信度） |
 | 生成效率 | 所有组件同等处理 | 代码路由分类，boilerplate 仅保留签名 |
 | 上下文精度 | 模块内组件 | BFS 1-hop 调用图扩展 + 约束索引表 |
 | 增量更新 | 文件级 Git diff | 方法级 content_hash 精确检测 |
 | 知识管理 | 无 | 结构化 Wiki + 笔记飞轮 + 外部文档管理 |
-| 任务记忆 | 无 | 跨会话任务上下文 + 任务记忆暂存确认 |
+| 知识可信度 | 无 | 置信分层（strong/weak/shadow）+ 冲突案卷 + 使用结果信号（outcome 遥测） |
+| 任务记忆 | 无 | 跨会话任务上下文 + 任务记忆 + 条目级检索 + 自动压缩 |
 | 搜索能力 | 无 | BM25 + wikilink 图谱多跳 + 渐进式阅读 |
 | 跨服务分析 | 无 | Monorepo 子服务检测 + 跨服务调用追踪 |
-| 质量保障 | 无 | 18 项 lint 检查 + health score + 问题追踪 |
+| 质量保障 | 无 | 25 项 lint 检查 + health score + 问题追踪 |
 
 ### 前置条件
 
@@ -132,7 +134,50 @@ codewiki --version
 }
 ```
 
-配置完成后，CodeBuddy 的 MCP 工具列表中应出现 `codewiki` 相关的 40 个工具。
+配置完成后，CodeBuddy 的 MCP 工具列表中应出现 `codewiki` 相关的 53 个工具。
+
+#### 环境变量配置
+
+CodeWiki-Plus 开箱即用，**默认无需设置任何环境变量**。少数偏好项与逃生门通过环境变量控制，但它们必须由 MCP Server 的**启动进程**读取——写在 `.bashrc` / 系统环境变量里对 MCP 进程不可见。**设置方式是在 MCP 配置 JSON 的 `mcpServers.<name>` 下加 `env` 块**（即上面的第 2 步配置里追加）：
+
+```json
+{
+  "mcpServers": {
+    "codewiki": {
+      "command": "codewiki",
+      "args": ["mcp"],
+      "maxOutputLength": 500000,
+      "timeout": 36000000,
+      "env": {
+        "CODEWIKI_LANG": "en",
+        "CODEWIKI_USER": "your-pseudonym"
+      }
+    }
+  }
+}
+```
+
+改完重启 MCP Server 生效。修改环境变量后，**必须重启 MCP Server**（进程只在启动时读取一次）。
+
+**真正需要用户设置的只有 2 个（其余均有合理默认值）：**
+
+| 变量 | 作用 | 取值 / 默认 | 何时设 |
+|---|---|---|---|
+| `CODEWIKI_LANG` | 切换 MCP 输出语言 | `zh`（默认）/ `en`；`~/.codewiki/config.json` 的 `lang` 字段优先级更高，会盖掉它 | 想用英文界面时 |
+| `CODEWIKI_USER` | 遥测署名花名（避免用 git 真名） | 任意非空字符串；默认回退 `git config user.name` | 不想用真名署名时 |
+
+**以下是有条件才设（条件不满足请勿动）：**
+
+| 变量 | 作用 | 触发条件 |
+|---|---|---|
+| `CODEWIKI_HOME` | 指向源码 checkout 目录 | 未 `pip install codewiki`、且 hook 进程 cwd 不在 checkout 内时（IDE 以项目根为 cwd 运行通常已能命中，本仓无需设） |
+| `CODEWIKI_NO_KEYRING` | 强制文件存凭据，跳过系统密钥环 | 无密钥环环境（CI / 容器 / headless Linux）；不设也会自动回退 `~/.codewiki/credentials.json` |
+| `CODEWIKI_SERVER_LOG` | MCP Server 生命周期日志路径 | 排查 server 被强杀 / 掉线时；默认 `~/.codewiki/server-lifecycle.log` |
+| `CODEWIKI_RAW_TOOL_DETAIL` | 采集是否保留成功工具结果 | **默认开**；设 `0/off/false/no/none` 会丢弃成功调用细节，导致后续无法编译出含完整步骤的技能——**除非排障否则别关** |
+| `CODEWIKI_CBM_DISABLED` | 关闭 CBM 委派 | CBM 委派出问题时设 `1` |
+| `CODEWIKI_TEAM_MEMORY_HOOK` | 对话采集总闸 | **正常接线无需设**——`codewiki install-hooks` 生成的命令已自带 `--enable`；仅手工调用 `python -m codewiki.mcp._ide_hook` 不传 `--enable` 时才需要 `=1` |
+
+> 注意取值语义三套并存，勿套惯性：`CODEWIKI_TEAM_MEMORY_HOOK` 严格等于 `"1"`；`CODEWIKI_RAW_TOOL_DETAIL` 是反向黑名单（`0/off/false/no/none` 关）；`CODEWIKI_NO_KEYRING` / `CODEWIKI_CBM_DISABLED` 是正向集合（`1/true/yes` 开/关）。`CODEWIKI_HOOK_EVENT_FILE` 为 hook 内部传参，用户**不要**手动设置。
 
 **第 3 步：在 Agent 模式中输入提示词**
 
@@ -172,31 +217,38 @@ repowiki/
 │   ├── index.md                 #   自动生成的文档目录索引（按类型分区）
 │   ├── log.md                   #   操作日志（记录每次写入/编辑）
 │   ├── schema.yaml              #   项目文档规范（含 purpose 定位 + page_types 路由表 + 代码路由规则）
+│   ├── doctrine.md              #   团队工作方式共识（L3，由共识笔记晋级）
 │   ├── modules/                 #   模块文档（含组件约束索引表 + Evidence-Based 断言）
 │   │   ├── module1.md
 │   │   └── module2.md
 │   ├── entities/                #   实体页面（类、接口、数据库表等）
 │   ├── concepts/                #   概念页面（设计模式、业务概念等）
+│   ├── scenarios/               #   L2 场景块（可复用工作方法归纳，带容量上限）
 │   ├── sources/                 #   外部文档摘要（第三方文档导入）
 │   ├── comparisons/             #   对比分析页面
 │   └── queries/                 #   研究查询页面
+├── conflicts/                   # 冲突案卷（两条笔记矛盾的声明与裁决，ADR-0007）
+├── skills/                      # 技能草稿区（SKILL.md 编译产物，进索引进 lint、不生效）
 ├── raw/
+│   ├── conversations/           #   采集的对话转录（暂存，蒸馏后清理）
 │   └── sources/                 #   第三方文档原始文件
-├── notes/                       # 开发知识笔记（支持 candidate→confirmed→rejected 状态流转）
+├── notes/                       # 开发知识笔记（draft → stable → deprecated 状态流转 + 置信分层）
 │   ├── decision-xxx.md          #   架构决策记录
 │   ├── pitfall-xxx.md           #   踩坑记录
 │   ├── workaround-xxx.md        #   临时方案
 │   └── ...
 ├── tasks/                       # 任务记忆（跨会话长线工作上下文）
 │   ├── .index.json              #   任务索引
-│   └── <task_id>/               #   task.md + memories.md + pending-memories.json
+│   └── <task_id>/               #   task.md + memories/<user_id>.md（按用户分文件）+ memories-archive/
 ├── .meta/
 │   ├── project.json             #   项目映射（repo_path/output_dir/cache_db 路径）
 │   ├── symbol_map.json          #   符号→源文件映射（SQLite 主存储的 JSON 兼容副本）
 │   ├── issues.json              #   质量问题追踪（health score 依据）
 │   ├── source_registry.json     #   外部文档注册表
 │   ├── cross_service_links.json #   跨服务调用拓扑（monorepo）
-│   └── overview_refs.json       #   overview 引用模块列表（精确 stale 判定）
+│   ├── overview_refs.json       #   overview 引用模块列表（精确 stale 判定）
+│   ├── telemetry/               #   团队遥测（hit/adopted/outcome 事件流，per-user jsonl）
+│   └── task_bindings/           #   会话 ↔ 任务绑定
 ├── module_tree.json             # 模块层级结构
 ├── first_module_tree.json       # 初始聚类结果
 └── metadata.json                # 生成元数据
@@ -204,9 +256,9 @@ repowiki/
 
 ### MCP 工具速查
 
-所有工具均不需要 LLM 配置，由 IDE Agent 通过 MCP 协议调用。MCP Server 内置 **instructions**（能力概览与工作流指南）、**21 个工作流 Prompt**（覆盖初始化、生成、增量、搜索、质检、跨服务、团队记忆融合、任务记忆等全流程）和 **6 个 Resource**（wiki-catalog / module-tree / index-status 等）。
+所有工具均不需要 LLM 配置，由 IDE Agent 通过 MCP 协议调用。MCP Server 内置 **instructions**（能力概览与工作流指南）、**23 个工作流 Prompt**（覆盖初始化、生成、增量、搜索、质检、跨服务、团队记忆融合、任务记忆等全流程）和 **6 个 Resource**（prompts/catalog、capabilities、page-types 3 个静态 + wiki catalog / module-tree / index-status 3 个模板）。
 
-**代码分析（6 个）：**
+**代码分析与评审（10 个）：**
 
 | 工具 | 用途 |
 |------|------|
@@ -216,6 +268,10 @@ repowiki/
 | `list_dependencies` | 查询组件/模块依赖关系，支持分页、方向过滤、高影响力组件排名 |
 | `read_code_components` | 根据组件 ID 读取源码 |
 | `view_repo_file` | 查看仓库原始源文件内容，支持行范围截取 |
+| `analyze_impact` | 修改影响范围评估（BFS 传递性遍历，模块级聚合，高风险组件识别） |
+| `analyze_changes` | 变更检测：自上次生成以来的代码变更与受影响文档清单 |
+| `review_changes` | 四维代码评审（按团队沉淀的评审检查清单） |
+| `watch_repo` | 仓库变更监听 |
 
 **文档生成管线（6 个）：**
 
@@ -225,30 +281,41 @@ repowiki/
 | `edit_doc_file` | 编辑文档（替换/插入/撤销） |
 | `save_module_tree` | 保存模块聚类结果 |
 | `get_processing_order` | 获取叶优先的文档生成顺序 |
-| `get_prompt` | 获取各阶段的提示词模板（含 16 种 prompt_type） |
+| `get_prompt` | 获取各阶段的提示词模板（含 23 种 prompt_type） |
 | `close_session` | 关闭会话释放资源，构建 BM25 索引 + wikilink 图谱，写入生成元数据 |
 
-**知识管理（11 个）：**
+**知识管理（13 个）：**
 
 | 工具 | 用途 |
 |------|------|
-| `query_wiki` | BM25 全文搜索 + wikilink 图谱多跳扩展 + **渐进式阅读**（mode=overview/directory/detail）；返回 source_type 标注 |
-| `ingest_note` | 将开发笔记归档到 notes/，支持 8 种类型 + aliases + source_ref；默认写入为 candidate 状态 |
-| `confirm_note` | 将 candidate 笔记升级为 confirmed（正式领域知识） |
-| `reject_note` | 否决 candidate 笔记，后续 query_wiki 不再返回 |
+| `query_wiki` | BM25 全文搜索 + wikilink 图谱多跳扩展 + **渐进式阅读**（mode=overview/directory/detail）；返回 source_type 与 confidence 标注；默认过滤 shadow 资产（`include_shadow` 显式开启） |
+| `ingest_note` | 将开发笔记归档到 notes/，支持 8 种类型 + aliases + source_ref；默认写入 draft 状态（置信 weak，检索带 [unconfirmed] 前缀） |
+| `confirm_note` | 将 draft 笔记升级为 stable（写 verified 审核事件）；可带 evidence（test_ref/commit_ref/reviewed_by）升 strong 置信 |
+| `reject_note` | 否决笔记（降为 deprecated，置信降 shadow，默认不再被检索返回） |
 | `batch_set_status` | 批量流转笔记状态（确认/否决多条笔记一次完成） |
+| `stamp_evidence` | 为页面断言补盖证据戳（Evidence-Based 审计链） |
 | `ingest_source` | 导入第三方文档到 `raw/sources/`，注册到 `source_registry.json` |
 | `retract_source` | 撤回已导入的外部文档（flag_stale / remove_refs 两种模式） |
 | `batch_ingest` | 批量导入：一次调用处理多个笔记/文档 |
 | `init_wiki` | 初始化 Wiki 工作区目录结构与项目级 schema.yaml |
-| `wiki_stats` | Wiki 知识库统计（页面数、笔记状态分布、覆盖率概览） |
+| `wiki_stats` | Wiki 知识库统计（检索热度、冷笔记、晋级候选、置信分布 strong 占比、outcome 成功率） |
 | `skill_creator` | 把已确认知识（场景块 + stable pitfall/lesson/decision 笔记 + 技能 open issues）编译为 SKILL.md 行为指令草稿（`repowiki/skills/` 草稿区，两区制：进索引进 lint、不生效）。Mode C：prepare 零副作用返回候选素材/冲突预检（Jaccard>0.6）/容量预警（橙 9 只 UPDATE、红 12 先合并）/写作规范提示 → Agent 撰写 → submit 校验（失败报具体规则名）落盘、写双向溯源（source_refs ⇄ compiled_into）、追加 revisions、重建索引；空产出 no_action 合法；每批最多新建 1 份。install（用户确认后）：剥离管理元数据装入生效区 `.codebuddy/skills/<name>/`（幂等，写 installed_at/to/hash 供漂移检测）；retire：草稿标 deprecated + 生效区移除（正文保留审计，需 reason） |
+| `report_outcome` | 使用结果信号（telemetry 第三事件，与 hit「看到」/ adopted「引用」并列）：任务收尾时报告用了某文档后事情成败（success/failure 二值 + 一句话 note），双挂 doc + task_id；聚合进 wiki_stats，失败用例反哺蒸馏提示 |
+
+**知识治理（4 个）：**
+
+| 工具 | 用途 |
+|------|------|
+| `consolidate_notes` | 把已确认笔记归纳为 L2 场景块（wiki/scenarios/，Mode C prepare/submit，带容量门控与处置审计） |
+| `refresh_doctrine` | 从共识笔记刷新团队工作方式共识（L3 doctrine.md） |
+| `flag_conflict` | 声明两条笔记矛盾（顶级 conflicts/ 案卷，手动声明幂等，ADR-0007） |
+| `adjudicate_conflict` | 裁决冲突案卷（keep_a / keep_b / coexist / reject，复用 reject_note 原语） |
 
 **质量保障（2 个）：**
 
 | 工具 | 用途 |
 |------|------|
-| `lint_wiki` | 文档-代码一致性检查：**18 项检查**（含 unsupported_claims 无证据断言检测、low_adoption 低采纳检测） |
+| `lint_wiki` | 文档-代码一致性检查：**25 项检查**（含 unsupported_claims 无证据断言检测、low_adoption 低采纳检测、skill 技能页检查、open_conflicts 超期冲突） |
 | `flag_issue` | 标记 Wiki 质量问题，驱动 health score 计算 |
 
 **跨服务分析（1 个）：**
@@ -269,23 +336,21 @@ repowiki/
 
 | 工具 | 用途 |
 |------|------|
-| `capture_conversation` | 采集对话转录到 repowiki/raw/，仅落盘不蒸馏，支持 session 覆盖去重 |
-| `distill_conversation` | 蒸馏 raw 对话为 Wiki 笔记：Mode C prepare → Agent 提取 → submit 入库（status=draft），需 confirm_note 确认 |
+| `capture_conversation` | 采集对话转录到 repowiki/raw/，仅落盘不蒸馏，支持 session 覆盖去重；顺手提取采纳声明（referenced-docs）写入遥测 |
+| `distill_conversation` | 蒸馏 raw 对话为 Wiki 笔记 + 任务记忆：Mode C prepare → Agent 提取 → submit 入库（笔记 draft 待确认；任务记忆直写，ADR-0002）；prepare 携带 negative_examples（近期失败用例规避提示） |
 
-**任务管理（12 个）：**
+**任务管理（10 个）：**
 
 | 工具 | 用途 |
 |------|------|
 | `create_task` | 创建长线任务（task_id 由标题 slugify 生成，不可变、不允许重名） |
 | `list_tasks` | 列出任务，支持 status 过滤（active / completed） |
 | `get_task` | 查看单个任务详情 |
-| `get_task_context` | 拉取任务描述 + 记忆 + 关联笔记，作为继续工作的上下文；返回 pending_raw_count 提示补蒸馏 |
+| `get_task_context` | 拉取任务描述 + 分层记忆（本人热层 + 他人摘要暖层）+ 关联笔记；返回 pending_raw_count 提示补蒸馏、compaction_due 提示压缩 |
 | `set_session_task` | 将当前会话绑定到任务，后续采集/蒸馏自动携带 task_id |
-| `add_task_memory` | 手动向任务追加进度记忆 |
-| `stage_task_memories` | 暂存候选任务记忆（待确认） |
-| `list_pending_memories` | 列出待确认的任务记忆 |
-| `confirm_task_memories` | 确认暂存记忆，落盘到任务 memories.md |
-| `reject_task_memories` | 否决暂存记忆 |
+| `add_task_memory` | 向任务追加进度记忆（按用户分文件直写，ADR-0002：可逆操作免确认） |
+| `search_task_memories` | 任务记忆条目级检索（按关键词找回被截断/已压缩的旧条目，内存 BM25，archive 参与召回，默认只搜本人） |
+| `compact_task_memories` | 压缩旧任务记忆为摘要（保留最近 20 条原文，原文进 memories-archive/ 可找回；两阶段 prepare/submit，Agent 顺手执行） |
 | `complete_task` | 完成任务 |
 | `delete_task` | 删除任务（级联删除任务目录与绑定，但不删已打 task_id 标签的笔记） |
 
@@ -380,17 +445,20 @@ CodeWiki-Plus 在 Prompt 层和引擎层做了系统性优化，显著提升生�
 
 ### 知识飞轮
 
-笔记系统遵循 OKF v0.2 的 draft → stable → deprecated 生命周期，确保 LLM 自动沉淀的知识经过研发确认：
+笔记系统遵循 OKF v0.2 的 draft → stable → deprecated 生命周期，并叠加**置信分层**（confidence_level：strong / weak / shadow，与状态正交），确保 LLM 自动沉淀的知识经过研发确认：
 
 ```
 LLM 发现跨功能约束
-  → ingest_note(status=draft) 写入 notes/
+  → ingest_note(status=draft, confidence=weak) 写入 notes/
   → query_wiki 返回时标注 [unconfirmed]
-  → 研发确认：confirm_note → 升级为 stable 并记录 verified 审核事件
-  → 研发否决：reject_note → 标记 deprecated，不再被搜索返回（保留记录）
+  → 研发确认：confirm_note → 升级为 stable，记录 verified 审核事件
+      └ 带证据确认（test_ref/commit_ref/reviewed_by）→ 置信升 strong
+  → 研发否决：reject_note → 标记 deprecated、置信降 shadow，默认不再被搜索返回（保留记录）
 ```
 
-旧版词汇（candidate/confirmed/rejected/superseded）在读取端自动归一化，存量笔记无需立即迁移。
+检索排序叠加置信权重（strong +0.10 / weak 0 / shadow −0.30）；`wiki_stats` 的 confidence 段监控 strong 占比（北极星指标 >60%）。使用侧还有第三环信号——**outcome 遥测**：任务收尾时 `report_outcome` 报告成败，失败用例自动进入蒸馏提示（negative_examples），让「用错的知识」在新知识提取时被规避。
+
+旧版词汇（candidate/confirmed/rejected/superseded）在读取端自动归一化，存量笔记无需立即迁移。两条笔记矛盾时可 `flag_conflict` 立案（顶级 conflicts/ 案卷），`adjudicate_conflict` 裁决后败方自动降级。
 
 ### 团队记忆融合（Team Memory Fusion）
 
@@ -406,7 +474,7 @@ LLM 发现跨功能约束
 - 自动采集 Hook 只落 raw，永不自动蒸馏；蒸馏须显式调用 `distill_conversation`。
 - `repowiki/raw/` 是暂存区，不进 `query_wiki` 检索；蒸馏完成后由工具自动清理（除非 `keep_raw`）。
 - 触发形态为 **both**：手动命令（主）+ IDE Hook（可选）。
-- 自动采集/任务引导 Hook 接线支持 **CodeBuddy（`.codebuddy/`）、Qoder（`.qoder/`）、Claude Code（`.claude/`）**，启用时运行 `codewiki install-hooks --repo-path <repo>` 自动检测项目根目录存在哪些 IDE 配置目录，检测到哪些就为哪些接线（拷贝 hook 脚本与 distill-worker subagent、幂等合并 settings.json、写入 AGENTS.md 引导段）；采集脚本对事件载荷做了通用化处理。settings.json 中的命令路径按 IDE 生成**可移植形式**（CodeBuddy 用 `$CODEBUDDY_PROJECT_DIR/...`、Qoder 用仓库相对路径、Claude Code 用 `${CLAUDE_PROJECT_DIR}/...`），不写机器相关绝对路径——文件随仓库共享，队友克隆到任意目录都能工作；历史遗留的绝对路径条目重跑 install-hooks 会原地升级。显式 `--ide <name>` 默认要求该 IDE 配置目录已存在——仓库只为实际在用的工具接线；确需为尚未初始化的工具创建配置目录时，须显式加 `--create-dir`（防止 Agent 代跑命令时越权新建 `.qoder`/`.claude` 等目录）。
+- 自动采集/任务引导 Hook 接线支持 **CodeBuddy（`.codebuddy/`）、Qoder（`.qoder/`）、Claude Code（`.claude/`）、TRAE（`.trae/`，配置文件为 `hooks.json`）**；千问办公（QwenWork）无 shell hook 机制，走 **prompt 档**（只注入 AGENTS.md 引导段 + 主动沉淀协议块，用 `--ide qwenwork` 显式触发）。启用时运行 `codewiki install-hooks --repo-path <repo>` 自动检测项目根目录存在哪些 IDE 配置目录，检测到哪些就为哪些接线（拷贝 hook 脚本与 distill-worker subagent、幂等合并 settings.json/hooks.json、写入 AGENTS.md 引导段）；采集脚本对事件载荷做了通用化处理。配置中的命令路径一律用**项目相对形式**（如 `python ".codebuddy/hooks/task_session_start.py"`），不写机器相关绝对路径、也不用各宿主的 `$*_PROJECT_DIR` 占位符（实测展开不可靠）——文件随仓库共享，队友克隆到任意目录都能工作；历史遗留的绝对路径/占位符条目重跑 install-hooks 会原地迁移。显式 `--ide <name>` 默认要求该 IDE 配置目录已存在——仓库只为实际在用的工具接线；确需为尚未初始化的工具创建配置目录时，须显式加 `--create-dir`（防止 Agent 代跑命令时越权新建 `.qoder`/`.claude` 等目录）。
 
 **隐私语义（T2 团队遥测）：** `query_wiki` 的检索命中与 `capture_conversation` 的采纳记录会以 `user_id`（优先 `CODEWIKI_USER` 环境变量，回退 `git config user.name` / 系统登录名）署名写入 `repowiki/.meta/telemetry/<user_id>.jsonl` 并随仓库共享——此前这是 gitignore 的本机私有数据。`user_id` 不做鉴权（信任模型与 confirm 闸门一致：能提交即团队可信成员），仅作命名空间；不愿以 git 真名署名的成员可用 `CODEWIKI_USER` 设置花名，或在 `schema.yaml` 中设 `conventions.telemetry.enabled: false` 退回纯本机模式（写入 `repowiki/.meta/telemetry-local/`，已 gitignore，聚合逻辑不变）。
 
@@ -420,14 +488,15 @@ LLM 发现跨功能约束
 会话开始：
   list_tasks(status="active") → 选择关联已有任务或新建
   → set_session_task 绑定会话（后续采集自动携带 task_id）
-  → get_task_context 拉取任务描述 + 记忆 + 关联笔记
+  → get_task_context 拉取任务描述 + 分层记忆 + 关联笔记
   → 若 pending_raw_count > 0：委托「蒸馏 worker」subagent 后台补蒸馏，不阻塞开始工作
+  → 若 compaction_due：顺手 compact_task_memories 压缩旧记忆（原文进 archive，可逆）
 
 会话过程中：
   distill_conversation 双轨产出：
     notes    → 通用知识笔记（走 confirm_note 评审）
-    memories → 任务进度记忆（先暂存 pending）
-  → confirm_task_memories 确认后落盘 memories.md
+    memories → 任务进度记忆（直写落盘，ADR-0002：可逆操作免确认闸门）
+  → 需要找回旧条目时 search_task_memories（条目级检索，archive 可搜）
 ```
 
 **存储结构：**
@@ -435,19 +504,20 @@ LLM 发现跨功能约束
 ```
 repowiki/
 ├── tasks/
-│   ├── .index.json           # 任务索引
+│   ├── .index.json               # 任务索引
 │   └── <task_id>/
-│       ├── task.md           # 任务描述
-│       ├── memories.md       # 已确认的任务记忆（追加式原子写）
-│       └── pending-memories.json  # 待确认记忆暂存
+│       ├── task.md               # 任务描述
+│       ├── memories/<user_id>.md # 按用户分文件的任务记忆（追加式原子写，git 冲突隔离）
+│       └── memories-archive/<user_id>.md  # 压缩后的原文（append-only，可找回）
 └── .meta/
-    └── task_bindings/        # 会话 ↔ 任务绑定
+    └── task_bindings/            # 会话 ↔ 任务绑定
 ```
 
 **关键约束：**
 
 - task_id 由标题 slugify 生成且不可变；同名任务被拒绝；无重命名（删除后重建）。
-- 任务记忆先暂存、经 `confirm_task_memories` 确认后才落盘，与笔记评审闸门对齐。
+- 任务记忆直写落盘（ADR-0002）——可逆操作（archive 兜底）不设确认闸门，与笔记评审闸门刻意区分：笔记是跨任务共享知识须评审，记忆是任务内进度事实。
+- 记忆超阈值（40 条 / 24KB）自动压缩：get_task_context 携带 compaction_work，Agent 顺手 submit，无需用户确认。
 - 可选的 IDE SessionStart Hook（默认关闭）在会话开始时自动提示关联任务。
 
 ### 渐进式阅读协议
@@ -542,31 +612,35 @@ CodeWiki-Plus 采用 **SQLite 主存储 + JSON 兼容副本** 的双层架构：
 
 #### 文档健康检查
 
-`lint_wiki` 提供 **18 项检查**，覆盖结构完整性和内容质量：
+`lint_wiki` 提供 **25 项检查**（error 6 / warning 11 / info 8），覆盖结构完整性和内容质量：
 
-| 检查项 | 说明 |
-|--------|------|
-| `stale_refs` | 引用了已不存在的组件 |
-| `broken_links` | 断链（wikilink 指向不存在的页面） |
-| `undocumented` | 高影响力组件缺少文档 |
-| `cycles` | 模块间循环依赖 |
-| `coverage` | 文档覆盖率不足 |
-| `orphan_pages` | 没有任何页面链接到的孤立页面 |
-| `no_outlinks` | 没有链接到任何其他页面的死端页面 |
-| `missing_aliases` | 实体页面缺少 aliases 声明 |
-| `stale_sources` | 引用了已撤回外部文档的页面 |
-| `overview_stale` | overview.md 引用了已变更的模块 |
-| `unsupported_claims` | 业务断言缺少代码证据（>30% 触发警告） |
-| `superseded_pages` | 标记为已取代（superseded/deprecated）的页面 |
-| `isolated_components` | 零依赖零被依赖的孤立组件 |
-| `stale_notes` | 超过 90 天且 60 天内未被检索的已确认笔记 |
-| `note_clusters` | 同模块同类型笔记 ≥3 条，建议合并 |
-| `low_adoption` | 高频召回（≥5 次）但零采纳的 stable 笔记——内容相关但不够 actionable，建议按「步骤/命令/预期结果」重写 |
-| `okf_conformance` | OKF v0.2 合规审计：缺失 type/frontmatter、旧版状态词、verified 格式错误、stale_after 过期、缺 okf_version |
-| `scenario_capacity` | L2 场景块数量达到/超过容量上限（error/warning 分级），需先 MERGE 腾位再新增 |
-| `scenario_orphan` | 无来源标注（metadata.source_notes）且长期未被检索的孤儿场景块，可能冗余或过时 |
-| `skill_sections` | 草稿区技能页（skills/&lt;name&gt;/SKILL.md）缺失 schema `page_types.skill` 五段骨架（工作场景/适用条件/核心 SOP/判断逻辑/禁忌与反模式）——缺章节的指令资产不可执行（error） |
-| `skill_lint` | 技能页完整兜底检查：name slug / description 触发语义 / frontmatter 完整 / 正文 ≤8KB / 敏感串 / revisions 审计链（error）；素材过期联动 possibly_stale 与 install 后草稿漂移（warning）；容量红 12 / 橙 9 |
+| 检查项 | 等级 | 说明 |
+|--------|------|------|
+| `stale_refs` | error | 引用了已不存在的组件 |
+| `broken_links` | error | 断链（wikilink 指向不存在的页面） |
+| `okf_conformance` | error | OKF v0.2 合规审计：缺失 type/frontmatter、旧版状态词、verified 格式错误、stale_after 过期、缺 okf_version |
+| `scenario_capacity` | error | L2 场景块数量达到/超过容量上限（error/warning 分级），需先 MERGE 腾位再新增 |
+| `skill_sections` | error | 草稿区技能页缺失 schema 五段骨架（工作场景/适用条件/核心 SOP/判断逻辑/禁忌与反模式）——缺章节的指令资产不可执行 |
+| `skill_lint` | error | 技能页完整兜底检查：name slug / description 触发语义 / frontmatter 完整 / 正文 ≤8KB / 敏感串 / revisions 审计链；素材过期联动 possibly_stale 与 install 后草稿漂移（warning）；容量红 12 / 橙 9 |
+| `undocumented` | warning | 高影响力组件缺少文档 |
+| `orphan_pages` | warning | 没有任何页面链接到的孤立页面 |
+| `stale_sources` | warning | 引用了已撤回外部文档的页面 |
+| `overview_stale` | warning | overview.md 引用了已变更的模块 |
+| `unsupported_claims` | warning | 业务断言缺少代码证据（>30% 触发警告） |
+| `stale_evidence` | warning | 证据戳引用的代码位置已漂移 |
+| `stale_notes` | warning | 超过 90 天且 60 天内未被检索的已确认笔记 |
+| `low_adoption` | warning | 高频召回（≥5 次）但零采纳的 stable 笔记——内容相关但不够 actionable，建议按「步骤/命令/预期结果」重写 |
+| `layout_violations` | warning | 布局违规（文件未落在 page_types 路由的目录） |
+| `team_layout_gitignore` | warning | 团队布局下知识树未被正确 gitignore/共享 |
+| `open_conflicts` | warning | 冲突案卷超期未裁决（默认 14 天，schema.yaml `lint.open_conflict_max_age_days` 可调） |
+| `cycles` | info | 模块间循环依赖 |
+| `coverage` | info | 文档覆盖率不足 |
+| `isolated_components` | info | 零依赖零被依赖的孤立组件 |
+| `no_outlinks` | info | 没有链接到任何其他页面的死端页面 |
+| `missing_aliases` | info | 实体页面缺少 aliases 声明 |
+| `superseded_pages` | info | 标记为已取代（superseded/deprecated）的页面 |
+| `note_clusters` | info | 同模块同类型笔记 ≥3 条，建议合并 |
+| `scenario_orphan` | info | 无来源标注（metadata.source_notes）且长期未被检索的孤儿场景块，可能冗余或过时 |
 
 `lint_wiki` 返回 **health_score**（0-100），计算方式为 `100 - Σ(error×10 + warning×3 + info×1)`。
 
@@ -595,48 +669,58 @@ CodeWiki-Plus 采用 **SQLite 主存储 + JSON 兼容副本** 的双层架构：
 - **图谱多跳扩展**：`hop`（0-3）沿 wikilink 有向边 BFS 发现关联页面，`decay` 控制衰减
 - **深度阅读**：`expand=true` 返回完整页面内容（≤ 3000 字符）
 - **渐进模式**：`mode=overview/directory/detail` 分层消费
-- **状态过滤**：自动跳过 rejected 笔记，candidate 标注 [unconfirmed]
+- **状态过滤**：默认跳过 deprecated/shadow 笔记（`include_shadow` 显式开启），draft 标注 [unconfirmed]
 
 #### 提示词模板
 
-`get_prompt` 支持 **16 种 prompt_type**：
+`get_prompt` 支持 **23 种 prompt_type**：
 
 | prompt_type | 用途 |
 |-------------|------|
 | `cluster` | 模块聚类规则 |
 | `system_complex` / `system_leaf` | 文档生成系统指令（含 Evidence-Based + 约束索引表） |
 | `user` | 用户 prompt 模板（含代码路由 + BFS 上下文） |
-| `overview_module` / `overview_repo` | 总览合成 |
+| `overview_module` / `overview_repo` / `overview_workspace` | 总览合成（模块/仓库/工作区） |
 | `entity_page` / `concept_page` | 实体/概念页面生成 |
 | `source_summary` | 外部文档摘要 |
 | `comparison_page` / `query_page` | 对比分析 / 研究查询 |
 | `taxonomy_plan` | Wiki 分类体系规划 |
-| `extraction_scan` | 源码实体/概念候选提取 |
+| `extraction_scan` / `extraction_dedup` | 源码实体/概念候选提取 / 候选去重 |
+| `code_analysis` | 代码结构分析工作流 |
+| `impact_review` / `architecture_review` | 影响评估 / 架构审查 |
+| `consolidate` | 笔记归纳为场景块 |
+| `reflection` | 对话知识沉淀候选提取（四问过滤 + 路由表） |
 | `wiki_query` / `wiki_ingest` / `wiki_lint_report` | 知识管理工作流 |
 
 #### 工作流 Prompt
 
-MCP Server 内置 **20 个工作流 Prompt**，在 AI IDE 中通过 Prompt 面板直接触发，Agent 自动编排多工具调用：
+MCP Server 内置 **23 个工作流 Prompt**，在 AI IDE 中通过 Prompt 面板直接触发，Agent 自动编排多工具调用：
 
 | Prompt 名称 | 面向场景 | 核心步骤 |
 |-------------|----------|----------|
 | `init-wiki` | 新项目初始化 Wiki 工作区 | init_wiki 创建目录 + schema.yaml → 自定义 purpose → 验证 AGENTS.md |
 | `init-workspace` | 初始化多仓 harness 工作区 | 询问用户选知识布局 → init_workspace(layout=...) 生成 bootstrap 脚本 + .gitignore + repo-map + 工作区约定 → 克隆业务仓 → 逐个登记后按需 init_wiki/analyze_repo → analyze_workspace |
 | `add-workspace-repo` | 登记业务仓到工作区 | add_workspace_repo 事务式同步 bootstrap 登记表/.gitignore/repo-map → git clone → 建仓库级 Wiki |
+| `remove-workspace-repo` | 移除业务仓登记 | remove_workspace_repo 四处同步清理 + 跨仓缓存过滤 |
 | `generate-wiki` | 完整文档生成流水线 | analyze_repo → 聚类 save_module_tree → 逐模块 write_doc → overview → lint → close_session |
 | `code-analysis` | 仅分析代码结构，不生成文档 | analyze_repo → list_components → list_dependencies → 缓存到 SQLite |
 | `incremental-update` | 代码变更后增量更新文档 | analyze_repo（增量检测）→ 识别 stale 组件 → 选择性重生成 → close_session |
 | `workspace-analysis` | 多仓库工作区分析 | analyze_workspace → 逐仓库生成 Wiki → RouteNode 跨服务匹配 → Mermaid 拓扑图 |
 | `cross-service-trace` | 跨服务调用链追踪 | query_cross_service → RouteNode 静态匹配 → trace_path 多跳语义追踪 → 架构诊断 |
 | `impact-review` | 修改影响范围评估 | analyze_impact（BFS 传递性遍历）→ 模块级聚合 → 高风险组件识别 → 调用链路输出 |
+| `change-review` | 变更代码评审 | analyze_changes → review_changes（四维清单）→ 评审报告 |
 | `architecture-review` | 架构审查与热点分析 | 依赖图分析 → 核心层/服务层/应用层识别 → Top 5 热点 → 耦合风险 → 入口点 |
 | `extract-knowledge` | 外部文档知识提取 | ingest_source 导入 → extraction_scan 候选提取 → 实体/概念页面生成 → wikilink 图谱 |
 | `search-wiki` | 知识库搜索策略指引 | query_wiki（BM25）→ 图谱多跳扩展 → 渐进式阅读（overview → directory → detail） |
-| `quality-check` | Wiki 质量全面检查 | lint_wiki（18 项检查）→ health_score → flag_issue 标记 → 修复建议 |
-| `ingest-note` | 经验知识归档 | ingest_note（8 种类型）→ candidate 状态 → confirm/reject 流转 → BM25 索引 |
+| `quality-check` | Wiki 质量全面检查 | lint_wiki（25 项检查）→ health_score → flag_issue 标记 → 修复建议 |
+| `ingest-note` | 经验知识归档 | ingest_note（8 种类型）→ draft 状态 → confirm/reject 流转 → BM25 索引 |
+| `promote-note` | 笔记晋级为正式 Wiki 页面 | 候选筛选（stable + 高采纳 + 够老）→ 生成目标页 → 回写 promoted_to |
+| `retract-source` | 外部文档撤回 | retract_source（flag_stale / remove_refs）→ 引用清理 |
 | `team-memory-hook` | 对话自动采集管理 | 检查状态 → 启用（注册 SessionEnd 事件）/ 关闭 → 验证 |
 | `distill-conversations` | 对话蒸馏提取经验 | prepare 取 transcript → Agent 提取知识 → submit 去重入库 → confirm/reject 评审 |
-| `task-workflow` | 任务记忆完整工作流 | 会话开始关联任务 → 补蒸馏 → get_task_context → 工作中沉淀 memories → confirm 落盘 |
+| `task-workflow` | 任务记忆完整工作流 | 会话开始关联任务 → 补蒸馏 → get_task_context → 工作中沉淀 memories → 压缩/检索 |
+| `consolidate-knowledge` | 笔记归纳为场景块 | consolidate_notes prepare → 归纳 → submit 处置审计 → 容量治理 |
+| `skill-creator` | 知识编译为技能 | skill_creator prepare → 撰写 SKILL.md → submit → install（用户确认） |
 
 ### 使用场景示例
 
@@ -668,7 +752,7 @@ Agent 调用 `query_wiki(query="订单状态机", hop=1)`，返回相关文档 +
 记录一个踩坑：Redis 连接池在高并发下偶尔超时，根因是 maxTotal 设置过低。
 ```
 
-Agent 调用 `ingest_note(note_type="pitfall", status="candidate")`，写入笔记待确认。
+Agent 调用 `ingest_note(note_type="pitfall", status="draft")`，写入笔记待确认（检索带 [unconfirmed] 前缀）。
 
 **场景 5：确认/否决知识**
 
@@ -676,7 +760,7 @@ Agent 调用 `ingest_note(note_type="pitfall", status="candidate")`，写入笔�
 确认 notes/pitfall-redis-connection-pool.md 这条笔记。
 ```
 
-Agent 调用 `confirm_note(note_file="pitfall-redis-connection-pool.md")`，升级为正式知识。
+Agent 调用 `confirm_note(note_file="pitfall-redis-connection-pool.md")`，升级为 stable 正式知识（可带 test_ref/commit_ref 证据升 strong 置信）。
 
 **场景 6：导入外部文档**
 
@@ -690,7 +774,7 @@ Agent 调用 `confirm_note(note_file="pitfall-redis-connection-pool.md")`，升�
 检查一下 Wiki 文档的健康状况。
 ```
 
-Agent 调用 `lint_wiki`，返回 18 项诊断报告和 health_score。
+Agent 调用 `lint_wiki`，返回 25 项诊断报告和 health_score。
 
 **场景 8：跨服务调用分析**
 
@@ -720,22 +804,40 @@ Agent 调用 `list_tasks` 找到任务 → `set_session_task` 绑定会话 → `
 
 ### 团队记忆 Hook 的智能体支持矩阵
 
-对话采集 Hook（team-memory-hook）按家族归并支持多种智能体（注册表 `codewiki/hooks.yaml`，家族格式：claude = settings.json、cursor/codex = hooks.json）：
+对话采集 Hook（team-memory-hook）按家族归并支持多种智能体。下表**由注册表 `codewiki/hooks.yaml` 经 `hook_registry.support_matrix_markdown()` 生成**（单一事实来源是注册表——增减智能体/改档位请改 `hooks.yaml`，勿手改本表）：
 
-| 智能体 | 家族 | 支持等级 |
-|--------|------|----------|
-| `codebuddy` | claude | 已验证 |
-| `qoder` | claude | 已验证 |
-| `claude-code` | claude | 已验证 |
-| `codex-cli` | codex | 理论支持 |
-| `cursor` | cursor | 理论支持（采集降级：stop 事件不带 transcript，仅事件信封） |
-| `gemini-cli` | claude | 理论支持 |
-| `trae` | claude | 理论支持 |
-| `windsurf` | claude | 理论支持 |
-| `kilocode` | claude | 理论支持 |
-| `opencode` | claude | 理论支持 |
+| 智能体 | 家族 | 支持等级 | 档位 |
+|--------|------|----------|------|
+| `claude-code` | claude | 已验证 | hook |
+| `codebuddy` | claude | 已验证 | hook |
+| `qoder` | claude | 已验证 | hook |
+| `qwenwork` | prompt | 已验证 | prompt |
+| `trae` | trae | 已验证 | hook |
+| `codex-cli` | codex | 理论支持 | hook |
+| `cursor` | cursor | 理论支持 | hook |
+| `gemini-cli` | claude | 理论支持 | hook |
+| `kilocode` | claude | 理论支持 | hook |
+| `opencode` | claude | 理论支持 | hook |
+| `windsurf` | claude | 理论支持 | hook |
 
 "已验证"指日常使用背书；"理论支持"指家族归并推导、未经真机验证——接线后请按 team-memory-hook prompt 的模拟事件步骤验证。不支持 hook 的运行时可用 `capture_conversation` MCP 工具手动采集。
+
+**能力缺口说明**（家族层事实，与某仓库是否已接线无关）：
+- **`trae`**：无 SessionEnd 事件、Stop 每轮触发但不携带 `transcript_path`，hook 采集无正文可落盘；但 **SessionStart / UserPromptSubmit 完整注入**（`hookSpecificOutput.additionalContext`）。主动沉淀固定启用（ADR-0014）：会话停顿点直写任务记忆/草稿笔记（下轮零延迟），对话捕获由 Agent 收尾轮 norm 兜底。
+- **`cursor`**：家族归并推导（`verified: false`），接线后必须跑模拟事件验证；该家族 stop 事件不带 `transcript_path`，无正文可采、不落盘，采集降级。
+- **`qwenwork`**：无 shell hook 机制，走 prompt 档 + 主动沉淀（固定启用），全靠注入文件自动加载 + Agent 中介执行。
+
+**档位 × 采集开关 选择表**（决策树见 `docs/接线档位选择设计方案.md` §3.12，先用 `codewiki install-hooks --status` 看支持性与当前采集状态）：
+
+| 档位（wiring） | capture | 产物 | 适用 | 任务记忆可见延迟 |
+|---|---|---|---|---|
+| `hook` | `on`（默认） | `<config_dir>/hooks/*.py` + settings 注册 + 注入引导段 + 协议块 | 采集完整宿主（codebuddy/qoder/claude-code）默认，现状批处理 | **0**（停顿点直写）+ 采集兜底 |
+| `hook` | `off` | 同上，但无 SessionEnd（trae 为 Stop）采集注册 | 主动沉淀效果好、不再需要采集→蒸馏链路 | **0**（停顿点直写） |
+| `prompt` | `on` | 仅注入文件（引导段 + 协议块） | 无 shell hook 宿主（qwenwork）或团队共享仓库不留脚本/settings | **0** |
+
+主动沉淀（ADR-0014）固定启用：任务记忆唯一通道是 `add_task_memory` 直写，蒸馏固定只产经验笔记（`memories_skipped_reason=channel_exclusive`）。
+
+选择入口：`codewiki install-hooks [--capture on|off] [--status]`。档位由 `hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（qwenwork）走 prompt 档，无手动覆盖（`--mode` 已移除，传入即硬报错）。
 
 **无 MCP 环境的检索**：`codewiki query "<关键词>"` CLI 命令输出 Agent 友好的定界文本块（与 query_wiki 同一引擎），配合 `codewiki/agents/wiki-recall.md` subagent 定义（拷入各工具的 agents 目录），任何能执行 shell 命令的 Agent 均可消费团队知识库。
 
@@ -769,7 +871,7 @@ CodeWiki-Plus 的核心工具链（Tree-sitter AST 解析、依赖图构建、�
 - [Tencent/WeKnora](https://github.com/Tencent/WeKnora) — 外部文档管理、文档健康检查、自适应分块思路
 - [CodingHub](https://github.com/mambo-wang/CodingHub) — MCP Server 最佳实践（instructions / prompts / resources）
 
-我们在上游基础上将 MCP Server 从黑盒模式拆分为 **40 个细粒度工具**，并新增结构化 Wiki、Evidence-Based 断言、代码路由分类、知识飞轮、渐进式阅读、方法级增量检测、monorepo 跨服务分析、团队记忆融合、任务记忆等能力。
+我们在上游基础上将 MCP Server 从黑盒模式拆分为 **53 个细粒度工具**，并新增结构化 Wiki、Evidence-Based 断言、代码路由分类、知识飞轮（OKF v0.2 + 置信分层 + 冲突治理 + 使用结果信号）、渐进式阅读、方法级增量检测、monorepo 跨服务分析、团队记忆融合（采集 → 蒸馏 → 归纳 → 技能编译）、任务记忆（条目级检索 + 自动压缩）等能力。
 
 上游论文：[CodeWiki: Evaluating AI's Ability to Generate Holistic Documentation for Large-Scale Codebases](https://arxiv.org/abs/2510.24428)
 
@@ -807,7 +909,7 @@ The original CodeWiki is an excellent repository-level documentation framework. 
 
 In practice, CodeWiki's core toolchain—Tree-sitter AST parsing, dependency graph construction, topological sorting, and Mermaid validation—does not need an LLM at all. The 4 stages that do require LLM intelligence (module clustering, document writing, sub-module recursion, and overview synthesis) are exactly what AI IDE Agents excel at.
 
-We refactored CodeWiki's MCP Server from a "one-click black box" into **40 fine-grained tools**, turning it into a pure toolchain server. The AI IDE's Agent calls these tools via MCP and uses its own reasoning to complete all documentation work:
+We refactored CodeWiki's MCP Server from a "one-click black box" into **53 fine-grained tools**, turning it into a pure toolchain server. The AI IDE's Agent calls these tools via MCP and uses its own reasoning to complete all documentation work:
 
 ```
 Before:
@@ -823,16 +925,17 @@ After:
 | Dimension | Upstream CodeWiki | CodeWiki-Plus |
 |-----------|------------------|---------------|
 | LLM config | Must configure API key | Zero-config, IDE model driven |
-| Generation mode | Black-box one-click | 40 fine-grained tools, full Agent control |
+| Generation mode | Black-box one-click | 53 fine-grained tools, full Agent control |
 | Doc quality | Generic descriptions | Evidence-Based assertions (code quotes + confidence) |
 | Generation efficiency | All components equal | Code routing: boilerplate gets signature-only |
 | Context precision | Intra-module components | BFS 1-hop call graph + constraint index table |
 | Incremental update | File-level Git diff | Method-level content_hash detection |
 | Knowledge management | None | Structured Wiki + note flywheel + external docs |
-| Task memory | None | Cross-session task context + pending-confirm task memories |
+| Knowledge trust | None | Confidence levels (strong/weak/shadow) + conflict cases + outcome telemetry |
+| Task memory | None | Cross-session task context + entry-level recall + auto-compaction |
 | Search | None | BM25 + wikilink graph multi-hop + progressive reading |
 | Cross-service | None | Monorepo sub-service detection + call tracing |
-| Quality assurance | None | 17 lint checks + health score + issue tracking |
+| Quality assurance | None | 25 lint checks + health score + issue tracking |
 
 ### Prerequisites
 
@@ -907,9 +1010,9 @@ Stage 5: Call close_session to free resources, build search index
 
 ### MCP Tools
 
-All tools require zero LLM config. The IDE Agent invokes them via MCP. The server includes built-in **instructions**, **19 Workflow Prompts** (covering init, generation, incremental update, search, quality check, cross-service analysis, team memory fusion, task memory), and **6 Resources**.
+All tools require zero LLM config. The IDE Agent invokes them via MCP. The server includes built-in **instructions**, **23 Workflow Prompts** (covering init, generation, incremental update, search, quality check, cross-service analysis, team memory fusion, task memory), and **6 Resources** (3 static + 3 templates).
 
-**Code Analysis (6):**
+**Code Analysis & Review (10):**
 
 | Tool | Purpose |
 |------|---------|
@@ -919,6 +1022,10 @@ All tools require zero LLM config. The IDE Agent invokes them via MCP. The serve
 | `list_dependencies` | Query dependencies with pagination, direction filtering, high-impact ranking |
 | `read_code_components` | Read source code by component ID |
 | `view_repo_file` | View raw source file content with optional line range |
+| `analyze_impact` | Change impact assessment (BFS transitive traversal, module aggregation, high-risk identification) |
+| `analyze_changes` | Change detection: code changes and affected docs since last generation |
+| `review_changes` | Four-dimension code review against team-deposited checklists |
+| `watch_repo` | Repository change watching |
 
 **Documentation Pipeline (6):**
 
@@ -931,27 +1038,38 @@ All tools require zero LLM config. The IDE Agent invokes them via MCP. The serve
 | `get_prompt` | Retrieve prompt templates (23 prompt_types) |
 | `close_session` | Close session, build BM25 index + wikilink graph, write metadata |
 
-**Knowledge Management (11):**
+**Knowledge Management (13):**
 
 | Tool | Purpose |
 |------|---------|
-| `query_wiki` | BM25 search + wikilink graph multi-hop + **progressive reading** (mode=overview/directory/detail); source_type annotation |
-| `ingest_note` | File structured notes (8 types) with aliases + source_ref; default candidate status |
-| `confirm_note` | Promote candidate note to confirmed knowledge |
-| `reject_note` | Reject candidate note, exclude from future searches |
+| `query_wiki` | BM25 search + wikilink graph multi-hop + **progressive reading** (mode=overview/directory/detail); source_type and confidence annotation; shadow assets gated behind include_shadow |
+| `ingest_note` | File structured notes (8 types) with aliases + source_ref; default draft status (weak confidence, [unconfirmed] prefix in search) |
+| `confirm_note` | Promote draft note to stable (records a verified event); with evidence (test_ref/commit_ref/reviewed_by) promotes confidence to strong |
+| `reject_note` | Reject note (deprecated + shadow confidence, excluded from search by default) |
 | `batch_set_status` | Batch transition note statuses (confirm/reject multiple at once) |
+| `stamp_evidence` | Stamp evidence onto page assertions (Evidence-Based audit chain) |
 | `ingest_source` | Import third-party docs into `raw/sources/` |
 | `retract_source` | Retract imported docs (flag_stale / remove_refs) |
 | `batch_ingest` | Batch import multiple notes/sources in one call |
 | `init_wiki` | Initialize Wiki workspace directories and project-level schema.yaml |
-| `wiki_stats` | Wiki statistics (page counts, note status distribution, coverage overview) |
+| `wiki_stats` | Wiki statistics (retrieval heat, cold notes, promotion candidates, confidence distribution, outcome ratio) |
 | `skill_creator` | Compile confirmed knowledge (scenario blocks + stable pitfall/lesson/decision notes + per-skill open issues) into SKILL.md behaviour-instruction drafts in `repowiki/skills/` (two-zone draft area: indexed and linted, never effective). Mode C: prepare (zero side effects) returns candidates, conflict pre-check (Jaccard > 0.6), capacity warning (orange >= 9 update-only, red >= 12 merge-first) and the writing system prompt → the agent writes → submit validates (failures name the exact rule), writes the draft, records bidirectional provenance (source_refs ⇄ compiled_into), appends revisions and rebuilds the index. Empty output (no_action) is legal; at most one new skill per batch. install (after user confirmation): strip management frontmatter into the effect zone `.codebuddy/skills/<name>/` (idempotent, stamps installed_at/to/hash for drift detection); retire: mark the draft deprecated + remove the effect copy (body kept for audit, reason required) |
+| `report_outcome` | Usage outcome signal (third telemetry event after hit and adopted): report success/failure after actually using a doc (binary + one-line note), dual-anchored doc + task_id; feeds wiki_stats and distillation negative examples |
+
+**Knowledge Governance (4):**
+
+| Tool | Purpose |
+|------|---------|
+| `consolidate_notes` | Consolidate confirmed notes into L2 scenario blocks (wiki/scenarios/, Mode C prepare/submit, capacity gating + disposition audit) |
+| `refresh_doctrine` | Refresh team working-conventions consensus (L3 doctrine.md) from consensus notes |
+| `flag_conflict` | Declare two notes contradictory (top-level conflicts/ case file, manual idempotent declaration, ADR-0007) |
+| `adjudicate_conflict` | Adjudicate a conflict case (keep_a / keep_b / coexist / reject, reuses the reject_note primitive) |
 
 **Quality Assurance (2):**
 
 | Tool | Purpose |
 |------|---------|
-| `lint_wiki` | Doc-code consistency: **18 checks** (incl. unsupported_claims evidence detection, low_adoption utility check, and L2 scenario hygiene) |
+| `lint_wiki` | Doc-code consistency: **25 checks** (incl. unsupported_claims evidence detection, low_adoption utility check, skill page checks, open_conflicts aging) |
 | `flag_issue` | Flag quality issues, drives health score |
 
 **Cross-Service Analysis (1):**
@@ -972,23 +1090,21 @@ All tools require zero LLM config. The IDE Agent invokes them via MCP. The serve
 
 | Tool | Purpose |
 |------|---------|
-| `capture_conversation` | Capture conversation transcripts to repowiki/raw/ (persistence only, no distillation); session-level supersede dedup |
-| `distill_conversation` | Distill raw conversations into Wiki notes: Mode C prepare → Agent extracts → submit (status=draft); requires confirm_note |
+| `capture_conversation` | Capture conversation transcripts to repowiki/raw/ (persistence only, no distillation); session-level supersede dedup; extracts adoption declarations into telemetry |
+| `distill_conversation` | Distill raw conversations into Wiki notes + task memories: Mode C prepare → Agent extracts → submit (notes as draft pending confirmation; task memories direct-write per ADR-0002); prepare carries negative_examples from recent outcome failures |
 
-**Task Management (12):**
+**Task Management (10):**
 
 | Tool | Purpose |
 |------|---------|
 | `create_task` | Create a long-running task (task_id slugified from title, immutable, no duplicates) |
 | `list_tasks` | List tasks with status filtering (active / completed) |
 | `get_task` | Inspect a single task |
-| `get_task_context` | Fetch task description + memories + related notes as working context; reports pending_raw_count for catch-up distillation |
+| `get_task_context` | Fetch task description + layered memories (own hot layer + teammates' summaries) + related notes; reports pending_raw_count for catch-up distillation and compaction_due for memory compaction |
 | `set_session_task` | Bind the current session to a task; subsequent captures/distillations carry task_id automatically |
-| `add_task_memory` | Manually append a progress memory to a task |
-| `stage_task_memories` | Stage candidate task memories (pending confirmation) |
-| `list_pending_memories` | List pending task memories |
-| `confirm_task_memories` | Confirm staged memories, persist to the task's memories.md |
-| `reject_task_memories` | Reject staged memories |
+| `add_task_memory` | Append a progress memory to the task (per-user file, direct write per ADR-0002: reversible operations skip the confirm gate) |
+| `search_task_memories` | Entry-level keyword recall over one task's memories (in-memory BM25, archives searchable, defaults to own memories) |
+| `compact_task_memories` | Compress old task memories into a summary (keeps the latest 20 entries verbatim; originals go to memories-archive/; two-phase prepare/submit, agent-run) |
 | `complete_task` | Mark a task complete |
 | `delete_task` | Delete a task (cascades task dir and bindings, but keeps tagged notes) |
 
@@ -1040,15 +1156,20 @@ Three layers of incremental optimization:
 
 ### Knowledge Flywheel
 
-Notes follow the OKF v0.2 draft → stable → deprecated lifecycle:
+Notes follow the OKF v0.2 draft → stable → deprecated lifecycle, augmented with **confidence levels** (strong/weak/shadow, orthogonal to status):
 
 ```
 LLM discovers cross-cutting constraint
-  → ingest_note(status=draft)
+  → ingest_note(status=draft, confidence=weak)
   → query_wiki annotates [unconfirmed]
   → Developer confirms: confirm_note → promoted to stable, records a verified event
-  → Developer rejects: reject_note → marked deprecated, excluded from search (record preserved)
+      └ with evidence (test_ref/commit_ref/reviewed_by) → confidence promoted to strong
+  → Developer rejects: reject_note → marked deprecated, confidence drops to shadow, excluded from search (record preserved)
 ```
+
+Retrieval ranking folds confidence weight (strong +0.10 / weak 0 / shadow −0.30); `wiki_stats` tracks the strong ratio as a north-star metric (>60%). A third usage signal closes the loop — **outcome telemetry**: `report_outcome` records whether using a doc led to success or failure at task wrap-up; recent failures feed distillation prompts (negative_examples) so the same misuse patterns are avoided when extracting new knowledge.
+
+Contradictory notes can be filed as conflict cases (`flag_conflict` → top-level conflicts/) and adjudicated (`adjudicate_conflict`), with the losing side automatically demoted.
 
 ### Team Memory Fusion
 
@@ -1078,14 +1199,15 @@ Task Memory solves the "cross-session amnesia" problem for long-running work: a 
 Session start:
   list_tasks(status="active") → pick an existing task or create one
   → set_session_task binds the session (captures carry task_id automatically)
-  → get_task_context restores description + memories + related notes
+  → get_task_context restores description + layered memories + related notes
   → if pending_raw_count > 0: catch-up distillation before working
+  → if compaction_due: compact_task_memories (originals archived, reversible)
 
 During the session:
   distill_conversation produces two tracks:
     notes    → general knowledge notes (confirm_note review)
-    memories → task progress memories (staged as pending first)
-  → confirm_task_memories persists them to memories.md
+    memories → task progress memories (direct write per ADR-0002: reversible, no confirm gate)
+  → search_task_memories recalls old/truncated entries when needed (archives searchable)
 ```
 
 **Storage layout:**
@@ -1093,16 +1215,17 @@ During the session:
 ```
 repowiki/
 ├── tasks/
-│   ├── .index.json                # task index
-│   └── <task_id>/                 # task.md + memories.md + pending-memories.json
+│   ├── .index.json                     # task index
+│   └── <task_id>/                      # task.md + memories/<user_id>.md + memories-archive/
 └── .meta/
-    └── task_bindings/             # session ↔ task bindings
+    └── task_bindings/                  # session ↔ task bindings
 ```
 
 **Key constraints:**
 
 - task_id is slugified from the title and immutable; duplicate titles are rejected; no rename (delete and recreate).
-- Task memories are staged first and only persisted after `confirm_task_memories`, aligned with the note review gate.
+- Task memories are written directly (ADR-0002) — reversible operations (archive-backed) skip the confirm gate, deliberately distinct from the note review gate: notes are shared cross-task knowledge and need review, memories are task-scoped progress facts.
+- Memories beyond the thresholds (40 entries / 24KB) are auto-compacted: get_task_context carries compaction_work, the agent submits the summary — no user confirmation needed.
 - An optional IDE SessionStart hook (off by default) can prompt task association at session start.
 
 ### Progressive Reading Protocol
@@ -1118,27 +1241,33 @@ repowiki/
 
 ### Workflow Prompts
 
-The MCP server includes **21 built-in workflow prompts** that can be triggered from the AI IDE's prompt panel. The Agent automatically orchestrates multi-tool calls:
+The MCP server includes **23 built-in workflow prompts** that can be triggered from the AI IDE's prompt panel. The Agent automatically orchestrates multi-tool calls:
 
 | Prompt | Scenario | Core Steps |
 |--------|----------|------------|
 | `init-wiki` | Initialize Wiki workspace for a new project | init_wiki (dirs + schema.yaml) → customize purpose → verify AGENTS.md |
 | `init-workspace` | Initialize a multi-repo harness workspace | Ask the user for the knowledge layout → init_workspace(layout=...) (bootstrap scripts + .gitignore + repo-map + conventions) → clone repos → register each repo, then init_wiki/analyze_repo on demand → analyze_workspace |
 | `add-workspace-repo` | Register a business repo into a workspace | add_workspace_repo (transactional sync of bootstrap tables/.gitignore/repo-map) → git clone → build repo-level Wiki |
+| `remove-workspace-repo` | Deregister a business repo | remove_workspace_repo (4-way cleanup + cross-repo cache scrub) |
 | `generate-wiki` | Full documentation generation pipeline | analyze_repo → cluster → per-module write_doc → overview → lint → close_session |
 | `code-analysis` | Analyze code structure only (no docs) | analyze_repo → list_components → list_dependencies → cache to SQLite |
 | `incremental-update` | Update docs after code changes | analyze_repo (incremental) → detect stale → selective regeneration → close_session |
 | `workspace-analysis` | Multi-repo workspace analysis | analyze_workspace → per-repo Wiki → RouteNode cross-service matching → Mermaid topology |
 | `cross-service-trace` | Cross-service call chain tracing | query_cross_service → RouteNode matching → trace_path multi-hop → architecture diagnosis |
 | `impact-review` | Change impact assessment | analyze_impact (BFS transitive) → module aggregation → high-risk identification → call paths |
+| `change-review` | Change code review | analyze_changes → review_changes (four-dimension checklist) → review report |
 | `architecture-review` | Architecture review & hotspot analysis | Dependency graph → layer identification → Top 5 hotspots → coupling risks → entry points |
 | `extract-knowledge` | External document knowledge extraction | ingest_source → extraction_scan → entity/concept pages → wikilink graph |
 | `search-wiki` | Knowledge base search strategy | query_wiki (BM25) → graph multi-hop expansion → progressive reading |
-| `quality-check` | Comprehensive Wiki quality check | lint_wiki (18 checks) → health_score → flag_issue → fix suggestions |
-| `ingest-note` | Experience knowledge archiving | ingest_note (8 types) → candidate status → confirm/reject → BM25 index |
+| `quality-check` | Comprehensive Wiki quality check | lint_wiki (25 checks) → health_score → flag_issue → fix suggestions |
+| `ingest-note` | Experience knowledge archiving | ingest_note (8 types) → draft status → confirm/reject → BM25 index |
+| `promote-note` | Promote a note into a formal wiki page | candidate filter (stable + highly adopted + old enough) → generate target page → stamp promoted_to |
+| `retract-source` | Retract an external document | retract_source (flag_stale / remove_refs) → reference cleanup |
 | `team-memory-hook` | Conversation capture hook management | Check status → enable (register SessionEnd event) / disable → verify |
 | `distill-conversations` | Conversation distillation | prepare fetch transcripts → Agent extracts → submit ingest → confirm/reject review |
-| `task-workflow` | Full task memory workflow | Associate task at session start → catch-up distillation → get_task_context → accumulate memories → confirm |
+| `task-workflow` | Full task memory workflow | Associate task at session start → catch-up distillation → get_task_context → accumulate memories → compact/recall |
+| `consolidate-knowledge` | Consolidate notes into scenario blocks | consolidate_notes prepare → consolidate → submit disposition audit → capacity governance |
+| `skill-creator` | Compile knowledge into skills | skill_creator prepare → write SKILL.md → submit → install (user confirms) |
 
 ### Supported Languages
 

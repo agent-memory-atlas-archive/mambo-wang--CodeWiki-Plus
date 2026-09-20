@@ -371,7 +371,8 @@ def test_end_to_end_task_memory_flow(tmp_path):
     cid = cap["conversation_id"]
     assert cid.startswith("conv-")
 
-    # 3. Distill: produce both a wiki note and a task memory.
+    # 3. Distill: produce a wiki note; memories are channel-exclusive
+    #    (ADR-0014) — distillation never writes task memories.
     sub = _call(
         distill.handle_distill_conversation,
         repo_path=repo,
@@ -394,15 +395,14 @@ def test_end_to_end_task_memory_flow(tmp_path):
     assert sub["status"] == "completed"
     per = sub["distilled"][0]
     assert per["notes_created"] == 1
-    assert per["memories_written"] == 1
+    assert per["memories_written"] == 0
+    assert per["memories_skipped_reason"] == "channel_exclusive"
     assert per["task_id"] == task_id
 
-    # 4. Distilled memories are written DIRECTLY (ADR-0002, no confirm gate):
-    #    timestamp-headed entry already in memories.md.
+    # 4. Distilled memories are NOT written (ADR-0014 channel exclusivity):
+    #    task memories come exclusively from add_task_memory direct writes.
     got = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
-    assert "JWT 实现" in got["memories"]
-    assert got["memories_total"] == 1
-    assert got["memories"].startswith("### ")
+    assert got["memories_total"] == 0
 
     # 5. The note is stamped with task_id and retrievable via query_wiki.
     #    Draft notes surface with an "[unconfirmed]" prefix, so match on substring.
@@ -534,7 +534,8 @@ def test_add_task_memory_stamps_timestamp_heading(tmp_path, monkeypatch):
     assert len(headings) == 2
     import re as _re
 
-    assert all(_re.match(r"^### \d{4}-\d{2}-\d{2} \d{2}:\d{2}$", h) for h in headings)
+    # ADR-0009: headings carry a persistent entry id ("### ... #a3f2").
+    assert all(_re.match(r"^### \d{4}-\d{2}-\d{2} \d{2}:\d{2} #[0-9a-z]{4}$", h) for h in headings)
     assert "第一条记忆" in text and "第二条记忆" in text
 
 
@@ -576,9 +577,9 @@ def test_append_direct_stamps_heading_and_tolerates_ghost(tmp_path, monkeypatch)
 
 
 def test_distill_memory_heading_uses_captured_at(tmp_path, monkeypatch):
-    """Distilled memory entries carry the conversation's captured_at (dialogue
-    time), not the distillation moment — batch catch-up must not mis-date
-    yesterday's conversations as today."""
+    """ADR-0014: distillation is notes-only (channel exclusivity) — the
+    captured_at heading logic for distilled memories is retired along with
+    the memory channel. This test now pins the new contract."""
     from datetime import datetime
     from pathlib import Path
 
@@ -587,7 +588,7 @@ def test_distill_memory_heading_uses_captured_at(tmp_path, monkeypatch):
     r = _call(tm.handle_create_task, repo_path=repo, title="时间戳溯源")
     task_id = r["task"]["id"]
 
-    # Dialogue captured days ago (UTC) — heading must reflect that moment.
+    # Dialogue captured days ago (UTC).
     _write_raw_capture(tmp_path, "conv-old.md", task_id, "2026-09-05T03:30:00Z")
 
     sub = _call(
@@ -602,19 +603,138 @@ def test_distill_memory_heading_uses_captured_at(tmp_path, monkeypatch):
         },
     )
     assert sub["status"] == "completed"
-    assert sub["distilled"][0]["memories_written"] == 1
+    assert sub["distilled"][0]["memories_written"] == 0
+    assert sub["distilled"][0]["memories_skipped_reason"] == "channel_exclusive"
 
-    text = (Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md").read_text(
-        encoding="utf-8"
+    # No memory file is created for the task.
+    mem = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    assert not mem.exists()
+
+
+def test_distill_task_scoped_skips_memories_by_default(tmp_path):
+    """Channel mutual exclusion (ADR-0010/0014): distillation is FIXED to
+    notes-only on ALL paths — task memories belong exclusively to the
+    active-settle channel (add_task_memory direct writes)."""
+    from pathlib import Path
+
+    repo = str(tmp_path)
+    r = _call(tm.handle_create_task, repo_path=repo, title="通道互斥任务")
+    task_id = r["task"]["id"]
+
+    cap = _call(
+        capture.handle_capture_conversation,
+        repo_path=repo,
+        conversation=[
+            {"role": "user", "content": "帮我实现通道互斥"},
+            {"role": "assistant", "content": "已实现，采用通道级互斥方案"},
+        ],
+        task_id=task_id,
     )
-    # captured_at is UTC; headings are local-naive (datetime.now() clock).
-    expect = (
-        datetime.fromisoformat("2026-09-05T03:30:00+00:00")
-        .astimezone()
-        .strftime("%Y-%m-%d %H:%M")
+    cid = cap["conversation_id"]
+
+    # Task-scoped path: memories deterministically skipped, notes land.
+    sub = _call(
+        distill.handle_distill_conversation,
+        repo_path=repo,
+        mode="submit",
+        task_id=task_id,
+        distilled={
+            cid: {
+                "notes": [
+                    {
+                        "title": "通道互斥经验",
+                        "note_type": "lesson",
+                        "content": "## 背景\n\n测试。\n\n## 正确做法\n\n互斥。",
+                    }
+                ],
+                "memories": ["不应写入的记忆"],
+            }
+        },
     )
-    assert text.startswith(f"### {expect}")
-    assert "昨天会话的进度记忆" in text
+    assert sub["status"] == "completed"
+    per = sub["distilled"][0]
+    assert per["notes_created"] == 1
+    assert per["memories_written"] == 0
+    assert per["memories_skipped_reason"] == "channel_exclusive"
+
+    got = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
+    assert got["memories_total"] == 0
+
+    # Non-catch-up path (no task_id filter): same contract — notes only.
+    cap2 = _call(
+        capture.handle_capture_conversation,
+        repo_path=repo,
+        conversation=[
+            {"role": "user", "content": "再来一轮双轨"},
+            {"role": "assistant", "content": "非补蒸馏路径仍只产笔记"},
+        ],
+        task_id=task_id,
+    )
+    cid2 = cap2["conversation_id"]
+    sub2 = _call(
+        distill.handle_distill_conversation,
+        repo_path=repo,
+        mode="submit",
+        distilled={
+            cid2: {
+                "notes": [],
+                "memories": ["双轨路径写入的记忆"],
+            }
+        },
+    )
+    assert sub2["status"] == "completed"
+    per2 = sub2["distilled"][0]
+    assert per2["memories_written"] == 0
+    assert per2["memories_skipped_reason"] == "channel_exclusive"
+
+    got2 = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
+    assert got2["memories_total"] == 0
+
+
+def test_distill_note_carries_source_session(tmp_path):
+    """Session provenance: distilled draft notes carry the raw capture's
+    source_session id under metadata, so a note can be traced back to the
+    originating IDE session (note → session → task binding)."""
+    from pathlib import Path
+
+    repo = str(tmp_path)
+    r = _call(tm.handle_create_task, repo_path=repo, title="会话溯源任务")
+    task_id = r["task"]["id"]
+
+    raw_dir = Path(repo) / "repowiki" / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    (raw_dir / "conv-sess.md").write_text(
+        "---\n"
+        "type: conversation\n"
+        "status: pending\n"
+        f'task_id: "{task_id}"\n'
+        'captured_at: "2026-09-17T01:00:00Z"\n'
+        'source_session: "sess-abc123"\n'
+        "---\n\nuser: hi",
+        encoding="utf-8",
+    )
+
+    sub = _call(
+        distill.handle_distill_conversation,
+        repo_path=repo,
+        mode="submit",
+        distilled={
+            "conv-sess": {
+                "notes": [
+                    {
+                        "title": "会话溯源经验",
+                        "note_type": "lesson",
+                        "content": "## 背景\n\n测试溯源。\n\n## 正确做法\n\n带 source_session。",
+                    }
+                ],
+                "memories": [],
+            }
+        },
+    )
+    assert sub["status"] == "completed"
+    note_file = sub["distilled"][0]["notes"][0]["note_file"]
+    text = Path(note_file).read_text(encoding="utf-8")
+    assert 'source_session: "sess-abc123"' in text
 
 
 def test_split_memories_three_formats():
@@ -927,9 +1047,10 @@ def test_compact_submit_validations(tmp_path):
         repo_path=repo,
         task_id=task_id,
         mode="submit",
-        summary="x" * 2049,
+        summary="x" * 4097,
     )
     assert "exceeds" in r2["error"]
+    assert "over by 1" in r2["error"]
     # Invalid mode.
     r3 = _call(tm.handle_compact_task_memories, repo_path=repo, task_id=task_id, mode="bogus")
     assert "mode must be" in r3["error"]
@@ -1068,7 +1189,10 @@ def test_legacy_file_is_hot_layer_single_user_zero_regression(tmp_path, monkeypa
     mem.write_text(raw, encoding="utf-8")
 
     ctx = _call(tm.handle_get_task_context, repo_path=repo, task_id=task_id)
-    assert ctx["memories"] == raw
+    # ADR-0009: legacy entries gain lazy ordinal ids (#e01...) at injection
+    # time; the FILE stays byte-identical (no supersede, no rewrite).
+    assert mem.read_text(encoding="utf-8") == raw
+    assert "#e01" in ctx["memories"] and "#e03" in ctx["memories"]
     assert tm._WARM_SECTION_HEADING not in ctx["memories"]
 
 
@@ -1230,3 +1354,265 @@ def test_index_rebuild_idempotent_and_status_preserved(tmp_path):
     entry3 = [t for t in lst3["tasks"] if t["id"] == task_id][0]
     assert entry3["status"] == "completed"
     assert entry3.get("completed_at")
+
+
+# --------------------------------------------------------------------------- #
+# ADR-0009: supersede + write check + compaction level
+# --------------------------------------------------------------------------- #
+
+
+def _mk_task_with_memories(tmp_path, monkeypatch, contents, user="alice"):
+    monkeypatch.setenv("CODEWIKI_USER", user)
+    repo = str(tmp_path)
+    r = _call(tm.handle_create_task, repo_path=repo, title="退役测试")
+    task_id = r["task"]["id"]
+    for c in contents:
+        _call(tm.handle_add_task_memory, repo_path=repo, task_id=task_id, content=c)
+    return repo, task_id
+
+
+def test_supersede_marks_and_filters(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    repo, task_id = _mk_task_with_memories(
+        tmp_path, monkeypatch, ["旧结论：用方案A", "另一条独立记忆"]
+    )
+    ctx = _call(tm.handle_get_task_context, repo_path=repo, task_id=task_id)
+    # ADR-0009: new writes carry persistent ids on the heading (no lazy
+    # ordinals for entries written after this feature).
+    assert "#e01" not in ctx["memories"]
+    assert "旧结论：用方案A" in ctx["memories"]
+
+    # Supersede the first entry via its persistent id from the file.
+    mem_file = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    text = mem_file.read_text(encoding="utf-8")
+    import re as _re
+
+    ids = _re.findall(r"^### \d{4}-\d{2}-\d{2} \d{2}:\d{2} (#[0-9a-z]+)$", text, _re.M)
+    assert len(ids) == 2
+    old_id = ids[0]
+
+    r2 = _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="新结论：改用方案B，推翻旧结论",
+        supersedes=old_id,
+    )
+    assert r2["ok"] is True
+    assert r2["superseded"] == old_id
+
+    # Marker line present under the old entry's heading.
+    text2 = mem_file.read_text(encoding="utf-8")
+    assert "> [superseded " in text2 and f"by {r2['entry_id']}]" in text2
+
+    # Injection skips the superseded entry.
+    ctx2 = _call(tm.handle_get_task_context, repo_path=repo, task_id=task_id)
+    assert "旧结论：用方案A" not in ctx2["memories"]
+    assert "改用方案B" in ctx2["memories"]
+
+
+def test_supersede_bad_ref_errors_not_silent(tmp_path, monkeypatch):
+    repo, task_id = _mk_task_with_memories(tmp_path, monkeypatch, ["一条记忆"])
+    r = _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="新结论",
+        supersedes="#zz99",
+    )
+    # 验收链 2: a bad ref returns an error and leaves NO orphan new entry.
+    assert "error" in r and "ok" not in r
+    from pathlib import Path
+
+    mem_file = (
+        Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    )
+    assert "新结论" not in mem_file.read_text(encoding="utf-8")
+
+
+def test_write_check_rejects_near_duplicate(tmp_path, monkeypatch):
+    repo, task_id = _mk_task_with_memories(
+        tmp_path, monkeypatch, ["下一步：实现登录鉴权模块，采用 JWT 方案"]
+    )
+    r = _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="下一步：实现登录鉴权模块，采用 JWT 方案",
+    )
+    assert "error" in r
+    assert "similar_to" in r
+
+
+def test_write_check_allows_distinct_content(tmp_path, monkeypatch):
+    repo, task_id = _mk_task_with_memories(tmp_path, monkeypatch, ["下一步：实现登录鉴权"])
+    r = _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="决策：JWT 库选 pyjwt 而非 python-jose",
+    )
+    assert r["ok"] is True
+    assert "entry_id" in r and "hot_entries" in r
+
+
+def test_write_check_skipped_when_superseding(tmp_path, monkeypatch):
+    from pathlib import Path
+    import re as _re
+
+    repo, task_id = _mk_task_with_memories(tmp_path, monkeypatch, ["旧结论：方案A"])
+    mem_file = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    old_id = _re.findall(
+        r"^### \d{4}-\d{2}-\d{2} \d{2}:\d{2} (#[0-9a-z]+)$",
+        mem_file.read_text(encoding="utf-8"),
+        _re.M,
+    )[0]
+    # A revision of the same content is expected to be similar — the check
+    # must not block a supersede write.
+    r = _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="旧结论：方案A（修订：补充了理由）",
+        supersedes=old_id,
+    )
+    assert r["ok"] is True
+    assert "superseded" in r
+
+
+def test_compaction_level_grades(tmp_path, monkeypatch):
+    repo = str(tmp_path)
+    monkeypatch.setenv("CODEWIKI_USER", "alice")
+    r = _call(tm.handle_create_task, repo_path=repo, title="分级测试")
+    task_id = r["task"]["id"]
+    from pathlib import Path
+
+    mem_file = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    mem_file.parent.mkdir(parents=True, exist_ok=True)
+
+    def _entries(n):
+        return "\n\n".join(f"### 2026-08-01 10:00\n\n记忆内容{i}，各不相同" for i in range(n))
+
+    # green: below yellow threshold (30 entries)
+    mem_file.write_text(_entries(20), encoding="utf-8")
+    ctx = _call(tm.handle_get_task_context, repo_path=repo, task_id=task_id)
+    assert ctx["compaction_level"] == "green"
+
+    # yellow: >= 30 entries (75% of 40)
+    mem_file.write_text(_entries(31), encoding="utf-8")
+    ctx = _call(tm.handle_get_task_context, repo_path=repo, task_id=task_id)
+    assert ctx["compaction_level"] == "yellow"
+
+    # orange: >= 35 entries (87.5% of 40)
+    mem_file.write_text(_entries(36), encoding="utf-8")
+    ctx = _call(tm.handle_get_task_context, repo_path=repo, task_id=task_id)
+    assert ctx["compaction_level"] == "orange"
+
+    # red: >= 40 entries — compaction_due stays true (red alias)
+    mem_file.write_text(_entries(41), encoding="utf-8")
+    ctx = _call(tm.handle_get_task_context, repo_path=repo, task_id=task_id)
+    assert ctx["compaction_level"] == "red"
+    assert ctx["compaction_due"] is True
+
+
+def test_compaction_prefers_superseded_entries(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    repo = str(tmp_path)
+    monkeypatch.setenv("CODEWIKI_USER", "alice")
+    r = _call(tm.handle_create_task, repo_path=repo, title="压缩优先级")
+    task_id = r["task"]["id"]
+    mem_file = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    mem_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # 41 entries: the OLDEST one is superseded, the newest 10 are live.
+    parts = ["### 2026-08-01 10:00\n\n> [superseded 2026-08-02 by #ffff]\n\n被推翻的旧结论"]
+    parts += [f"### 2026-08-0{1 + i // 10} 1{i % 10}:00\n\n活记忆{i}" for i in range(40)]
+    mem_file.write_text("\n\n".join(parts), encoding="utf-8")
+
+    prep = _call(tm.handle_compact_task_memories, repo_path=repo, task_id=task_id, mode="prepare")
+    assert prep["ok"] is True
+    first = prep["entries_to_compress"][0]
+    assert "superseded" in first and "被推翻的旧结论" in first
+
+
+def test_search_skips_superseded_and_annotates(tmp_path, monkeypatch):
+    """ADR-0009 D7 检索侧：superseded 条目不参与打分；归档命中标注 superseded: true。"""
+    from pathlib import Path
+
+    repo, task_id = _mk_task_with_memories(
+        tmp_path, monkeypatch, ["旧结论：登录鉴权采用 JWT 方案", "另一条独立记忆"]
+    )
+    # Supersede the first entry via its persistent id.
+    mem_file = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    import re as _re
+
+    old_id = _re.findall(
+        r"^### \d{4}-\d{2}-\d{2} \d{2}:\d{2} (#[0-9a-z]+)$",
+        mem_file.read_text(encoding="utf-8"),
+        _re.M,
+    )[0]
+    _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="新结论：登录鉴权改用 OAuth2，推翻 JWT 方案",
+        supersedes=old_id,
+    )
+
+    # Search hits the LIVE replacement, not the retired original.
+    s = _call(
+        tm.handle_search_task_memories,
+        repo_path=repo,
+        task_id=task_id,
+        query="登录鉴权 JWT",
+    )
+    assert s["ok"] is True
+    snippets = [r["snippet"] for r in s["results"]]
+    assert any("OAuth2" in sn for sn in snippets)
+    assert not any("旧结论：登录鉴权采用 JWT" in sn for sn in snippets)
+    # Live hits are not flagged.
+    assert all(r["superseded"] is False for r in s["results"])
+
+
+def test_write_check_window_counts_incoming_entry(tmp_path, monkeypatch):
+    """验收链 5：新窗口第 6 条写入即带压缩 hint（计数含本条）。"""
+    repo, task_id = _mk_task_with_memories(
+        tmp_path,
+        monkeypatch,
+        [f"第{i}条进度：内容各不相同，避免触发去重" for i in range(5)],
+    )
+    r = _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="第六条进度：窗口软上限触发点",
+    )
+    assert r["ok"] is True
+    assert "hint" in r and "compaction window" in r["hint"]
+
+
+def test_write_check_compares_summaries_individually(tmp_path, monkeypatch):
+    """D5：摘要独立比对——重复摘要已覆盖的结论应被拒，不被拼接稀释。"""
+    from pathlib import Path
+
+    repo, task_id = _mk_task_with_memories(
+        tmp_path, monkeypatch, [f"进度{i}：内容各不相同" for i in range(3)]
+    )
+    # Simulate a compaction summary covering a conclusion.
+    mem_file = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    text = mem_file.read_text(encoding="utf-8")
+    summary = (
+        f"{tm._SUMMARY_HEADING}\n\n早期进度：完成了登录鉴权模块，采用 JWT 方案，"
+        "并接入了刷新令牌机制。"
+    )
+    mem_file.write_text(f"{summary}\n\n{text}", encoding="utf-8")
+
+    r = _call(
+        tm.handle_add_task_memory,
+        repo_path=repo,
+        task_id=task_id,
+        content="完成了登录鉴权模块，采用 JWT 方案，并接入了刷新令牌机制。",
+    )
+    assert "error" in r and "similar_to" in r

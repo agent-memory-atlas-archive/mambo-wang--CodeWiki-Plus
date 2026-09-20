@@ -5,7 +5,7 @@ tags:
 - codewiki
 - decision
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 他山之石
   related_modules:
   - skill_creator
@@ -16,18 +16,22 @@ metadata:
   scene: 技能产物类型建设
   disposition:
     verdict: deferred
-    at: '2026-09-08'
-    reason: 技能产物建设组尚在推进中，等定稿落地后再立块
-status: stable
+    at: '2026-09-18'
+    reason: 已吸收进 IDE-Hook 场景块一句，但 skill-creator 工具链方法尚薄，待实现落地后独立成场景
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/IDE-Hook采集链路方法.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.1
-  at: 2026-09-07 01:41:38+00:00
+  at: '2026-09-07 01:41:38+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:
 - by: codewiki/5.6.1
   at: '2026-09-07T01:47:01Z'
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## Background

@@ -4,18 +4,19 @@ title: MCP prompt 与 AGENTS.md 是同一约定的两个载体：静态常驻注
 tags:
 - architecture
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   task_id: 产品维护
   related_modules:
   - mcp
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
   severity: medium
   source_ref: conversations/conv-@prompts.py-1294-1308-这个prompt是做什么用的.md
-  consolidated_into:
-  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 03:33:29+00:00
+  at: '2026-08-24 03:33:29+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

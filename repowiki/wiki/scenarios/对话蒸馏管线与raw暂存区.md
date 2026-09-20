@@ -6,8 +6,8 @@ tags:
 - CodeWiki-CN
 generated:
   by: codewiki/5.8.0
-  at: 2026-09-08 05:54:25+00:00
-stale_after: 2026-12-07
+  at: '2026-09-08 05:54:25+00:00'
+stale_after: '2026-12-07'
 aliases:
 - 对话蒸馏管线与raw暂存区
 status: stable
@@ -18,8 +18,21 @@ metadata:
   source_notes:
   - notes/2026-09-05-蒸馏-subagent-自报的笔记状态不可信需用-get-task-context-的-related-notes-状态.md
   - notes/2026-09-07-mode-c-补蒸馏实操教训submit-空转先重试弱冲突多为误报按-store-裁决重提必须带完整正文.md
-  summary: 补入 subagent 落盘状态必须独立复核、Mode C 空转重试与冲突裁决重提须带完整正文
-  heat: 4
+  - notes/2026-08-19-l0-对话归档采用链接优先零索引设计.md
+  - notes/2026-08-21-下一期方向资产置信分层与负反馈闭环roadmap-phase-5.md
+  - notes/2026-08-25-mcp-参数长度受限时蒸馏-submit-走文件侧通道python-脚本直接调-handle-distill-conve.md
+  - notes/2026-08-25-蒸馏时无知识密度的对话也提交空结果否则-raw-无法归档清理.md
+  - notes/2026-09-07-tool-digest-两级消化机制tool-use-保留一行tool-result-仅留疑似错误前提是-content.md
+  - notes/2026-09-07-文件名相似度判据在-raw-上-100-误报同会话-supersede-重复捕获与模板前缀是两大污染源.md
+  - notes/2026-09-11-distill-conversation-submit-的-distilled-必须是-conversation-idn-fc7c66.md
+  - notes/2026-09-11-distill-conversation-submit-的-distilled-必须是-conversation-idn.md
+  - notes/2026-09-10-capture-conversation-落盘前先-digest-blocks历史成功步骤永久丢失不可重放.md
+  - notes/2026-09-10-编辑类工具调用须整块丢弃tier-1b且仅丢结果行会让结果块丢失工具归属.md
+  - notes/2026-09-10-知识管线三类静默降级开放命名空间用白名单候选按文件名排序被截断schema-与-handler-契约不同步.md
+  summary: 补入蒸馏提取纪律（ADR-0012 reason+NO COMPUTATION）、distilled 内联形状、采集层不可重放、Tier 1b
+    整块丢弃、三类静默降级
+  heat: 6
+  confidence_level: weak
 ---
 ## 工作场景
 `distill_conversation` 蒸馏管线与 `repowiki/raw/` 暂存区生命周期，含委托 subagent 补蒸馏的结果验收。适用于改蒸馏逻辑、排查 raw 去向、宿主 agent 执行 Mode C 批量蒸馏、对话归档与溯源设计。
@@ -38,6 +51,12 @@ metadata:
 8. **subagent 回报的落盘状态一律当线索**：用 `get_task_context` 的 `related_notes[].status` 或直接读 notes frontmatter 复核；`draft` 未 confirm 前只能只读参考，直接采信即构成一次静默确认。
 9. **Mode C 三条实操**：submit 返回 `missing_result` 且 `notes_created=0` 先原样重试一次（与「超时不幂等」不同，本现象是实际未执行）；`conflicts_pending` 多为 BM25 词面误报，逐条核对后 `dedup_action=store`，**重提必须带完整笔记正文**（否则草稿正文被裁决说明覆盖）；prepare 清单文件名与磁盘不符时列 raw 目录或重新 prepare。
 10. Phase 5 方向：资产置信分层（strong/weak/shadow）+ 负反馈闭环（`flag_misrecall` 达阈值自动降权）。
+11. **tool_digest 两级消化**（codewiki/src/tool_digest.py，stdlib-only；capture_conversation 与 _ide_hook 共享同一 import 单点，不会漂移）：纯噪音（thinking/system 等）无条件丢弃；tool_use 保留一行；tool_result 仅留疑似错误。前提是 content-block 列表结构。
+12. **raw 文件名相似度判据 100% 误报**：对 raw/ 首条指令 slug 做相似度扫描，≥0.55 命中全部误报（同会话 supersede 重复捕获的 -2 后缀、模板前缀），有效信号 0——重复任务感知类判据不能建立在文件名相似度上，须先剔除 supersede 副本与模板前缀两大污染源。
+13. **蒸馏提取纪律（ADR-0012，吸收自 hindsight）**：每条 note 必须说明为何值得持久化（一行 rationale）；NEVER compute——只记对话中明说的数字与结论，不做算术/计数/推断。
+14. **采集层信息丢失不可重放**：capture_conversation 落盘前先 digest_blocks，成功结果早已被 tool_digest 的 return "" 丢弃——已落盘对话无法重放，改 tool_digest 只对未来对话有效。
+15. **编辑类工具调用整块丢弃（Tier 1b）**：replace_in_file 等进 `_LOW_SIGNAL_TOOL_NAMES`，调用行+结果行整块丢弃；仅丢结果行（Tier 2）会让结果块丢失工具归属。
+16. **知识管线三类静默降级**：开放命名空间用白名单必然静默漏判（tool_digest 改黑名单）；候选按文件名排序被截断；schema 与 handler 契约不同步。
 
 ## 判断逻辑
 - 借鉴外部记忆管线：借分层不借 LLM、借模式不借 hook、借粒度不借无闸门。
@@ -49,6 +68,7 @@ metadata:
 - 不要断言 `no_knowledge` 的 raw 被保留。
 - submit **超时**后不盲目重试（不幂等，会重复写入与字节交错）；返回 `missing_result` 才是「未执行」可重试。
 - 不要把 subagent 自报的「已入库/已生效」直接转述给用户。
+- **distilled 内联形状必须是 `{conversation_id: {notes, memories}}`**：裸 `{notes}` + conversation_id 参数会报 missing_result 且不报参数错误（文件侧通道支持裸形状，内联不支持）。
 
 ## 关键事实依据
 - `_distill_one` 每文件一次 LLM 调用，文件间不共享上下文。

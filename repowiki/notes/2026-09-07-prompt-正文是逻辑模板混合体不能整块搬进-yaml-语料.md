@@ -1,20 +1,33 @@
 ---
 type: pitfall
-title: "prompt 正文是「逻辑+模板」混合体，不能整块搬进 YAML 语料"
-tags: ["pitfall", "powershell"]
+title: prompt 正文是「逻辑+模板」混合体，不能整块搬进 YAML 语料
+tags:
+- pitfall
+- powershell
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 产品维护
-  related_modules: ["mcp", "prompts", "i18n"]
+  related_modules:
+  - mcp
+  - prompts
+  - i18n
   severity: medium
-  source_ref: "conversations/conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md"
-  scene: "MCP 国际化"
-status: draft
+  source_ref: conversations/conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
+  scene: MCP 国际化
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
+status: deprecated
 author: iamwangbao-163-com
-generated: { by: codewiki/5.7.0, at: 2026-09-07T06:49:04Z }
-stale_after: 2027-03-06
+generated:
+  by: codewiki/5.7.0
+  at: '2026-09-07 06:49:04+00:00'
+stale_after: '2027-03-09'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-10T07:47:23Z'
+reject_reason: consolidated into MCP-Server薄壳架构与参数约定
 ---
 
 ## 背景

@@ -6,16 +6,17 @@ tags:
 - powershell
 - readallbytes
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - doc_writer
   - knowledge_loop
   source_ref: raw\conv-D-repos-go-my-harness-repowiki-wiki-modules-生成的wiki还是draft状态.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 08:58:01+00:00
-stale_after: 2026-11-13
+  at: '2026-08-15 08:58:01+00:00'
+stale_after: '2026-11-13'
 origin: conversation
 reject_reason: 用户评审未采纳
 author: mambo-wang

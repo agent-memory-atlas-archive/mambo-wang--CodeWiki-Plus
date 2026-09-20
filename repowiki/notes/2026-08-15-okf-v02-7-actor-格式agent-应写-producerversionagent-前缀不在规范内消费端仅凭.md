@@ -1,22 +1,23 @@
 ---
 type: lesson
-title: 'OKF v0.2 §7 actor 格式：agent 应写 <producer>/<version>，agent: 前缀不在规范内，消费端仅凭 human:
-  前缀推导信任档位'
+title: '''OKF v0.2 §7 actor 格式：agent 应写 <producer>/<version>，agent: 前缀不在规范内，消费端仅凭
+  human:'
 tags:
 - codewiki
 - lesson
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - codewiki/src/frontmatter.py
   - codewiki/src/config.py
   - codewiki/mcp/tools/knowledge_loop.py
   source_ref: raw\conv-https-mp.weixin.qq.com-s-vzBQPjrRDhDfq3U51DBfaQ-看下我们项目符不符合ok.md
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 09:08:32+00:00
-stale_after: 2026-11-13
+  at: '2026-08-15 09:08:32+00:00'
+stale_after: '2026-11-13'
 origin: conversation
 reject_reason: 用户评审后拒绝全部蒸馏草稿
 author: mambo-wang

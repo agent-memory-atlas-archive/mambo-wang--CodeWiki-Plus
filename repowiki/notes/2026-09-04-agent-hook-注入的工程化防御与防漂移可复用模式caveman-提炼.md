@@ -5,20 +5,21 @@ tags:
 - architecture
 - juliusbrussee
 metadata:
-  date: 2026-09-04
+  date: '2026-09-04'
   task_id: 他山之石
   severity: medium
   source_ref: conversations/conv-https-github.com-JuliusBrussee-caveman.git-研究下这个技能是如何生效的.md
   scene: 他山之石-caveman研究
   source_conversations:
   - conversations/conv-https-github.com-DietrichGebert-ponytail-研究下这个技能是如何生效的.md
-  consolidated_into:
   - wiki/scenarios/IDE-Hook采集链路方法.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.5.1
-  at: 2026-09-04 04:13:46+00:00
+  at: '2026-09-04 04:13:46+00:00'
 stale_after: '2027-09-04'
 origin: conversation
 verified:

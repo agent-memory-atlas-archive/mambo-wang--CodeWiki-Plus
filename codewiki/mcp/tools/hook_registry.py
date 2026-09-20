@@ -1,11 +1,14 @@
+
 # -*- coding: utf-8 -*-
 """Hook agent registry (H1, docs/Hook多智能体支持设计方案.md §3).
 
 Loads ``codewiki/hooks.yaml`` — the declarative registry of AI agents
 CodeWiki's team-memory hooks can wire into. Family-based adaptation
 (borrowed from teamai-cli): each agent belongs to one hook-format family
-(claude / cursor / codex); all format translation happens at the family
-layer, so adding an agent is a one-line registry entry.
+(claude / cursor / codex / trae); the ``prompt`` family covers hosts with
+no shell-hook mechanism at all (AGENTS.md injection only). All format
+translation happens at the family layer, so adding an agent is a one-line
+registry entry.
 
 Two entry points:
 
@@ -36,9 +39,10 @@ def _registry_path() -> Path:
 def load_registry() -> Dict:
     """Parse hooks.yaml → {"version": int, "families": {...}, "agents": [...]}.
 
-    Cached by file mtime. Malformed yaml degrades to the minimal registry
-    (the three verified claude-family agents) so consumers never crash on
-    a bad registry — wiring guidance quality drops, availability doesn't.
+    Cached by file mtime. Malformed yaml degrades gracefully: each field is
+    adopted only when it has the expected type (the failure is logged), so a
+    bad registry yields an empty/partial one — consumers never crash, only
+    wiring guidance degrades.
     """
     p = _registry_path()
     key = str(p)
@@ -105,6 +109,43 @@ def family_event(family_id: str, logical_event: str) -> Optional[str]:
     return None
 
 
+# 档位/叠加默认值（见 docs/接线档位选择设计方案.md §3.2/§3.5）
+_DEFAULT_WIRING = "hook"
+_DEFAULT_INJECT_FILE = "AGENTS.md"
+
+
+def _family_entry(agent_id: str) -> Dict:
+    """agent 所属家族的 families 条目（缺失返回空 dict）——供三个 _of 解析器共用。"""
+    agent = get_agent(agent_id) or {}
+    fam_id = str(agent.get("family", "")).strip()
+    fam = load_registry().get("families", {}).get(fam_id)
+    return fam if isinstance(fam, dict) else {}
+
+
+def wiring_of(agent_id: str) -> str:
+    """生效接线档位（hook / prompt），解析顺序 agent > family > 默认 ``hook``。
+
+    hooks.yaml 是档位单源；``--mode auto`` 的判定经此函数收口。
+    ``null``/空值视为未声明，继续向下一级回退。
+    """
+    agent = get_agent(agent_id) or {}
+    for source in (agent, _family_entry(agent_id)):
+        wiring = source.get("wiring")
+        if wiring:
+            return str(wiring)
+    return _DEFAULT_WIRING
+
+
+def inject_file_of(agent_id: str) -> str:
+    """生效注入文件（宿主自动加载的记忆文件），解析顺序 agent > family > 默认 AGENTS.md。"""
+    agent = get_agent(agent_id) or {}
+    for source in (agent, _family_entry(agent_id)):
+        inject_file = source.get("inject_file")
+        if inject_file:
+            return str(inject_file)
+    return _DEFAULT_INJECT_FILE
+
+
 def detect_project_agents(repo_path) -> List[Dict]:
     """Agents whose config directory exists under *repo_path*.
 
@@ -127,10 +168,14 @@ def detect_project_agents(repo_path) -> List[Dict]:
 
 
 def support_matrix_markdown() -> str:
-    """README-ready support matrix (verified vs theoretical tiers)."""
+    """README-ready support matrix (verified vs theoretical tiers).
+
+    档位（wiring）列经三级解析（agent > family > 默认）输出，与
+    ``wiring_of`` 口径一致。主动沉淀固定启用（ADR-0014），不再作为列。
+    """
     lines = [
-        "| 智能体 | 家族 | 支持等级 |",
-        "|--------|------|----------|",
+        "| 智能体 | 家族 | 支持等级 | 档位 |",
+        "|--------|------|----------|------|",
     ]
     rows = []
     for agent in load_registry().get("agents", []):
@@ -144,5 +189,6 @@ def support_matrix_markdown() -> str:
     # verified first, then alphabetical
     for aid, fam, verified in sorted(rows, key=lambda r: (not r[2], r[0])):
         tier = "已验证" if verified else "理论支持"
-        lines.append(f"| `{aid}` | {fam} | {tier} |")
+        wiring = wiring_of(aid)
+        lines.append(f"| `{aid}` | {fam} | {tier} | {wiring} |")
     return "\n".join(lines)

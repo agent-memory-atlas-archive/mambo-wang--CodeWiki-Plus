@@ -6,19 +6,20 @@ tags:
 - decision
 - openviking
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - knowledge_loop
   - wiki_index
   - OpenViking-调研与借鉴分析
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
   severity: medium
   source_ref: conversations/conv-调研-OpenViking-对比-CodeWiki.md
-  consolidated_into:
-  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:21:50+00:00
+  at: '2026-08-24 15:21:50+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

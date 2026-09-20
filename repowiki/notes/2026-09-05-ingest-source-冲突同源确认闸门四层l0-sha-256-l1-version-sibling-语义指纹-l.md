@@ -1,11 +1,10 @@
 ---
 type: decision
 title: ingest_source 冲突/同源确认闸门四层：L0 SHA-256 / L1 version_sibling 语义指纹 / L2 conflict
-  同名异文 / L3 supersede 声明
 tags:
 - decision
 metadata:
-  date: 2026-09-05
+  date: '2026-09-05'
   severity: high
   source_ref: conversations/conv-user_command-commands-codewiki-外部文档知识抽取-请导入外部文档并从中抽取结构化知识。采用-2.md
   scene: 知识生命周期
@@ -15,6 +14,9 @@ metadata:
     verdict: deferred
     at: '2026-09-08'
     reason: 知识生命周期组候选，随该组一并成块
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
 related_modules:
 - source_ingest
 - doc_similarity
@@ -23,15 +25,16 @@ related_modules:
 - README_CN_f03499.md
 - _find_conflict_candidates
 - similar_notes
-status: stable
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.6.0
-  at: 2026-09-05 11:35:03+00:00
-stale_after: 2027-09-05
+  at: '2026-09-05 11:35:03+00:00'
+stale_after: '2027-09-05'
 origin: conversation
 source_conversations:
 - conversations/conv-user_command-commands-codewiki-知识库搜索-请搜索-Wiki-知识库回答-如果用户摄入一篇.md
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Decision

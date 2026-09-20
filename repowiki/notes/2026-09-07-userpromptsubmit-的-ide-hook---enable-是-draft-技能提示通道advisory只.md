@@ -1,13 +1,12 @@
 ---
 type: architecture
 title: UserPromptSubmit 的 _ide_hook --enable 是 draft 技能提示通道（advisory）：只提示不捕获，无 draft
-  技能时空转
 tags:
 - architecture
 - codewiki
 - userpromptsubmit
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   task_id: 他山之石
   related_modules:
   - mcp
@@ -15,16 +14,20 @@ metadata:
   - skill-creator
   severity: medium
   source_ref: conversations/conv-@settings.json-27-38-是不是有问题，python-m-codewiki.mcp._ide_hook.md
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/IDE-Hook采集链路方法.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 02:56:41+00:00
+  at: '2026-09-07 02:56:41+00:00'
 stale_after: '2027-09-07'
 origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:20Z'
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## 背景

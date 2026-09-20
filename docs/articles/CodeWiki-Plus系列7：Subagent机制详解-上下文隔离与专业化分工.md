@@ -4,6 +4,18 @@
 
 ---
 
+> **勘误（2026-09-16 更新）**：本文 2.3 节的字段表与 5.2 节引用的 `distill-worker` frontmatter 有三处已被实测推翻，照抄旧写法会让 subagent 拿不到 MCP 工具（表现为「0 tool uses 空转」）：
+>
+> 1. **授权 MCP 用 `mcpServers`，不是 `toolsMCP`**——`toolsMCP` 不是 CodeBuddy 官方字段，写了静默无效；而 `tools: ReadFile` 是**白名单**，写了它 MCP 工具反而全被挡在外面。两者叠加正是 worker 空转的根因。正确写法：`mcpServers:` 下写 `- codewiki`，并**省略** `tools` 行（缺省继承全部工具）。
+> 2. **`description` 用单行标量**，不要用 `>` 折叠块——折叠写法在部分解析路径下会丢失（agent 列表里显示成 `>;`）。
+> 3. 文中「后台执行、不阻塞回答」已被后续设计取代：现在是**阻塞式、先记忆后回答**——主 Agent 必须等 worker 返回后才回答用户。
+>
+> 另一条工程教训：改 subagent/hook 定义必须落回**随包发布的源变体**（`codewiki/agents/*.md`），只修 `.codebuddy/agents/` 下的已装副本会被下一次 `install-hooks` 强制覆盖打回；同时要在测试里盯住源变体，否则错误 schema 会被测试断言固化成"契约"。
+>
+> 权威定义以仓库内 `codewiki/agents/distill-worker.md` 为准（随包发布，`install-hooks` 拷贝到 `.codebuddy/agents/`）。
+
+---
+
 ## 一、subagent 是什么
 
 **Subagent（子代理）** 是 AI 编码助手里的**专门化工作代理**：一个拥有**独立 System Prompt、独立工具授权（Tools）、独立 MCP 服务**的迷你 Agent，专门处理某一类特定任务（代码审查、调试、数据分析、知识提取……）。
@@ -53,8 +65,8 @@ Subagent 就是一个**带 YAML frontmatter 的 Markdown 文件**，创建方式
 | `agentMode` | 模式：`agentic` / `manual` | |
 | `enabled` | 是否启用 | `true` / `false` |
 | `enabledAutoRun` | 调用工具时是否需要用户同意 | `true` 表示无需逐次确认 |
-| `tools` | 可用的内置工具列表 | 如 `ReadFile`、`WebSearch`、`WebFetch` |
-| `toolsMCP` | 可用的 MCP Server | 如 `codewiki` |
+| `tools` | 可用的内置工具列表 | 如 `ReadFile`、`WebSearch`、`WebFetch`。**是白名单——写了它就只给列表内的工具**，MCP 工具会被一并挡掉；不打算限制能力时请省略该行（继承全部工具） |
+| `mcpServers` | 授权给该 subagent 的 MCP Server | 如 `codewiki`。注意 `toolsMCP` 不是官方字段，写了**静默无效** |
 | `model` | 执行时使用的模型 | 可选，默认跟随主 Agent |
 | `systemPrompt` | 执行时的系统提示词 | 文件正文即 System Prompt |
 
@@ -143,14 +155,9 @@ project 级的 subagent 随 Git 提交后，所有协作者 clone 下来就能�
 ```markdown
 ---
 name: distill-worker
-description: >
-  CodeWiki 的补蒸馏专用 subagent。当任务上下文（get_task_context）返回
-  pending_raw_count > 0、或 SessionStart hook 提示存在未蒸馏的历史对话积压时，
-  主 Agent 用 Task 工具调用本 subagent 后台执行补蒸馏（Mode C：prepare →
-  逐条 read_file 提取 → submit），主 Agent 不必亲自读 raw 原文、也不阻塞对用户的回答。
-  仅负责蒸馏，不负责 confirm/reject（确认由主 Agent 在自然停顿点与用户完成）。
-tools: ReadFile
-toolsMCP: codewiki
+description: CodeWiki 的补蒸馏专用 subagent。当任务上下文（get_task_context）返回 pending_raw_count > 0、或 SessionStart hook 提示存在未蒸馏的历史对话积压时，主 Agent 用 Task 工具**阻塞式**调用本 subagent 执行补蒸馏（Mode C：prepare → 逐条 read_file 提取 → submit）：主 Agent 不必亲自读 raw 原文，但**必须等本 subagent 返回后才回答用户**（先记忆后回答）。清空本任务的全部待蒸馏积压，不设条数上限。仅负责蒸馏；笔记草稿的 confirm/reject 由主 Agent 在自然停顿点与用户完成（任务记忆直写落盘，无需确认）。
+mcpServers:
+  - codewiki
 agentMode: agentic
 enabled: true
 enabledAutoRun: true
@@ -160,17 +167,18 @@ enabledAutoRun: true
 ## 流程
 
 1. **prepare**：调用 `distill_conversation(mode="prepare", task_id=<任务id>)`。返回积压对话清单（`captures`）和 `system_prompt`（提取规范）。
-2. **逐条提取**：对清单中的每条 capture，用 `ReadFile` 读取 raw 文件正文；严格按 `system_prompt` 的提取规范，产出 `notes`（通用经验笔记，`status=draft`）与 `memories`（任务进度，先暂存 pending 待确认）。
-3. **submit**：逐条调用 `distill_conversation(mode="submit", conversation_id=<id>, distilled=<提取JSON>)` 交回结果。
-4. **汇报**：全部完成后，向主 Agent 返回摘要——本次蒸馏的对话数、新建笔记数、去重抑制/合并数、待确认记忆数，以及建议主 Agent 在停顿点向用户展示的待确认项清单。
+2. **逐条提取**：对清单中的每条 capture，用 `ReadFile` 读取 raw 文件正文；严格按 `system_prompt` 的提取规范，产出 `notes`（通用经验笔记，`status=draft`，待确认）与 `memories`（任务进度，**直写落盘 memories.md，无需确认**——ADR-0002）。
+3. **submit**：逐条调用 `distill_conversation(mode="submit", conversation_id=<id>, distilled=<提取JSON>)` 交回结果，优先内联。**清单里每条都要处理完并 submit，不设条数上限。**
+4. **汇报**：全部完成后，向主 Agent 返回摘要——本次蒸馏的对话数、新建笔记数、去重抑制/合并数、落盘记忆数（`memories_written`），以及建议主 Agent 在停顿点向用户展示的待确认**草稿笔记**清单。
 
 ## 约束
 
+- **第一步的 prepare 就是探活**：工具调不起来（不存在 / 未授权 / 报 `Server 'codewiki' not found`）时**立即停止**，把「MCP 环境未就绪」连同原始报错返回主 Agent——不要反复重试，严禁改用 python 直连 handler 绕过。
 - 只蒸馏当前任务（`task_id` 过滤），不触碰其他任务的 raw。
-- **不执行** `confirm_note` / `confirm_task_memories` / `reject_task_memories` / `ingest_note` 等评审或落盘操作——确认闸门属于主 Agent 与用户的评审环节。
+- **不执行** `confirm_note` / `reject_note` / `ingest_note` 等评审操作——**草稿笔记**的确认闸门属于主 Agent 与用户的评审环节。（任务记忆由 `distill_conversation` 直写落盘，不经过 subagent 手动写文件。）
 - 不修改 `repowiki/` 之外的任何文件；不做代码修改、不回答用户的功能性问题。
 - 若 prepare 返回空积压，直接返回"无待蒸馏积压"。
-- 遇到错误时记录并继续下一条，最后统一汇报失败项，不要中断整个流程。
+- 遇到错误（文件缺失、JSON 非法）时记录并继续下一条，最后统一汇报失败项，不要中断整个流程。
 ```
 
 对照官方字段逐条看，它就是一次教科书式的"最小授权 + 明确边界"设计：
@@ -179,12 +187,11 @@ enabledAutoRun: true
 |------|---------|---------|
 | `name` | `distill-worker` | 唯一标识 |
 | `description` | 写清**触发时机**（`pending_raw_count > 0` 或 hook 提示积压）、**执行方式**（Task 调用、Mode C）、**边界**（不负责 confirm/reject） | 让主 Agent 知道何时该派活、派什么活 |
-| `tools` | `ReadFile` | 只需要读 raw 文件，**不需要**写文件/执行命令/搜索代码 |
-| `toolsMCP` | `codewiki` | 只对接蒸馏所需的 MCP（`distill_conversation`） |
+| `mcpServers` | `[codewiki]` | 只对接蒸馏所需的 MCP（`distill_conversation`）——**不需要**写文件/执行命令/搜索代码，也不要用 `tools` 白名单去限制（会连带挡掉 MCP 工具） |
 | `agentMode` | `agentic` | 由主 Agent 自动触发 |
 | `enabledAutoRun` | `true` | 后台任务，免逐次确认 |
 
-正文（System Prompt）更是把边界写死了：**流程四步 + 五条约束**。尤其是"不执行 confirm/reject"这条——蒸馏只产出**草稿**，正式落盘必须由主 Agent 在停顿点找用户确认。这就把"机器干活"和"人做决策"的责任链切得干干净净。
+正文（System Prompt）更是把边界写死了：**流程四步 + 六条约束**（2026-09-16 已新增"第一步的 prepare 就是探活"）。尤其是"不执行 confirm/reject"这条——蒸馏只产出**草稿**，正式落盘必须由主 Agent 在停顿点找用户确认。这就把"机器干活"和"人做决策"的责任链切得干干净净。
 
 ### 5.3 使用：会话启动时的完整链路
 
@@ -237,7 +244,7 @@ sequenceDiagram
 1. **单一职责**：一个 subagent 只干一件事。`distill-worker` 只蒸馏，确认交给主 Agent。
 2. **`description` 是触发开关**：写清三要素——专长、范围、触发条件。触发条件越明确，主 Agent 越不会乱调用。
 3. **System Prompt 写流程 + 约束**：流程四步给操作指引，约束给行为边界。约束越具体，执行越可控。
-4. **工具最小授权**：只给完成本职必需的 Tools/MCP。安全性和聚焦度同时提升。
+4. **工具授权分两层看，别把白名单当"最小授权"**：`tools` 是**白名单**——写了它就只给列表内的工具，MCP 工具会被一并挡掉；要收紧能力，更稳的做法是**省略 `tools` 行**（继承全部工具）再用 System Prompt 约束边界，MCP 授权单独用 `mcpServers` 声明。我们实测踩过坑：`tools: ReadFile` + `toolsMCP: codewiki` 让 worker「0 tool uses 空转」。
 5. **把"决策"留给人**：subagent 可以生成候选（draft），但"正式落盘"这类决策必须经过主 Agent + 用户确认。
 6. **重活一律外包**：凡是"读取大量文件 → 提取/整理 → 返回摘要"形态的任务（补蒸馏、批量搜索调研、代码审查），都适合 subagent——主 Agent 的上下文是你最宝贵的资源。
 

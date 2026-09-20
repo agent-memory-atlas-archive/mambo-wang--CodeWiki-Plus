@@ -14,13 +14,10 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Optional
 
-from codewiki.mcp.session import SessionStore
-from codewiki.src.frontmatter import parse_frontmatter
-from codewiki.src.retrieval import STOPWORDS as _STOPWORDS
-from codewiki.mcp.tools.injection_budget import estimate_tokens
 from codewiki.mcp.tools.note_freshness import freshness_window_days
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,8 +117,6 @@ def _slugify(title: str) -> str:
     return slug
 
 
-
-
 def _apply_status_to_file(
     path: Path,
     output_dir: Path,
@@ -129,6 +124,7 @@ def _apply_status_to_file(
     reason: str = "",
     verified_by: str = "",
     renew_stale_after: bool = False,
+    extra_meta: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Rewrite the ``status`` field in a markdown file's YAML frontmatter.
 
@@ -137,6 +133,10 @@ def _apply_status_to_file(
     ``stale_after`` date is reset (re-confirmation re-guarantees freshness,
     §5.5).  Mutations go through a YAML round-trip so list values stay
     well-formed.  Returns a JSON string with key ``doc_file``.
+
+    Phase5 T1: *extra_meta* merges producer-private keys into the
+    ``metadata:`` fold (confidence_level / verification / …) in the same
+    locked round-trip — no second rewrite, no window for drift.
     """
     path = Path(path).expanduser().resolve()
     # Team-layout Phase 2 (§5.3): the whole parse→mutate→rewrite sequence
@@ -193,6 +193,14 @@ def _apply_status_to_file(
         data["status"] = new_status
         if reason and new_status == "deprecated":
             data["reject_reason"] = reason
+        if extra_meta:
+            # Phase5 T1: fold producer-private keys (confidence_level,
+            # verification, …) under metadata: in the same locked round-trip.
+            meta = data.get("metadata")
+            if not isinstance(meta, dict):
+                meta = {}
+            meta.update(extra_meta)
+            data["metadata"] = meta
         if verified_by:
             verified = data.get("verified")
             if isinstance(verified, dict):
@@ -262,6 +270,7 @@ def _update_note_status(
     reason: str = "",
     verified_by: str = "",
     renew_stale_after: bool = False,
+    extra_meta: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Update the status field in a note's YAML frontmatter.
 
@@ -295,6 +304,7 @@ def _update_note_status(
             reason=reason,
             verified_by=verified_by,
             renew_stale_after=renew_stale_after,
+            extra_meta=extra_meta,
         )
     )
     if "error" in result:
@@ -303,8 +313,6 @@ def _update_note_status(
     result["note_file"] = result.pop("doc_file")
     result["message"] = result["message"].replace("Document", "Note")
     return json.dumps(result, indent=2, ensure_ascii=False)
-
-
 
 
 def refresh_note_indexes(

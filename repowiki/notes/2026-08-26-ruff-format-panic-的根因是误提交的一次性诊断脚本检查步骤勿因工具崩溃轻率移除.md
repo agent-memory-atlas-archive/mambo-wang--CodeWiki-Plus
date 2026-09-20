@@ -11,23 +11,26 @@ aliases:
 - 一次性诊断脚本勿提交
 - scripts/_tmp2.py
 metadata:
-  date: 2026-08-26
+  date: '2026-08-26'
   related_modules:
   - MCP_Core
-  severity: medium
-  root_cause: 'ruff 0.16.3 formatter 对特定文件 scripts/_tmp2.py（99e4c44 误提交的一次性诊断脚本）panic；叠加全仓
-    206 文件 format 存量漂移，迫使 PR #17 移除 CI format 检查步骤'
-  consolidated_into:
   - wiki/scenarios/发布与依赖治理方法.md
-status: stable
+  severity: medium
+  root_cause: '''ruff 0.16.3 formatter 对特定文件 scripts/_tmp2.py（99e4c44 误提交的一次性诊断脚本）panic；叠加全仓'
+  consolidated_into:
+  - ''
+  - wiki/scenarios/发布与依赖治理方法.md
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.4
-  at: 2026-08-26 13:57:29+00:00
+  at: '2026-08-26 13:57:29+00:00'
 stale_after: '2027-02-22'
 verified:
 - by: human:mambo-wang
   at: '2026-08-26T13:58:01Z'
 author: mambo-wang
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## 背景

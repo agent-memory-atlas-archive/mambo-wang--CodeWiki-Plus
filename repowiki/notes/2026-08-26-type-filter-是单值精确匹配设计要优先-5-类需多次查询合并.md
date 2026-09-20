@@ -4,23 +4,27 @@ title: type_filter 是单值精确匹配，设计要「优先 5 类」需多次�
 tags:
 - lesson
 metadata:
-  date: 2026-08-26
+  date: '2026-08-26'
   related_modules:
   - wiki_search
   - review_changes
+  - wiki/scenarios/代码评审与分析工具方法.md
   source_ref: conversations/conv-@command-codewiki-变更评估与代码评审（修改后）.md
   consolidated_into:
+  - ''
   - wiki/scenarios/代码评审与分析工具方法.md
-status: stable
+  confidence_level: shadow
+status: deprecated
 generated:
   by: codewiki/5.4.3
-  at: 2026-08-25 17:02:45+00:00
+  at: '2026-08-25 17:02:45+00:00'
 stale_after: '2027-02-22'
 origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-08-25T17:03:46Z'
 author: wandering-bug
+reject_reason: consolidated into 代码评审与分析工具方法
 ---
 
 ## 背景

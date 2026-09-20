@@ -4,19 +4,20 @@ title: frontmatter deep module 重构四决策：路由收进 module、原地扩
 tags:
 - decision
 metadata:
-  date: 2026-08-24
+  date: '2026-08-24'
   related_modules:
   - wiki_doc_writer
   - frontmatter
   - architecture-review
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
   severity: medium
   source_ref: conversations/conv-对-CodeWiki-CN-跑-improve-codebase-architecture-skill.md
-  consolidated_into:
-  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.4.2
-  at: 2026-08-24 15:21:37+00:00
+  at: '2026-08-24 15:21:37+00:00'
 stale_after: '2027-08-24'
 origin: conversation
 verified:

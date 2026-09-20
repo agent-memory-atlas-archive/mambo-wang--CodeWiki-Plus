@@ -4,17 +4,18 @@ title: 任务记忆采用单一 memories.md 追加式原子写，非每次新建
 tags:
 - architecture
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   related_modules:
   - task_manager
   - distill_conversation
-  source_ref: raw\conv-新建session的时候，选择完创建任务后，能不能再弹个框输入任务名称-@d-repos-CodeWiki-CN-.co.md
-  consolidated_into:
   - wiki/scenarios/任务记忆系统设计方法.md
+  source_ref: raw\conv-新建session的时候，选择完创建任务后，能不能再弹个框输入任务名称-@d-repos-CodeWiki-CN-.co.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 13:11:39+00:00
+  at: '2026-08-15 13:11:39+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

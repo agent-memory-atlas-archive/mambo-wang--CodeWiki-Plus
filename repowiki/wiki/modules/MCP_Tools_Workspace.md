@@ -27,10 +27,10 @@ sources:
   content_hash: sha256:448f787b1e39e266d0b76582f054123bb45bd0405ce00bae0086c1ef191cce8c
 - id: repo://codewiki/mcp/tools/workspace_bootstrap.py#L85-L110
   resource: repo://codewiki/mcp/tools/workspace_bootstrap.py#L85-L110
-  content_hash: sha256:e1e31df054c586e0f4de606af03f977eac63a242125cd5536d3f6f736e0ccbe2
+  content_hash: sha256:01e510b4fea65accfd3c2209cc26e7684b9def601a8635c88287863f7725c741
 - id: repo://codewiki/mcp/tools/workspace_bootstrap.py#L145-L210
   resource: repo://codewiki/mcp/tools/workspace_bootstrap.py#L145-L210
-  content_hash: sha256:6538e364a5b9450fba3745c1ef4691de466a213e16f1a3bb29093374a4b3deb5
+  content_hash: sha256:73b048750354c2e4bd1257f5068536aa6ff45e638b24bada17f09a23baab9dc8
 ---
 # MCP_Tools_Workspace 模块文档
 

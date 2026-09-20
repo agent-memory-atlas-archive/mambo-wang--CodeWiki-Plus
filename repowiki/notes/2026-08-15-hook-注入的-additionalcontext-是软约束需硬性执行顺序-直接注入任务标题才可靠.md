@@ -4,17 +4,18 @@ title: hook 注入的 additionalContext 是软约束，需硬性执行顺序 + �
 tags:
 - lesson
 metadata:
-  date: 2026-08-15
+  date: '2026-08-15'
   task_id: 产品维护
   related_modules:
   - task-memory
-  source_ref: raw\conv-@d-repos-CodeWiki-CN-repowiki-.meta-task_bindings-这里文件的作用是什么.md
-  consolidated_into:
   - wiki/scenarios/IDE-Hook采集链路方法.md
+  source_ref: raw\conv-@d-repos-CodeWiki-CN-repowiki-.meta-task_bindings-这里文件的作用是什么.md
+  consolidated_into: ''
+  confidence_level: shadow
 status: deprecated
 generated:
   by: codewiki/5.2.2
-  at: 2026-08-15 15:07:53+00:00
+  at: '2026-08-15 15:07:53+00:00'
 stale_after: '2026-11-13'
 origin: conversation
 verified:

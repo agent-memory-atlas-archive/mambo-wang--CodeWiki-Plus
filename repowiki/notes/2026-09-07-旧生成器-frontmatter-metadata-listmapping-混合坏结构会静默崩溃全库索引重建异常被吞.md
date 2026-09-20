@@ -6,23 +6,27 @@ tags:
 - pitfall
 - weknora
 metadata:
-  date: 2026-09-07
+  date: '2026-09-07'
   related_modules:
   - retrieval
   - extraction
   severity: medium
   source_ref: conversations/conv-user_command-commands-codewiki-外部文档知识抽取-请导入外部文档并从中抽取结构化知识。采用-c23ccd.md
   scene: 外部文档知识抽取
-status: stable
+  confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
-  at: 2026-09-07 03:02:40+00:00
+  at: '2026-09-07 03:02:40+00:00'
 stale_after: '2027-03-06'
 origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:23Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## 背景
