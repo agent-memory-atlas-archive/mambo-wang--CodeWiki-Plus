@@ -142,3 +142,7 @@ letta 调研完成（2026-09-19）：letta-ai/letta main 分支只是 landing pa
 ### 2026-09-20 10:56 #d489
 
 letta 借鉴 grill 拷问定案（2026-09-20）：ADR-0013 已落盘 docs/adr/0013-letta-stable-reason-and-limits-module.md。落地两项：① ingest_note 加可选 reason 字段进 frontmatter，status=stable 直写时必填（draft/confirm_note/batch_set_status/add_task_memory 豁免）；② 新建 codewiki/mcp/tools/limits.py 收敛 task_manager 压缩阈值组（40 条/24KB/keep 20/摘要 4096）与写入窗口软限（5 条），lint_wiki 加 threshold_drift 检查防文案漂移。排除四项：worktree 隔离（consolidate 已有两段式）、step-count 触发（轮与 step 不同构）、失败压制（触发稀疏，自我修正推翻初判）、技能同通道（skill_hint 已有）。顺序 E 先 B 后（同文件 registry.py 避免冲突）。调研报告 §四已同步处置状态。
+
+### 2026-09-20 11:17 #vj5o
+
+ADR-0013 方案 B 修订（2026-09-20）：ingest_note stable 直写除 reason 必填外，新增可选 evidence 字段（test_ref/commit_ref/reviewed_by），复用 confirm_note 语义——提供时记 metadata.verification 并升 confidence_level=strong。分工：reason 管可见性（防静默，自报意图声明，可被编造），evidence 管验证（人工可核验的结构化锚点）。ADR 已补能力边界声明。另：聚合 frontmatter 折行 pitfall 笔记已确认入库（stable）。
