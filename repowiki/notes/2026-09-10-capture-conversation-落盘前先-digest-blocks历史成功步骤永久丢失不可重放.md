@@ -12,8 +12,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-现在创建技能的整个流程中，是不是只依赖于-@d-repos-CodeWiki-CN-repowiki-wiki-scen.md
   scene: 技能提取 / 采集层
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -23,6 +23,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-10T09:02:09Z'
+reject_reason: consolidated into 对话蒸馏管线与raw暂存区
 ---
 
 ## Background
