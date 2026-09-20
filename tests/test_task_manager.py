@@ -371,7 +371,8 @@ def test_end_to_end_task_memory_flow(tmp_path):
     cid = cap["conversation_id"]
     assert cid.startswith("conv-")
 
-    # 3. Distill: produce both a wiki note and a task memory.
+    # 3. Distill: produce a wiki note; memories are channel-exclusive
+    #    (ADR-0014) — distillation never writes task memories.
     sub = _call(
         distill.handle_distill_conversation,
         repo_path=repo,
@@ -394,15 +395,14 @@ def test_end_to_end_task_memory_flow(tmp_path):
     assert sub["status"] == "completed"
     per = sub["distilled"][0]
     assert per["notes_created"] == 1
-    assert per["memories_written"] == 1
+    assert per["memories_written"] == 0
+    assert per["memories_skipped_reason"] == "channel_exclusive"
     assert per["task_id"] == task_id
 
-    # 4. Distilled memories are written DIRECTLY (ADR-0002, no confirm gate):
-    #    timestamp-headed entry already in memories.md.
+    # 4. Distilled memories are NOT written (ADR-0014 channel exclusivity):
+    #    task memories come exclusively from add_task_memory direct writes.
     got = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
-    assert "JWT 实现" in got["memories"]
-    assert got["memories_total"] == 1
-    assert got["memories"].startswith("### ")
+    assert got["memories_total"] == 0
 
     # 5. The note is stamped with task_id and retrievable via query_wiki.
     #    Draft notes surface with an "[unconfirmed]" prefix, so match on substring.
@@ -577,9 +577,9 @@ def test_append_direct_stamps_heading_and_tolerates_ghost(tmp_path, monkeypatch)
 
 
 def test_distill_memory_heading_uses_captured_at(tmp_path, monkeypatch):
-    """Distilled memory entries carry the conversation's captured_at (dialogue
-    time), not the distillation moment — batch catch-up must not mis-date
-    yesterday's conversations as today."""
+    """ADR-0014: distillation is notes-only (channel exclusivity) — the
+    captured_at heading logic for distilled memories is retired along with
+    the memory channel. This test now pins the new contract."""
     from datetime import datetime
     from pathlib import Path
 
@@ -588,7 +588,7 @@ def test_distill_memory_heading_uses_captured_at(tmp_path, monkeypatch):
     r = _call(tm.handle_create_task, repo_path=repo, title="时间戳溯源")
     task_id = r["task"]["id"]
 
-    # Dialogue captured days ago (UTC) — heading must reflect that moment.
+    # Dialogue captured days ago (UTC).
     _write_raw_capture(tmp_path, "conv-old.md", task_id, "2026-09-05T03:30:00Z")
 
     sub = _call(
@@ -603,25 +603,18 @@ def test_distill_memory_heading_uses_captured_at(tmp_path, monkeypatch):
         },
     )
     assert sub["status"] == "completed"
-    assert sub["distilled"][0]["memories_written"] == 1
+    assert sub["distilled"][0]["memories_written"] == 0
+    assert sub["distilled"][0]["memories_skipped_reason"] == "channel_exclusive"
 
-    text = (Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md").read_text(
-        encoding="utf-8"
-    )
-    # captured_at is UTC; headings are local-naive (datetime.now() clock).
-    expect = (
-        datetime.fromisoformat("2026-09-05T03:30:00+00:00")
-        .astimezone()
-        .strftime("%Y-%m-%d %H:%M")
-    )
-    assert text.startswith(f"### {expect}")
-    assert "昨天会话的进度记忆" in text
+    # No memory file is created for the task.
+    mem = Path(repo) / "repowiki" / "tasks" / task_id / "memories" / "alice.md"
+    assert not mem.exists()
 
 
 def test_distill_task_scoped_skips_memories_by_default(tmp_path):
-    """Channel mutual exclusion (ADR-0010): the task-scoped catch-up path
-    (task_id filter) is FIXED to notes-only — task memories belong to the
-    active-settle channel. No opt-out switch (fixed semantics)."""
+    """Channel mutual exclusion (ADR-0010/0014): distillation is FIXED to
+    notes-only on ALL paths — task memories belong exclusively to the
+    active-settle channel (add_task_memory direct writes)."""
     from pathlib import Path
 
     repo = str(tmp_path)
@@ -662,19 +655,18 @@ def test_distill_task_scoped_skips_memories_by_default(tmp_path):
     per = sub["distilled"][0]
     assert per["notes_created"] == 1
     assert per["memories_written"] == 0
-    assert per["memories_skipped_reason"] == "skip_memories"
+    assert per["memories_skipped_reason"] == "channel_exclusive"
 
     got = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
     assert got["memories_total"] == 0
 
-    # Non-catch-up path (no task_id filter): dual-track still works —
-    # the raw carries task_id, so its memories land on that task.
+    # Non-catch-up path (no task_id filter): same contract — notes only.
     cap2 = _call(
         capture.handle_capture_conversation,
         repo_path=repo,
         conversation=[
             {"role": "user", "content": "再来一轮双轨"},
-            {"role": "assistant", "content": "非补蒸馏路径仍双轨"},
+            {"role": "assistant", "content": "非补蒸馏路径仍只产笔记"},
         ],
         task_id=task_id,
     )
@@ -692,11 +684,11 @@ def test_distill_task_scoped_skips_memories_by_default(tmp_path):
     )
     assert sub2["status"] == "completed"
     per2 = sub2["distilled"][0]
-    assert per2["memories_written"] == 1
-    assert "memories_skipped_reason" not in per2
+    assert per2["memories_written"] == 0
+    assert per2["memories_skipped_reason"] == "channel_exclusive"
 
     got2 = _call(tm.handle_get_task, repo_path=repo, task_id=task_id)
-    assert "双轨路径写入的记忆" in got2["memories"]
+    assert got2["memories_total"] == 0
 
 
 def test_distill_note_carries_source_session(tmp_path):

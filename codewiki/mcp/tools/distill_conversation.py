@@ -1049,7 +1049,6 @@ def _process_llm_output(
     dedup: str = "suppress",
     conflict_policy: str = "auto_suppress",
     drop_raw: bool = False,
-    skip_memories: bool = False,
 ) -> Dict[str, Any]:
     """Deterministic half of distillation.
 
@@ -1073,9 +1072,6 @@ def _process_llm_output(
     meta = _parse_frontmatter(raw_path)
     link_to = _unquote_fm(meta.get("link_to", ""))
     task_id = _unquote_fm(meta.get("task_id", ""))
-    # 原料标记去重（ADR-0008）：该会话任务记忆已由主动沉淀通道直写，蒸馏只产
-    # 草稿笔记、跳过任务记忆生成。规则写在工具层（确定性），跳过时响应显式声明。
-    active_settle = str(meta.get("active_settle", "")).lower() == "true"
 
     notes, parse_error = _parse_llm_notes(llm_output)
     produced: List[Dict[str, Any]] = []
@@ -1298,26 +1294,11 @@ def _process_llm_output(
     # retrieval-indexed knowledge base). Only meaningful when the raw file
     # carries a task_id. Ghost task_id (task deleted after capture) is
     # tolerated — the writer skips silently.
-    # ADR-0008：见原料标记则整段跳过记忆直写（确定性去重，笔记路径不受影响）。
-    # 通道互斥（ADR-0010）：主动沉淀是任务记忆的默认通道；补蒸馏路径
-    # （task_id 过滤的 catch-up）默认 skip_memories=true 只产经验笔记，
-    # 显式 skip_memories=false 恢复双轨。跳过不静默：响应显式声明原因。
-    memories = (
-        []
-        if (active_settle or skip_memories)
-        else _parse_llm_memories(llm_output)
-    )
+    # 通道互斥（ADR-0010，ADR-0014）：任务记忆唯一通道是主动沉淀
+    # （add_task_memory 直写）；蒸馏无条件只产经验笔记，不解析 memories。
+    # 跳过不静默：响应显式声明原因。
+    memories: List[Dict[str, Any]] = []
     memories_written = 0
-    if task_id and memories:
-        from codewiki.mcp.tools.task_manager import append_task_memories_direct
-
-        # Entry headings carry the conversation's captured_at (dialogue time),
-        # not the distillation moment — a batch catch-up of yesterday's
-        # conversations must not mis-date them as today. Unparseable or
-        # missing captured_at (pre-key captures) falls back to the append time.
-        memories_written = append_task_memories_direct(
-            output_dir, task_id, memories, at=_captured_at_dt(meta.get("captured_at", ""))
-        )
 
     # Mark raw as distilled, then apply the retention policy (L0 archive):
     #   drop_raw (argument or frontmatter) -> delete (explicit privacy opt-out)
@@ -1391,11 +1372,8 @@ def _process_llm_output(
         "archived_raw": archived_to,
         "keep_raw": keep_raw,
     }
-    # 跳过不静默（ADR-0008）：见标记跳记忆时以字段显式声明原因。
-    if active_settle:
-        ret["memories_skipped_reason"] = "active_settle"
-    elif skip_memories:
-        ret["memories_skipped_reason"] = "skip_memories"
+    # 跳过不静默（ADR-0014）：蒸馏固定不产任务记忆，以字段显式声明。
+    ret["memories_skipped_reason"] = "channel_exclusive"
     if conflicts:
         ret["conflicts"] = conflicts
         ret["conflict_next"] = (
@@ -1420,7 +1398,6 @@ async def _distill_one(
     note_type_override: Optional[str] = None,
     related_modules_override: Optional[List[str]] = None,
     dedup: str = "suppress",
-    skip_memories: bool = False,
 ) -> Dict[str, Any]:
     """Distill a single raw conversation file into draft note(s) (modes A/B)."""
     built = _build_distill_input(raw_path)
@@ -1441,7 +1418,6 @@ async def _distill_one(
         note_type_override,
         related_modules_override,
         dedup,
-        skip_memories=skip_memories,
     )
 
 
@@ -1618,7 +1594,6 @@ def _background_run(
     job_id: str,
     note_type_override: Optional[str],
     related_modules_override: Optional[List[str]],
-    skip_memories: bool = False,
 ) -> None:
     import asyncio
 
@@ -1655,7 +1630,6 @@ def _background_run(
                 store,
                 note_type_override,
                 related_modules_override,
-                skip_memories=skip_memories,
             )
             results.append(res)
         return results
@@ -1884,17 +1858,16 @@ def handle_distill_conversation(
                 "retire the old note via the consolidation channel."
             ),
         }
-        # 通道互斥（ADR-0010）：补蒸馏路径（task_id 过滤）固定只产经验笔记，
-        # 任务记忆由主动沉淀通道直写——提前告知提取方，省去无效的 memories
-        # 生成与随后的确定性丢弃。
-        if task_filter:
-            ret["skip_memories"] = True
-            ret["memories_note"] = (
-                "Task memories for these captures are handled by the active-settle "
-                "channel (add_task_memory direct writes). Extract notes ONLY — "
-                "memories you emit here will be deterministically dropped "
-                "(memories_skipped_reason=skip_memories)."
-            )
+        # 通道互斥（ADR-0010/0014）：蒸馏固定只产经验笔记，任务记忆由
+        # 主动沉淀通道直写——提前告知提取方，省去无效的 memories 生成
+        # 与随后的确定性丢弃。
+        ret["skip_memories"] = True
+        ret["memories_note"] = (
+            "Task memories are handled by the active-settle channel "
+            "(add_task_memory direct writes). Extract notes ONLY — "
+            "memories you emit here will be deterministically dropped "
+            "(memories_skipped_reason=channel_exclusive)."
+        )
         # K-line hint (additive key — existing consumers unaffected). Only
         # surfaced when at least one pending conversation shows friction.
         if any(c.get("friction_score", 0) >= 20 for c in captures):
@@ -1960,8 +1933,8 @@ def handle_distill_conversation(
             # P1: Mode C 启用两段式去重——弱冲突笔记挂起等待 agent 用
             # dedup_action 裁决（agent 即 LLM，精判零成本）；raw 文件在全部
             # 裁决完成前保留，不标记 distilled。
-            # 通道互斥（ADR-0010）：补蒸馏路径（task_id 过滤）固定只产经验
-            # 笔记，任务记忆归主动沉淀通道直写。
+            # 通道互斥（ADR-0010/0014）：蒸馏固定只产经验笔记，任务记忆
+            # 归主动沉淀通道直写。
             res = _process_llm_output(
                 p,
                 llm_output,
@@ -1971,7 +1944,6 @@ def handle_distill_conversation(
                 related_ov,
                 conflict_policy="hold",
                 drop_raw=bool(arguments.get("drop_raw", False)),
-                skip_memories=bool(task_filter),
             )
             res["conversation_id"] = key
             results.append(res)
@@ -2069,7 +2041,6 @@ def handle_distill_conversation(
                 job_id,
                 note_type_ov,
                 related_ov,
-                bool(task_filter),
             ),
             daemon=True,
         )

@@ -124,3 +124,15 @@ SessionStart 任务关联弹框已改为「单框列全」：只允许 1 次 ask
 ### 2026-09-18 15:46 #clgi
 
 修复 frontmatter 解析 bug：`_read_frontmatter`（note_consolidation.py:124）用 `text.find("---", 3)` 找结束标记，frontmatter 值内含 `---`（如笔记文件名 `commit---amend`）即截断 YAML、解析失败 → lint 误报 SKILL.md 缺 name/status/source_refs。修复为按行匹配 `^---\s*$`。验证：7 keys/6 refs 解析正常，54 passed，skill_lint 3 error→0。遗留：全仓约 30 处同款模式待收敛成共享 helper；MCP server 需重启生效。
+
+### 2026-09-20 17:43 #izmk
+
+完成 install-hooks 参数重构（ADR-0014）：① `--capture on|off` 独立开关（默认 on）控制 SessionEnd（trae 为 Stop）采集注册，off 时移除注册但 SessionStart/脚本/distill-worker 保留；② `--active-settle` 参数删除（传入硬报错），主动沉淀固定启用、ACTIVE-SETTLE 协议块恒渲染，块②保险采集段删除、判据4改沉淀自查；③ 蒸馏无条件只产经验笔记（memories_skipped_reason=channel_exclusive），capture_conversation 的 active_settle 参数与 frontmatter 键删除，ADR-0008 标 superseded、新增 ADR-0014；④ hooks.yaml 删 active_settle 字段、active_settle_of() 退役；⑤ --status 表 active_settle 列改 capture 列，wired-on-disk 新增 hooks(仅SS)+settings(capture off) 专用值；⑥ MCP prompt team-memory-hook/init-wiki 参数 active_settle→capture，locales zh/en 同步；⑦ 设计方案升 v3、README/team-memory-hook.md 同步。全量测试 1176 通过（test_phase2_concurrency 为 Windows 文件锁环境性 flaky，单独跑 17/17 过）。下一步：观察主动沉淀遵守度，效果好则 `--capture off` 停采集链路。
+
+### 2026-09-20 18:45 #ggk5
+
+追加：--mode 参数彻底删除（档位由 hooks.yaml 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的 qwenwork 走 prompt 档），传入即硬报错；连带删除 --clean 与 clean_hook_artifacts()（唯一用途随 --mode 消失）；MCP prompt team-memory-hook 删 mode 参数；README/设计方案/team-memory-hook.md 同步。全量测试 1126 通过。CLI 最终形态：install-hooks [--ide] [--capture on|off] [--status] [--inject-file] [--create-dir] [--repo-path]。
+
+### 2026-09-20 19:15 #wbkl
+
+auto_push 链路梳理完成：核心逻辑在 codewiki/src/git_sync.py 的 auto_push()——_resolve_auto_push 读 schema.yaml conventions.git_sync.auto_push（默认 False）；执行顺序：暂存区守卫（用户已手动 add 则中止）→ git add -A 只暂存 repowiki/ 子树 → unstage .lck → 用仓库现有 git 身份 commit（message 前缀 codewiki:）→ 无 upstream 则跳过推送保留本地提交 → push 失败走 fetch+rebase 重试≤5 次（冲突 abort），永不 force-push/reset，失败保留本地提交下次搭载（D12 失败契约）。锚点两类：handler 自带（close_session/capture_conversation/distill_conversation/batch_ingest/ingest_note/write_doc_file）+ registry.py _PUSH_ON_WRITE 12 个工具由 dispatch() 经 auto_push_into_result 统一收口；batch_ingest 用 defer_push() 抑制子项推送、批边界只推一次。auto_push 开启时 auto_stage 自动失效（互斥）。本仓库 schema.yaml 已开 auto_push: true。

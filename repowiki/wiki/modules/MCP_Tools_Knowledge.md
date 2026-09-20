@@ -23,25 +23,37 @@ verified:
 sources:
 - id: repo://codewiki/mcp/tools/task_manager.py#L87-L110
   resource: repo://codewiki/mcp/tools/task_manager.py#L87-L110
-  content_hash: sha256:af2b8ecd5393c303553a4e605752b04fa718992dced47c09500f80d6cb8709d9
+  content_hash: sha256:cff9216a35ba1460ed14764cfe926f0f2f234263749fe1475f3f5c8f90675cb4
 - id: repo://codewiki/mcp/tools/note_query.py#L118-L150
   resource: repo://codewiki/mcp/tools/note_query.py#L118-L150
   content_hash: sha256:4e4d584abb75839e2f6551ca8f7fcfd3bc3b5605c1aa959c13321f8652673c22
 - id: repo://codewiki/mcp/tools/note_writer.py#L36-L70
   resource: repo://codewiki/mcp/tools/note_writer.py#L36-L70
-  content_hash: sha256:33c885523cc9aa526df1238fe5a264128cb8ea3482a94b8ae1ff94d471329986
+  content_hash: sha256:5dd14063c57bbada55a0e9bc80d7de2d2ac6d2fc5558dd6b21c47af20d572e75
 - id: repo://codewiki/mcp/tools/note_types.py#L93-L130
   resource: repo://codewiki/mcp/tools/note_types.py#L93-L130
-  content_hash: sha256:9499d922e51fd20f72228bc259386b5043f097901dfb60995dd580160b7a16bd
+  content_hash: sha256:beeb7bfcdc3909817c8396722c37f55593bd724fd83045a3d79e7ec53ac70879
 - id: repo://codewiki/mcp/tools/note_consolidation.py#L231-L270
   resource: repo://codewiki/mcp/tools/note_consolidation.py#L231-L270
-  content_hash: sha256:b0c89f0634d1727f9e45e86324f1e0f5830c7a4149cefb6768eff835755be58e
+  content_hash: sha256:29f3195a37a7de3e8e7da8a0b38f40bffb621f1455b55863b84c3b1ae6940482
 - id: repo://codewiki/mcp/tools/distill_conversation.py#L341-L399
   resource: repo://codewiki/mcp/tools/distill_conversation.py#L341-L399
-  content_hash: sha256:d294bb9ad4a5951089bb1fa7a0a81113a351cfc7fddc5926aa99ccd9131b8f31
+  content_hash: sha256:d01a7678c5ecb4cc0b95e94f70f9749911ea37247dda172a67563e43e403485c
 - id: repo://codewiki/mcp/tools/hook_registry.py#L31-L71
   resource: repo://codewiki/mcp/tools/hook_registry.py#L31-L71
-  content_hash: sha256:ad0ab76fd97983b71d5c74fd62578bbe8bac67bac67ab6d8e1a7d32712edada0
+  content_hash: sha256:56b862c5bb55faa49b2288977c329366e4b735c490559d6e59d26d98c99e1ebd
+- id: repo://codewiki/mcp/tools/note_ingest.py#L206-L270
+  resource: repo://codewiki/mcp/tools/note_ingest.py#L206-L270
+  content_hash: sha256:fb8e1562baf53af92bc1fde865d1a6803ea698ef50061ac0134ae8b4cde96c63
+- id: repo://codewiki/mcp/tools/task_manager.py#L188-L210
+  resource: repo://codewiki/mcp/tools/task_manager.py#L188-L210
+  content_hash: sha256:5bed1b515871f9fd20aedbfbae80183e7af76c887f8b7626ce7936adac5cf5f1
+- id: repo://codewiki/mcp/tools/distill_conversation.py#L83-L100
+  resource: repo://codewiki/mcp/tools/distill_conversation.py#L83-L100
+  content_hash: sha256:f90fbb07a8fbfa0aca28a089d58f89941a5130ca4719a841d8056ce46cb3072a
+- id: repo://codewiki/mcp/tools/limits.py#L1-L35
+  resource: repo://codewiki/mcp/tools/limits.py#L1-L35
+  content_hash: sha256:9716be40ee749c7fd395756be4ad8d66570999fce48cc14bcfa943998417bd61
 ---
 
 # MCP_Tools_Knowledge 模块文档
@@ -55,9 +67,9 @@ sources:
 | 组件 | 类型 | 文件 | 职责 |
 |------|------|------|------|
 | `handle_query_wiki` | 公开 | knowledge_loop.py | Wiki 多模式查询总入口（overview/directory/detail） |
-| `handle_ingest_note` | 公开 | knowledge_loop.py | 接收用户笔记要点并暂存为待确认 note |
-| `handle_confirm_note` | 公开 | knowledge_loop.py | 确认 note，注入到对应模块文档 |
-| `handle_reject_note` | 公开 | knowledge_loop.py | 拒绝 note，标记状态 |
+| `handle_ingest_note` | 公开 | note_ingest.py | 接收用户笔记要点并暂存为待确认 note；ADR-0013：`status='stable'` 直写绕过 confirm 闸门时**必须**携带 `reason` 参数（意图声明，非验证机制），可选 `evidence`（`test_ref`/`commit_ref`/`reviewed_by`）锚点——提供任一已知键将 `confidence_level` 提升为 strong 并记录 `metadata.verification`，未知键拒绝 |
+| `handle_confirm_note` | 公开 | note_lifecycle.py | 确认 note，注入到对应模块文档 |
+| `handle_reject_note` | 公开 | note_lifecycle.py | 拒绝 note，标记状态 |
 | `handle_batch_ingest` | 公开 | batch_ingest.py | 批量摄入 notes/sources；完整逐项报告落盘 `.meta/batch_ingest_report.json`，返回值仅含摘要与报告路径 |
 | `handle_read_code_components` | 公开 | code_reader.py | 读取代码组件（类/函数）用于文档生成 |
 | `handle_view_repo_file` | 公开 | file_viewer.py | 查看仓库内文件内容 |
@@ -70,7 +82,7 @@ sources:
 | `_build_section` / `_extract_modules` / `_write_agents_md` | 私有 | agents_md.py | 构建 AGENTS.md 章节、解析模块列表、落盘写入 |
 | `_read_source_from_disk` | 私有 | code_reader.py | 从磁盘读取源文件内容 |
 | `_clean_source_refs` / `_count_source_refs` / `_load_registry` / `_resolve_output_dir` / `_save_registry` | 私有 | source_ingest.py | 源引用清理/计数、注册表加载/保存、输出目录解析 |
-| `create_task` / `list_tasks` / `get_task` / `get_task_context` / `complete_task` / `delete_task` / `set_session_task` / `add_task_memory` / `compact_task_memories` | 公开 | task_manager.py | 任务记忆工具族：任务 CRUD、会话绑定、记忆追加/上下文拉取与压缩 |
+| `create_task` / `list_tasks` / `get_task` / `get_task_context` / `complete_task` / `delete_task` / `set_session_task` / `add_task_memory` / `compact_task_memories` | 公开 | task_manager.py | 任务记忆工具族：任务 CRUD、会话绑定、记忆追加/上下文拉取与压缩；压缩阈值常量单源收口在 [limits.py](../../../codewiki/mcp/tools/limits.py)（ADR-0013），此处按历史私有名再导出保持兼容 |
 | `_read_index` / `_find_by_id` | 私有 | task_manager.py | 读取任务索引（tasks/ 目录为真相的缓存）；按 id 查找任务 |
 | `_extract_frontmatter_block` | 私有 | note_query.py | 从笔记文本切出 frontmatter 块，供检索/去重前解析 |
 | `_norm_status` | 私有 | note_writer.py | 规范化笔记 status 值（别名归一、非法回退） |
@@ -89,8 +101,10 @@ sources:
 4. **源注册表**：source_ingest 维护 registry 记录 source 与生成 doc 的映射，支持 retract 回滚。
 5. **AGENTS.md 自动生成**：从各模块 frontmatter 抽取组件，聚合为仓库入口文档。
 6. **大载荷报告落盘**：`handle_batch_ingest` 将完整逐项结果写入 `<output_dir>/.meta/batch_ingest_report.json`，返回值仅含 `summary` 与 `report_file` 路径，避免 MCP 通道大载荷超时；调用方可用 `view_repo_file` 读取报告详情。无 `output_dir` 时退回内联 `results`。
-7. **任务记忆与笔记同管**：`task_manager` 是任务记忆工具族（与笔记笔记知识同属知识沉淀闭环），索引读取走 [KnowledgeStore](KnowledgeStore.md) 的「目录为真相、缓存校验重建」约定（`_read_index`/`_find_by_id` 支撑会话绑定与上下文拉取）。
+7. **任务记忆与笔记同管**：`task_manager` 是任务记忆工具族（与笔记笔记知识同属知识沉淀闭环），索引读取走 [KnowledgeStore](KnowledgeStore.md) 的「目录为真相、缓存校验重建」约定（`_read_index`/`_find_by_id` 支撑会话绑定与上下文拉取）；压缩阈值（40 条/24KB/保留 20 条/摘要 4096 字符）与黄/橙分级（75%/87.5%）单源收口在 `limits.py`（ADR-0013），registry/prompts 中的行为契约副本由 `lint_wiki` 的 `threshold_drift` 检查守护。
 8. **知识工具家族拆分**：note/task/distill/hook 从 `knowledge_loop` 大文件中拆出后各自独立成文件，仍共享同一套 frontmatter 收敛点；统一 reader 落地后，旧式手工剥引号补丁（`_unquote_fm`）降级为兼容层只处理历史遗留值。
+9. **ADR-0013 直写闸门**：`ingest_note` 的 `status='stable'` 是对 draft→confirm 闸门的显式绕过，必须携带 `reason`（意图声明，写入 `metadata.reason` 供审计追溯）；可选 `evidence` 锚点镜像 `confirm_note` 语义——提供 `test_ref`/`commit_ref`/`reviewed_by` 任一即提升 `confidence_level` 为 strong 并记录 `metadata.verification`，未知键直接报错拒绝。draft 状态豁免（下游有 confirm 闸门兜底）。
+10. **蒸馏提示词纪律**：`distill_conversation` 的系统提示新增第 6 条规则——每条笔记必须说明值得沉淀的理由（正文一行，如 `## Rationale`），且**永不计算**：只记录对话中明确说出的数字与结论，不做算术、计数或对已述数字的推断（ADR-0012）。
 
 ## 数据流（mermaid）
 

@@ -28,6 +28,8 @@ from codewiki.cli.utils.ide_config import (
     merge_settings_json,
 )
 from codewiki.mcp.prompts import (
+    _ACTIVE_SETTLE_END,
+    _ACTIVE_SETTLE_START,
     _TASK_MEMORY_AGENTS_END,
     _TASK_MEMORY_AGENTS_START,
 )
@@ -348,11 +350,15 @@ def test_install_updates_existing_agents_section(tmp_path, fake_pkg):
     )
     install_for_ide(str(tmp_path), "claude-code")
     text = agents_md.read_text(encoding="utf-8")
-    # Prefix/suffix untouched, stale block replaced.
+    # Prefix untouched, stale block replaced.
     assert text.startswith("prefix\n\n")
-    assert text.endswith("\n\nsuffix\n")
     assert "stale block" not in text
     assert text.count(_TASK_MEMORY_AGENTS_START) == 1
+    # ADR-0014: the ACTIVE-SETTLE protocol block is always rendered and
+    # appended at the end of the file (after the user's suffix content).
+    assert "suffix" in text
+    assert _ACTIVE_SETTLE_START in text
+    assert text.rstrip().endswith(_ACTIVE_SETTLE_END.strip())
 
 
 def test_unknown_ide_raises(tmp_path):

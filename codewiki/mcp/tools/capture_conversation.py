@@ -328,10 +328,6 @@ def handle_capture_conversation(
       - task_id (optional): id of the task this conversation is bound to. Stored
         as metadata and participates in dedup hashing so the same conversation
         under different tasks is preserved separately.
-      - active_settle (optional, bool, default False): 原料标记（ADR-0008）——
-        声明本会话任务记忆已由主动沉淀通道直写。为 true 时 frontmatter 落顶层
-        单行键 ``active_settle: true``，distill_conversation 见之只产草稿笔记、
-        跳过任务记忆生成（确定性去重）。
 
     Returns a JSON status object.
     """
@@ -370,7 +366,6 @@ def handle_capture_conversation(
     keep_raw = bool(arguments.get("keep_raw", False))
     source_session_id = str(arguments.get("source_session_id") or "")
     task_id = str(arguments.get("task_id") or "")
-    active_settle = bool(arguments.get("active_settle", False))
 
     # Friction scoring (K-line): pure-function signal detection on the already
     # filtered dialogue turns. The score only feeds frontmatter metadata + the
@@ -385,7 +380,6 @@ def handle_capture_conversation(
         task_id=task_id,
         link_to=link_to,
         keep_raw=keep_raw,
-        active_settle=active_settle,
         metadata={
             "friction_score": friction["score"],
             "friction_signals": format_friction_signals(friction["signals"]),

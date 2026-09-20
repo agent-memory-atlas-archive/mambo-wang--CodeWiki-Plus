@@ -9,11 +9,14 @@ Install-hooks command for CodeWiki CLI.
 走 prompt 接线（AGENTS.md 协议段，Agent 中介捕获），仅显式 --ide qwenwork
 触发（仓库无标记目录，不参与自动检测）。
 
-档位/叠加选择入口（见 docs/接线档位选择设计方案.md §3.6）：
---mode hook|prompt|auto（默认 auto = 按 hooks.yaml 注册表判定，与今日一致）、
---active-settle on|off（覆盖注册表默认）、--status（只读状态表）、
---inject-file（覆盖注入文件路径）、--clean（换档 prompt 时删除我们的脚本与
-distill-worker.md，设计方案 §3.10）。
+档位自动判定（见 docs/接线档位选择设计方案.md §3.6）：按 hooks.yaml 注册表
+判定——支持 SessionStart 的宿主走 hook 档，不支持的（qwenwork）走 prompt 档，
+不再提供 --mode 手动覆盖。剩余入口：--capture on|off（SessionEnd 采集注册的
+独立开关，默认 on；off 时移除 SessionEnd/Stop 采集注册，主动沉淀成为唯一
+记忆写入通道）、--status（只读状态表）、--inject-file（覆盖注入文件路径）。
+
+主动沉淀（ADR-0014）固定启用，不再提供开关：ACTIVE-SETTLE 协议块恒渲染，
+任务记忆唯一通道是 add_task_memory 直写，蒸馏固定只产经验笔记。
 """
 
 import json
@@ -35,7 +38,6 @@ from codewiki.cli.utils.ide_config import (
 )
 from codewiki.mcp.prompts import _ACTIVE_SETTLE_START, _QWENWORK_CAPTURE_START
 from codewiki.mcp.tools.hook_registry import (
-    active_settle_of,
     get_agent,
     inject_file_of,
     load_registry,
@@ -171,18 +173,23 @@ def _wired_on_disk(repo_path: Path, agent: dict) -> str:
         return "hooks(仅SS)+AGENTS"
     if has_start and has_end:
         return "hooks+settings"
+    if has_start:
+        # SessionStart 在、SessionEnd 不在 = capture off 的合法形态，
+        # 与「接线不完整」显式区分（ADR-0014）。
+        return "hooks(仅SS)+settings(capture off)"
     return "hooks(partial)+settings"
 
 
-def _echo_status(repo_path: Path, settle_override: Optional[bool]) -> None:
+def _echo_status(repo_path: Path, capture_override: Optional[bool]) -> None:
     """打印接线状态表（只读；不修改任何文件，调用方保证退出码 0）。
 
     列口径对齐设计方案 §3.6 表样；``registry`` 列复用
     ``support_matrix_markdown()`` 的"已验证/理论支持"口径，保证与 README 一致；
-    ``active_settle`` 列展示生效值并标注来源（注册表默认 / CLI 覆盖）。
+    ``capture`` 列展示生效值并标注来源（默认 on / CLI 覆盖）。主动沉淀
+    固定启用（ADR-0014），不再作为状态列。
     """
     lines = [
-        "| agent | family | registry | wiring | active_settle | wired-on-disk | capability gap |",
+        "| agent | family | registry | wiring | capture | wired-on-disk | capability gap |",
         "|---|---|---|---|---|---|---|",
     ]
     agents = load_registry().get("agents", [])
@@ -193,14 +200,14 @@ def _echo_status(repo_path: Path, settle_override: Optional[bool]) -> None:
         family = str(agent.get("family", "?"))
         registry = "已验证" if agent.get("verified") else "理论支持"
         wiring = wiring_of(agent_id)
-        if settle_override is None:
-            settle_text = ("on" if active_settle_of(agent_id) else "off") + "(默认)"
+        if capture_override is None:
+            capture_text = "on(默认)"
         else:
-            settle_text = ("on" if settle_override else "off") + "(CLI)"
+            capture_text = ("on" if capture_override else "off") + "(CLI)"
         disk = _wired_on_disk(repo_path, agent)
         gap = _STATUS_FAMILY_GAPS.get(family, "-")
         lines.append(
-            f"| {agent_id} | {family} | {registry} | {wiring} | {settle_text} | {disk} | {gap} |"
+            f"| {agent_id} | {family} | {registry} | {wiring} | {capture_text} | {disk} | {gap} |"
         )
     click.echo("\n".join(lines))
 
@@ -218,26 +225,32 @@ def _echo_status(repo_path: Path, settle_override: Optional[bool]) -> None:
     ),
 )
 @click.option(
-    "--mode",
-    type=click.Choice(["hook", "prompt", "auto"], case_sensitive=False),
-    default="auto",
-    show_default=True,
-    help=(
-        "Wiring tier: hook (shell hooks: scripts + settings), prompt (inject"
-        " file only, no config dir/scripts/settings), auto (follow the"
-        " hooks.yaml registry; today's behavior). Invalid combinations are"
-        " hard errors, never silent downgrades."
-    ),
+    "--active-settle",
+    "active_settle_removed",
+    type=click.Choice(["on", "off"], case_sensitive=False),
+    default=None,
+    hidden=True,
+    help="Removed: active settle is always on (ADR-0014).",
 )
 @click.option(
-    "--active-settle",
-    "active_settle",
+    "--mode",
+    "mode_removed",
+    type=click.Choice(["hook", "prompt", "auto"], case_sensitive=False),
+    default=None,
+    hidden=True,
+    help="Removed: wiring tier is auto-decided by the hooks.yaml registry.",
+)
+@click.option(
+    "--capture",
+    "capture",
     type=click.Choice(["on", "off"], case_sensitive=False),
     default=None,
     help=(
-        "Override the registry's active-settle default for this run (whether"
-        " the ACTIVE-SETTLE protocol block applies). Omit to keep the"
-        " registry default."
+        "Independent switch for the SessionEnd (TRAE: Stop) capture"
+        " registration. Default on. 'off' removes the capture registration"
+        " only — SessionStart (task association) stays, hook scripts and"
+        " distill-worker are still copied, and active settle (ADR-0014) is"
+        " always on."
     ),
 )
 @click.option(
@@ -247,7 +260,7 @@ def _echo_status(repo_path: Path, settle_override: Optional[bool]) -> None:
     default=False,
     help=(
         "Print a read-only status table (agent / family / registry / wiring /"
-        " active_settle / wired-on-disk / capability gap). Never modifies any"
+        " capture / wired-on-disk / capability gap). Never modifies any"
         " file; exits 0."
     ),
 )
@@ -259,18 +272,6 @@ def _echo_status(repo_path: Path, settle_override: Optional[bool]) -> None:
     help=(
         "Override the inject file path (repo-relative; default: registry"
         " inject_file_of, normally AGENTS.md)."
-    ),
-)
-@click.option(
-    "--clean",
-    is_flag=True,
-    default=False,
-    help=(
-        "When switching to prompt wiring, also delete CodeWiki-owned physical"
-        " artifacts (our .py hook scripts under <config_dir>/hooks/ and"
-        " distill-worker.md). Without this flag the files are kept so a"
-        " switch back to hook wiring can reuse them. Only our own files are"
-        " ever removed; other tools' hooks are untouched."
     ),
 )
 @click.option(
@@ -292,11 +293,11 @@ def _echo_status(repo_path: Path, settle_override: Optional[bool]) -> None:
 )
 def install_hooks(
     ide: Optional[str],
-    mode: str,
-    active_settle: Optional[str],
+    active_settle_removed: Optional[str],
+    mode_removed: Optional[str],
+    capture: Optional[str],
     status: bool,
     inject_file: Optional[str],
-    clean: bool,
     create_dir: bool,
     repo_path: str,
 ) -> None:
@@ -310,9 +311,10 @@ def install_hooks(
     UserPromptSubmit 技能草稿提示注册（advisory，见 skill-creator §10）、
     向 AGENTS.md upsert 任务记忆引导段（多 IDE 共享一份）。
 
-    档位与叠加（设计方案 §3.6）：--mode 默认 auto（按注册表，与今日一致）；
-    --mode hook 对 prompt 家族宿主（qwenwork）硬报错；--mode prompt 只动
-    注入文件；--active-settle 覆盖注册表默认；--status 先看后选。
+    档位自动判定（设计方案 §3.6）：按 hooks.yaml 注册表——支持 SessionStart
+    的宿主走 hook 档，不支持的（qwenwork）走 prompt 档，无手动覆盖。
+    --capture off 独立关闭 SessionEnd 采集注册（主动沉淀固定启用，ADR-0014）；
+    --status 先看后选。
 
     Examples:
 
@@ -329,24 +331,44 @@ def install_hooks(
     $ codewiki install-hooks --ide qoder
 
     \b
-    # Inspect wiring status first (read-only), then choose mode/overlay
+    # Disable SessionEnd capture (active settle is the only memory channel)
+    $ codewiki install-hooks --capture off
+
+    \b
+    # Inspect wiring status first (read-only)
     $ codewiki install-hooks --status
-    $ codewiki install-hooks --ide trae --mode hook --active-settle on
     """
     try:
-        # --active-settle on|off → 布尔；None = 不覆盖，用注册表默认
-        settle = None if active_settle is None else active_settle.lower() == "on"
+        # ADR-0014：--active-settle 已移除（主动沉淀固定启用），传入即硬报错，
+        # 不静默忽略——旧脚本/文档残留该参数时用户必须知情。
+        if active_settle_removed is not None:
+            raise click.UsageError(
+                "--active-settle has been removed: active settle is always on "
+                "(ADR-0014). Use --capture on|off to control the SessionEnd "
+                "capture registration."
+            )
+
+        # --mode 已移除（档位由注册表自动判定），传入即硬报错。
+        if mode_removed is not None:
+            raise click.UsageError(
+                "--mode has been removed: the wiring tier is auto-decided by "
+                "the hooks.yaml registry (hosts with SessionStart support get "
+                "hook wiring; the rest get prompt wiring)."
+            )
+
+        # --capture on|off → 布尔；None = 不覆盖，默认 on
+        capture_on = None if capture is None else capture.lower() == "on"
 
         if status:
             # 只读状态表：不修改任何文件，始终退出码 0
-            _echo_status(Path(repo_path), settle)
+            _echo_status(Path(repo_path), capture_on)
             sys.exit(0)
 
         if ide:
             target = ide.lower()
             spec = IDE_SPECS[target]
             # prompt 档不建/不动配置目录，故也不要求目录存在
-            if spec.get("dir") and not create_dir and mode != "prompt":
+            if spec.get("dir") and not create_dir and wiring_of(target) != "prompt":
                 ide_dir = Path(repo_path) / spec["dir"]
                 if not ide_dir.is_dir():
                     raise IdeWiringError(
@@ -386,34 +408,21 @@ def install_hooks(
             )
             sys.exit(0)
 
-        # 校验硬报错（不静默降级）：prompt 家族宿主没有 shell hook 机制，
-        # --mode hook 是非法组合（--mode auto 走注册表判定，不受此限）。
-        if mode == "hook":
-            for name in targets:
-                if wiring_of(name) == "prompt":
-                    raise IdeWiringError(
-                        f"{name} 无 shell hook 机制（注册表为 prompt 家族），"
-                        "不能用 --mode hook 接线，请用 --mode prompt"
-                    )
-
         results = []
         for name in targets:
-            if mode == "hook":
-                # 理论支持宿主：接线照做，但必须打黄色警告（不静默降级）
-                agent_entry = get_agent(name) or {}
-                if not agent_entry.get("verified", False):
-                    click.secho(
-                        f"[{name}] warning: registry verified=false"
-                        "（家族归并推导，未经真机验证）——接线后请跑模拟事件验证",
-                        fg="yellow",
-                    )
+            # 理论支持宿主：接线照做，但必须打黄色警告（不静默降级）
+            agent_entry = get_agent(name) or {}
+            if not agent_entry.get("verified", False):
+                click.secho(
+                    f"[{name}] warning: registry verified=false"
+                    "（家族归并推导，未经真机验证）——接线后请跑模拟事件验证",
+                    fg="yellow",
+                )
             results.append(
                 install_for_ide(
                     repo_path,
                     name,
-                    mode=mode,
-                    active_settle=settle,
-                    clean=clean,
+                    capture=capture_on,
                     inject_file=inject_file,
                 )
             )

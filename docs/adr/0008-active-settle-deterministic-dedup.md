@@ -1,7 +1,7 @@
 # 0008. 主动沉淀与蒸馏双写路径用原料标记确定性去重
 
 日期：2026-09-17
-状态：已接受
+状态：已被取代（superseded by [ADR-0014](0014-distill-notes-only-channel-exclusivity.md)，2026-09-20）
 
 ## 背景
 

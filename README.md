@@ -804,39 +804,40 @@ Agent 调用 `list_tasks` 找到任务 → `set_session_task` 绑定会话 → `
 
 ### 团队记忆 Hook 的智能体支持矩阵
 
-对话采集 Hook（team-memory-hook）按家族归并支持多种智能体。下表**由注册表 `codewiki/hooks.yaml` 经 `hook_registry.support_matrix_markdown()` 生成**（单一事实来源是注册表——增减智能体/改档位与叠加默认值请改 `hooks.yaml`，勿手改本表）：
+对话采集 Hook（team-memory-hook）按家族归并支持多种智能体。下表**由注册表 `codewiki/hooks.yaml` 经 `hook_registry.support_matrix_markdown()` 生成**（单一事实来源是注册表——增减智能体/改档位请改 `hooks.yaml`，勿手改本表）：
 
-| 智能体 | 家族 | 支持等级 | 档位 | 主动沉淀 |
-|--------|------|----------|------|----------|
-| `claude-code` | claude | 已验证 | hook | off |
-| `codebuddy` | claude | 已验证 | hook | off |
-| `qoder` | claude | 已验证 | hook | off |
-| `qwenwork` | prompt | 已验证 | prompt | on |
-| `trae` | trae | 已验证 | hook | on |
-| `codex-cli` | codex | 理论支持 | hook | off |
-| `cursor` | cursor | 理论支持 | hook | off |
-| `gemini-cli` | claude | 理论支持 | hook | off |
-| `kilocode` | claude | 理论支持 | hook | off |
-| `opencode` | claude | 理论支持 | hook | off |
-| `windsurf` | claude | 理论支持 | hook | off |
+| 智能体 | 家族 | 支持等级 | 档位 |
+|--------|------|----------|------|
+| `claude-code` | claude | 已验证 | hook |
+| `codebuddy` | claude | 已验证 | hook |
+| `qoder` | claude | 已验证 | hook |
+| `qwenwork` | prompt | 已验证 | prompt |
+| `trae` | trae | 已验证 | hook |
+| `codex-cli` | codex | 理论支持 | hook |
+| `cursor` | cursor | 理论支持 | hook |
+| `gemini-cli` | claude | 理论支持 | hook |
+| `kilocode` | claude | 理论支持 | hook |
+| `opencode` | claude | 理论支持 | hook |
+| `windsurf` | claude | 理论支持 | hook |
 
 "已验证"指日常使用背书；"理论支持"指家族归并推导、未经真机验证——接线后请按 team-memory-hook prompt 的模拟事件步骤验证。不支持 hook 的运行时可用 `capture_conversation` MCP 工具手动采集。
 
 **能力缺口说明**（家族层事实，与某仓库是否已接线无关）：
-- **`trae`**：无 SessionEnd 事件、Stop 每轮触发但不携带 `transcript_path`，hook 采集无正文可落盘；但 **SessionStart / UserPromptSubmit 完整注入**（`hookSpecificOutput.additionalContext`）。v2 起**主动沉淀默认 on**：会话停顿点直写任务记忆/草稿笔记（下轮零延迟），收尾轮再做带 `active_settle: true` 标记的**保险采集**——对话捕获由保险采集兜底，不再是"只能靠 Agent 中介补漏"的降级形态。
+- **`trae`**：无 SessionEnd 事件、Stop 每轮触发但不携带 `transcript_path`，hook 采集无正文可落盘；但 **SessionStart / UserPromptSubmit 完整注入**（`hookSpecificOutput.additionalContext`）。主动沉淀固定启用（ADR-0014）：会话停顿点直写任务记忆/草稿笔记（下轮零延迟），对话捕获由 Agent 收尾轮 norm 兜底。
 - **`cursor`**：家族归并推导（`verified: false`），接线后必须跑模拟事件验证；该家族 stop 事件不带 `transcript_path`，无正文可采、不落盘，采集降级。
-- **`qwenwork`**：无 shell hook 机制，走 prompt 档 + 主动沉淀（默认 on），全靠注入文件自动加载 + Agent 中介执行。
+- **`qwenwork`**：无 shell hook 机制，走 prompt 档 + 主动沉淀（固定启用），全靠注入文件自动加载 + Agent 中介执行。
 
-**档位 × 叠加 选择表**（两轴正交；决策树见 `docs/接线档位选择设计方案.md` §3.12，先用 `codewiki install-hooks --status` 看支持性与默认叠加）：
+**档位 × 采集开关 选择表**（决策树见 `docs/接线档位选择设计方案.md` §3.12，先用 `codewiki install-hooks --status` 看支持性与当前采集状态）：
 
-| 档位（wiring） | 主动沉淀 | 产物 | 适用 | 任务记忆可见延迟 |
+| 档位（wiring） | capture | 产物 | 适用 | 任务记忆可见延迟 |
 |---|---|---|---|---|
-| `hook` | `off` | `<config_dir>/hooks/*.py` + settings 注册 + 注入引导段 | 采集完整宿主（codebuddy/qoder/claude-code）默认，现状批处理 | 1 轮（下轮蒸馏才落盘） |
-| `hook` | `on` | 同上 + `CODEWIKI-ACTIVE-SETTLE` 协议块 | hook 读 + prompt 写共存（trae 默认；codebuddy 想更及时可显式开） | **0**（停顿点直写，下轮 `get_task_context` 即取） |
+| `hook` | `on`（默认） | `<config_dir>/hooks/*.py` + settings 注册 + 注入引导段 + 协议块 | 采集完整宿主（codebuddy/qoder/claude-code）默认，现状批处理 | **0**（停顿点直写）+ 采集兜底 |
+| `hook` | `off` | 同上，但无 SessionEnd（trae 为 Stop）采集注册 | 主动沉淀效果好、不再需要采集→蒸馏链路 | **0**（停顿点直写） |
 | `prompt` | `on` | 仅注入文件（引导段 + 协议块） | 无 shell hook 宿主（qwenwork）或团队共享仓库不留脚本/settings | **0** |
-| `prompt` | `off` | 仅注入文件（引导段） | 只用任务记忆引导、不要主动沉淀 | 1 轮 |
 
-选择入口：`codewiki install-hooks [--mode hook|prompt|auto] [--active-settle on|off] [--status]`（`auto` = 按注册表判定，与今日一致；prompt 家族宿主用 `--mode hook` 会硬报错、退出码 1，不静默降级）。
+主动沉淀（ADR-0014）固定启用：任务记忆唯一通道是 `add_task_memory` 直写，蒸馏固定只产经验笔记（`memories_skipped_reason=channel_exclusive`）。
+
+选择入口：`codewiki install-hooks [--capture on|off] [--status]`。档位由 `hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（qwenwork）走 prompt 档，无手动覆盖（`--mode` 已移除，传入即硬报错）。
 
 **无 MCP 环境的检索**：`codewiki query "<关键词>"` CLI 命令输出 Agent 友好的定界文本块（与 query_wiki 同一引擎），配合 `codewiki/agents/wiki-recall.md` subagent 定义（拷入各工具的 agents 目录），任何能执行 shell 命令的 Agent 均可消费团队知识库。
 

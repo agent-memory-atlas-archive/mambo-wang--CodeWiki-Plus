@@ -82,7 +82,7 @@ prompts:
     args:
       repo_path: "Repo root path (relative paths resolve against the current working directory; defaults to cwd)"
       enable_task_management: "Enable cross-session task memory: true/1 appends task-management setup instructions (register the SessionEnd capture hook + write the task guidance block into AGENTS.md so new sessions prompt the user to bind or create a task); empty/false skips it. Disabled by default."
-      active_settle: "Active-settle overlay: on appends --active-settle on to the wiring command and writes the CODEWIKI-ACTIVE-SETTLE protocol block into AGENTS.md (direct-write settling at natural pause points + a safety capture in the closing turn); off by default (block not written). Only effective when task management is enabled."
+      capture: "Capture switch: off removes the SessionEnd capture registration, making active settle the only memory channel; default on"
 
   init-workspace:
     title: "Initialize multi-repo Wiki workspace"
@@ -187,8 +187,7 @@ prompts:
     args:
       action: "Action to perform: enable | disable; leave empty to inspect the current state first and follow the user's intent"
       repo_path: "Repo root path (relative paths resolve against the current working directory; defaults to cwd)"
-      mode: "Wiring tier: hook (register shell lifecycle events) | prompt (write injection files only — no config dirs, no script copies, no settings changes; for hosts without shell events or shared team repos) | auto (default, decided by the registry)"
-      active_settle: "Active-settle overlay: on appends --active-settle on to the wiring command and writes the CODEWIKI-ACTIVE-SETTLE protocol block into AGENTS.md (direct-write settling at natural pause points + a safety capture in the closing turn); off by default (block not written)."
+      capture: "Capture switch: off removes the SessionEnd capture registration, making active settle the only memory channel; default on"
 
   distill-conversations:
     title: "Distill conversations into memories and experience"

@@ -1,13 +1,11 @@
-"""票 03：CLI --mode / --active-settle / --status / --inject-file / --clean。
+"""票 03：CLI --capture / --status / --inject-file（档位自动判定）。
 
-依据 docs/接线档位选择设计方案.md §3.6 与 .scratch/active-settle-wiring/issues/03：
-  - --mode hook + prompt 家族宿主（qwenwork）→ 退出码 1 + 建议改用 --mode prompt
-  - --mode hook + verified: false → 接线成功 + 黄色警告
-  - --mode prompt → 只动注入文件（不建配置目录、不拷脚本、不写 settings）
-  - --mode auto → 与今日行为一致（零回归：产物逐字节一致）
-  - --active-settle on|off 覆盖注册表默认并透传给安装逻辑
+依据 docs/接线档位选择设计方案.md §3.6 与 ADR-0014：
+  - 档位由注册表自动判定（--mode 已移除，传入即硬报错）
+  - --capture on|off 独立控制 SessionEnd 采集注册（默认 on；主动沉淀固定启用）
   - --status → 只读状态表，含全部七列，退出码 0，不改任何文件
-  - --inject-file / --clean 参数可达
+  - --inject-file 参数可达
+  - 理论支持宿主（verified: false）接线成功 + 黄色警告
 """
 
 import json
@@ -62,11 +60,11 @@ def _snapshot(root: Path) -> dict[str, bytes]:
 
 
 # ---------------------------------------------------------------------------
-# --mode hook 校验（不静默降级）
+# 已移除参数：--mode / --active-settle 传入即硬报错（不静默忽略）
 # ---------------------------------------------------------------------------
 
 
-def test_mode_hook_on_qwenwork_exits_1_with_prompt_suggestion(tmp_path):
+def test_mode_flag_removed_hard_error(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "AGENTS.md").write_text("# Project\n", encoding="utf-8")
@@ -74,15 +72,48 @@ def test_mode_hook_on_qwenwork_exits_1_with_prompt_suggestion(tmp_path):
     runner = CliRunner()
     result = runner.invoke(
         install_hooks,
-        ["--repo-path", str(repo), "--ide", "qwenwork", "--mode", "hook"],
+        ["--repo-path", str(repo), "--ide", "qwenwork", "--mode", "prompt"],
     )
-    assert result.exit_code == 1, result.output
-    assert "--mode prompt" in result.output  # 可执行建议
+    assert result.exit_code != 0
+    assert "--mode has been removed" in result.output
     # 硬报错：注入文件原样，无任何写入
     assert (repo / "AGENTS.md").read_text(encoding="utf-8") == "# Project\n"
 
 
-def test_mode_hook_on_verified_false_warns_but_wires(tmp_path, fake_pkg, monkeypatch):
+def test_active_settle_flag_removed_hard_error(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    runner = CliRunner()
+    result = runner.invoke(
+        install_hooks,
+        ["--repo-path", str(repo), "--active-settle", "on"],
+    )
+    assert result.exit_code != 0
+    assert "--capture" in result.output
+
+
+# ---------------------------------------------------------------------------
+# 档位自动判定（注册表单源）
+# ---------------------------------------------------------------------------
+
+
+def test_qwenwork_auto_prompt_wiring(tmp_path):
+    # qwenwork（prompt 家族）自动走 prompt 档：只写注入文件，不建配置目录
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    runner = CliRunner()
+    result = runner.invoke(
+        install_hooks, ["--repo-path", str(repo), "--ide", "qwenwork"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "prompt wiring" in result.output
+    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert _ACTIVE_SETTLE_START in text
+    assert _TASK_MEMORY_AGENTS_START in text
+    assert not (repo / ".qoder").exists()
+
+
+def test_verified_false_warns_but_wires(tmp_path, fake_pkg, monkeypatch):
     # 理论支持宿主（注册表 verified: false）：接线成功 + 黄色警告。
     # 现注册表里可接线宿主均已验证，故把 gemini-cli 临时翻成未验证。
     import copy
@@ -99,130 +130,50 @@ def test_mode_hook_on_verified_false_warns_but_wires(tmp_path, fake_pkg, monkeyp
     runner = CliRunner()
     result = runner.invoke(
         install_hooks,
-        ["--repo-path", str(tmp_path), "--ide", "gemini-cli", "--mode", "hook"],
+        ["--repo-path", str(tmp_path), "--ide", "gemini-cli"],
     )
     assert result.exit_code == 0, result.output
     assert "warning" in result.output and "verified=false" in result.output
     assert (tmp_path / ".gemini" / "settings.json").is_file()
 
 
-def test_mode_hook_on_verified_host_has_no_warning(tmp_path, fake_pkg):
+def test_verified_host_has_no_warning(tmp_path, fake_pkg):
     (tmp_path / ".codebuddy").mkdir()
     runner = CliRunner()
     result = runner.invoke(
         install_hooks,
-        ["--repo-path", str(tmp_path), "--ide", "codebuddy", "--mode", "hook"],
+        ["--repo-path", str(tmp_path), "--ide", "codebuddy"],
     )
     assert result.exit_code == 0, result.output
     assert "warning" not in result.output
 
 
 # ---------------------------------------------------------------------------
-# --mode prompt：只动注入文件
+# --capture：独立采集开关（ADR-0014）
 # ---------------------------------------------------------------------------
 
 
-def test_mode_prompt_codebuddy_touches_no_config_dir(tmp_path, fake_pkg):
-    # 工单验收：--mode prompt 不产生 .codebuddy/ 变更（不拷脚本不写 settings）
-    (tmp_path / ".codebuddy").mkdir()
-    (tmp_path / ".codebuddy" / "settings.json").write_text(
-        json.dumps({"telemetry": {"enabled": True}}), encoding="utf-8"
-    )
-    before = _snapshot(tmp_path)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        install_hooks,
-        ["--repo-path", str(tmp_path), "--ide", "codebuddy", "--mode", "prompt"],
-    )
-    assert result.exit_code == 0, result.output
-    assert "prompt wiring" in result.output
-    # .codebuddy/ 内容逐字节不变（无脚本拷贝、无 settings 改写）
-    settings_after = (tmp_path / ".codebuddy" / "settings.json").read_bytes()
-    assert settings_after == before[".codebuddy/settings.json"]
-    assert not (tmp_path / ".codebuddy" / "hooks").exists()
-    assert not (tmp_path / ".codebuddy" / "agents").exists()
-    # 唯一产物：AGENTS.md 的注入块
-    text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
-    assert _TASK_MEMORY_AGENTS_START in text
-
-
-def test_mode_prompt_skips_create_dir_gate(tmp_path):
-    # prompt 档不建目录，也就不受"目录必须存在"闸门约束
-    runner = CliRunner()
-    result = runner.invoke(
-        install_hooks,
-        ["--repo-path", str(tmp_path), "--ide", "codebuddy", "--mode", "prompt"],
-    )
-    assert result.exit_code == 0, result.output
-    assert not (tmp_path / ".codebuddy").exists()
-
-
-# ---------------------------------------------------------------------------
-# --mode auto：零回归（与今日行为逐字节一致）
-# ---------------------------------------------------------------------------
-
-
-def test_mode_auto_is_byte_identical_to_default(tmp_path, fake_pkg):
-    # 两个构造一致的仓库：一个跑默认（不传新参数），一个跑显式 --mode auto，
-    # 产物逐字节一致 = 零回归。
-    repo_a = tmp_path / "a"
-    repo_b = tmp_path / "b"
-    for repo in (repo_a, repo_b):
-        (repo / ".codebuddy").mkdir(parents=True)
-        (repo / ".trae").mkdir()
-
-    runner = CliRunner()
-    default_run = runner.invoke(install_hooks, ["--repo-path", str(repo_a)])
-    assert default_run.exit_code == 0, default_run.output
-    auto_run = runner.invoke(
-        install_hooks, ["--repo-path", str(repo_b), "--mode", "auto"]
-    )
-    assert auto_run.exit_code == 0, auto_run.output
-    snap_a = {rel: data for rel, data in _snapshot(repo_a).items()}
-    snap_b = {rel: data for rel, data in _snapshot(repo_b).items()}
-    assert snap_a == snap_b  # 逐字节一致
-
-
-def test_mode_auto_qwenwork_still_prompt(tmp_path):
-    # auto 对 qwenwork 走注册表判定的 prompt 档（今日行为）
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    runner = CliRunner()
-    result = runner.invoke(
-        install_hooks, ["--repo-path", str(repo), "--ide", "qwenwork", "--mode", "auto"]
-    )
-    assert result.exit_code == 0, result.output
-    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
-    assert _ACTIVE_SETTLE_START in text
-
-
-# ---------------------------------------------------------------------------
-# --active-settle：覆盖注册表默认并透传
-# ---------------------------------------------------------------------------
-
-
-def test_active_settle_override_reaches_install_logic(tmp_path, fake_pkg):
+def test_capture_off_removes_session_end_registration(tmp_path, fake_pkg):
     (tmp_path / ".codebuddy").mkdir()
     runner = CliRunner()
     result = runner.invoke(
         install_hooks,
-        ["--repo-path", str(tmp_path), "--ide", "codebuddy", "--active-settle", "on"],
+        ["--repo-path", str(tmp_path), "--ide", "codebuddy", "--capture", "off"],
     )
     assert result.exit_code == 0, result.output
-    # 直接调安装入口验证覆盖生效（注册表默认 codebuddy 为 off）
-    r = install_for_ide(str(tmp_path), "codebuddy", active_settle=True)
-    assert r["active_settle"] is True
-    r2 = install_for_ide(str(tmp_path), "trae", mode="hook", active_settle=False)
-    assert r2["active_settle"] is False  # trae 注册表默认 on，被显式覆盖为 off
+    data = json.loads((tmp_path / ".codebuddy" / "settings.json").read_text(encoding="utf-8"))
+    assert "SessionStart" in data["hooks"]
+    assert "SessionEnd" not in data["hooks"]
+    # 脚本与 distill-worker 照常拷贝（存量积压仍需补蒸馏）
+    for name in HOOK_FILES:
+        assert (tmp_path / ".codebuddy" / "hooks" / name).is_file()
 
 
-def test_active_settle_default_from_registry(tmp_path, fake_pkg):
-    # 不传覆盖 → 安装结果摘要里的生效值 = 注册表默认（codebuddy off / trae on）
+def test_capture_default_on_keeps_session_end(tmp_path, fake_pkg):
     r1 = install_for_ide(str(tmp_path), "codebuddy")
-    assert r1["active_settle"] is False
-    r2 = install_for_ide(str(tmp_path), "trae", mode="hook")
-    assert r2["active_settle"] is True
+    assert r1["capture"] is True
+    r2 = install_for_ide(str(tmp_path), "trae", capture=False)
+    assert r2["capture"] is False  # 显式覆盖生效
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +187,7 @@ def test_status_table_header_columns(tmp_path, fake_pkg):
     assert result.exit_code == 0, result.output
     header = result.output.splitlines()[0]
     # 七列表头（工单验收至少三列：agent / registry / wiring 均在其中）
-    for col in ("agent", "family", "registry", "wiring", "active_settle",
+    for col in ("agent", "family", "registry", "wiring", "capture",
                 "wired-on-disk", "capability gap"):
         assert col in header, f"missing column: {col}"
 
@@ -245,14 +196,13 @@ def test_status_source_annotation_default_vs_cli(tmp_path):
     runner = CliRunner()
     default = runner.invoke(install_hooks, ["--repo-path", str(tmp_path), "--status"])
     assert default.exit_code == 0
-    assert "(默认)" in default.output  # 注册表默认来源标注
+    assert "(默认)" in default.output  # 默认来源标注
     override = runner.invoke(
         install_hooks,
-        ["--repo-path", str(tmp_path), "--status", "--active-settle", "on"],
+        ["--repo-path", str(tmp_path), "--status", "--capture", "off"],
     )
     assert override.exit_code == 0
     assert "(CLI)" in override.output  # CLI 覆盖来源标注
-    assert "(默认)" not in override.output
 
 
 def test_status_is_readonly_and_exit_0(tmp_path, fake_pkg):
@@ -274,12 +224,17 @@ def test_status_wired_on_disk_reflects_reality(tmp_path, fake_pkg):
     runner.invoke(install_hooks, ["--repo-path", str(tmp_path)])
     after = runner.invoke(install_hooks, ["--repo-path", str(tmp_path), "--status"])
     assert after.exit_code == 0
-    # codebuddy 接线后应显示 hooks+settings；qwenwork 仍为 not wired
+    # codebuddy 接线后应显示 hooks+settings
     cb_row = next(l for l in after.output.splitlines() if l.startswith("| codebuddy"))
     assert "hooks+settings" in cb_row
-    qw_row = next(l for l in after.output.splitlines() if l.startswith("| qwenwork"))
-    assert "not wired" in qw_row
-    assert "AGENTS.md only" not in qw_row
+    # capture off 后应显示专用状态值（与 partial 区分）
+    runner.invoke(
+        install_hooks, ["--repo-path", str(tmp_path), "--ide", "codebuddy", "--capture", "off"]
+    )
+    off = runner.invoke(install_hooks, ["--repo-path", str(tmp_path), "--status"])
+    cb_off_row = next(l for l in off.output.splitlines() if l.startswith("| codebuddy"))
+    assert "capture off" in cb_off_row
+    assert "partial" not in cb_off_row
 
 
 def test_status_wired_on_disk_matches_legacy_backslash_entries(tmp_path):
@@ -320,7 +275,7 @@ def test_status_gap_column_has_family_gaps(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# --inject-file / --clean：参数可达，不破坏现状
+# --inject-file：参数可达，不破坏现状
 # ---------------------------------------------------------------------------
 
 
@@ -333,7 +288,6 @@ def test_inject_file_override_writes_custom_file(tmp_path):
         [
             "--repo-path", str(repo),
             "--ide", "qwenwork",
-            "--mode", "prompt",
             "--inject-file", "docs/AGENT_INSTRUCTIONS.md",
         ],
     )
@@ -342,16 +296,3 @@ def test_inject_file_override_writes_custom_file(tmp_path):
     assert custom.is_file()
     assert _TASK_MEMORY_AGENTS_START in custom.read_text(encoding="utf-8")
     assert not (repo / "AGENTS.md").exists()  # 默认注入文件未被创建
-
-
-def test_clean_flag_reachable_and_harmless(tmp_path, fake_pkg):
-    (tmp_path / ".qoder").mkdir()
-    runner = CliRunner()
-    result = runner.invoke(
-        install_hooks, ["--repo-path", str(tmp_path), "--ide", "qoder", "--clean"]
-    )
-    assert result.exit_code == 0, result.output
-    # 现状不被破坏：脚本与 settings 正常接线（删除逻辑属票 05）
-    assert (tmp_path / ".qoder" / "settings.json").is_file()
-    for name in HOOK_FILES:
-        assert (tmp_path / ".qoder" / "hooks" / name).is_file()

@@ -14,6 +14,9 @@
 #
 # user_prompt 只填 claude/trae 家族：其余家族的事件名是归并推导的猜测，
 # 未经真机验证，按「缺失回退默认源」处理，不写进注册表。
+#
+# 主动沉淀（ADR-0014）固定启用，不再有 per-agent 的 active_settle 字段：
+# 任务记忆唯一通道是 add_task_memory 直写，蒸馏固定只产经验笔记。
 
 version: 1
 
@@ -78,7 +81,6 @@ agents:
     config_dir: .codebuddy
     verified: true
     wiring: hook            # 显式化（与家族默认一致）
-    active_settle: false    # hook 采集完整；默认走收尾批处理（今日行为）
 
   - id: qoder
     family: claude
@@ -94,14 +96,12 @@ agents:
     family: trae
     config_dir: .trae
     verified: true
-    active_settle: true     # 无 SessionEnd、Stop 无 transcript → 采集断供，默认开
 
   - id: qwenwork
     family: prompt
     config_dir: null        # 无仓库标记，不参与自动探测
     verified: true
     protocol: qwenwork      # 宿主专属协议段
-    active_settle: true     # 无 shell hook → 采集断供，默认开
 
   # ── 理论支持（家族归并推导，未经真机验证）────────────────
   - id: cursor

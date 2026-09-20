@@ -107,60 +107,61 @@ Stop 每轮都会触发，PreCompact 也可能在会话中途触发，同一会�
 
 效果：无论三个事件在一个会话里触发多少次，`raw/` 中该会话始终只保留**最新一份完整 transcript**；蒸馏成本与只接 SessionEnd 时相同，但获得了轮次级的崩溃保险。
 
-## 档位 × 主动沉淀叠加（v2 接线选择）
+## 档位 × 采集开关（v3 接线选择）
 
-接线有两个**正交轴**（设计依据 `docs/接线档位选择设计方案.md` §3.1）：
+接线有两个轴（设计依据 `docs/接线档位选择设计方案.md` §3.1，ADR-0014）：
 
 - **档位 `wiring`（读 / 生命周期侧）**：`hook`（拷脚本 + 写 settings.json/hooks.json + 注入引导段）/ `prompt`（只写注入文件，不建配置目录、不拷脚本、不写 settings）/ `auto`（按 `codewiki/hooks.yaml` 注册表判定，**默认 = 今日行为**）。
-- **主动沉淀 `active_settle`（写侧叠加）**：`on`（停顿点直写任务记忆 / 草稿笔记 + 收尾轮保险采集，下一轮零延迟）/ `off`（传统批处理：收尾采集 → 下轮蒸馏）。
+- **采集开关 `capture`**：`on`（默认，SessionEnd/TRAE Stop 采集注册写入）/ `off`（移除采集注册，主动沉淀成为唯一记忆写入通道，采集→蒸馏链路停摆）。
 
-| 档位 | 主动沉淀 | 产物 | 适用 |
+**主动沉淀固定启用**（ADR-0014）：不再是轴、不再有开关——`--active-settle` 参数已删除（传入即硬报错），CODEWIKI-ACTIVE-SETTLE 协议块恒渲染，任务记忆唯一通道是 `add_task_memory` 直写，蒸馏固定只产经验笔记。
+
+| 档位 | capture | 产物 | 适用 |
 |---|---|---|---|
-| `hook` | `off` | 脚本 + settings 注册 + 注入引导段 | 采集完整宿主（CodeBuddy/Qoder/Claude Code）默认，现状批处理 |
-| `hook` | `on` | 同上 + `CODEWIKI-ACTIVE-SETTLE` 协议块 | hook 读 + prompt 写共存（TRAE 默认；CodeBuddy 想更及时可显式开） |
+| `hook` | `on`（默认） | 脚本 + settings 注册 + 注入引导段 + 协议块 | 采集完整宿主（CodeBuddy/Qoder/Claude Code）默认，现状批处理 + 主动沉淀 |
+| `hook` | `off` | 同上，但无 SessionEnd（TRAE 为 Stop）采集注册 | 主动沉淀效果好、不再需要采集→蒸馏链路 |
 | `prompt` | `on` | 仅注入文件（引导段 + 协议块） | 无 shell hook 宿主（QwenWork）默认，或团队共享仓库不留脚本/settings |
-| `prompt` | `off` | 仅注入文件（引导段） | 只用任务记忆引导、不要主动沉淀 |
 
-默认值来自注册表（采集链路断供的 TRAE / QwenWork 默认 `on`；hook 宿主默认 `off`），可用 CLI 覆盖：
+可用 CLI 控制：
 
 ```powershell
-codewiki install-hooks --ide trae --mode hook --active-settle on   # TRAE 默认即此
-codewiki install-hooks --ide codebuddy --mode prompt               # 只写注入文件、不留脚本
+codewiki install-hooks --ide trae                    # 档位自动判定：TRAE → hook 档
+codewiki install-hooks --ide qwenwork                # 档位自动判定：QwenWork → prompt 档
+codewiki install-hooks --capture off                 # 停采集，主动沉淀是唯一通道
 ```
 
-非法组合硬报错（不静默降级）：prompt 家族宿主（QwenWork）用 `--mode hook` → 退出码 1，提示改用 `--mode prompt`。
-
-### `--status`：先看后选（只读，不改任何文件）
-
-```
-| agent     | family | registry | wiring | active_settle | wired-on-disk    | capability gap                     |
-|-----------|--------|----------|--------|---------------|------------------|------------------------------------|
-| codebuddy | claude | 已验证   | hook   | off(默认)     | not wired        | -                                  |
-| trae      | trae   | 已验证   | hook   | on(默认)      | not wired        | no SessionEnd -> 保险采集+主动沉淀 |
-| qwenwork  | prompt | 已验证   | prompt | on(默认)      | not wired        | no auto-capture; agent-mediated    |
-```
-
-（表样示意；`wired-on-disk` 反映该仓库实际接线状态——hook 宿主显示 `hooks+settings`/`hooks(仅SS)+AGENTS`，prompt 宿主显示 `AGENTS.md only`；`active_settle` 来源标注 `(默认)` 或 CLI 覆盖的 `(CLI)`。）
+档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（QwenWork）走 prompt 档，无手动覆盖（`--mode` 已移除，传入即硬报错）。
 
 ### 决策树（设计方案 §3.12）
 
 ```
---status 看支持性与默认叠加
+--status 看支持性与当前采集状态
 ├─ 采集完整宿主（codebuddy/claude, verified=true）
-│    ├─ 满足现状批处理 ─────────► --mode auto --active-settle off（默认）
-│    └─ 想更及时（下轮零延迟）─► --active-settle on（hook 读 + prompt 写共存）
+│    ├─ 满足现状批处理 ─────────► 直接接线（默认，零回归）
+│    └─ 主动沉淀效果好、想停采集─► --capture off（主动沉淀固定启用）
 ├─ 采集断供宿主（trae 企业版 / qwenwork）
-│    ─ 默认即 active_settle on；trae 走 --mode hook（SessionStart 拉取 + 保险采集），
-│       qwenwork 走 --mode prompt ─────────────────────────────────► 直接装，默认已对
-└─ 不想在仓库留脚本/settings（团队共享仓库）► --mode prompt（+ active_settle on）
+│    ─ 默认即对：档位由注册表自动判定（trae → hook 档，qwenwork → prompt 档），
+│       主动沉淀兜底 ────────────────────────────────────────► 直接装，默认已对
 ```
 
-### 主动沉淀与收尾轮保险采集
+### `--status`：先看后选（只读，不改任何文件）
 
-`active_settle on` 时向注入文件（默认 `AGENTS.md`）写入 `CODEWIKI-ACTIVE-SETTLE` 协议块：
+```
+| agent     | family | registry | wiring | capture  | wired-on-disk                        | capability gap                     |
+|-----------|--------|----------|--------|----------|--------------------------------------|------------------------------------|
+| codebuddy | claude | 已验证   | hook   | on(默认) | not wired                            | -                                  |
+| trae      | trae   | 已验证   | hook   | on(默认) | not wired                            | no SessionEnd -> 主动沉淀兜底       |
+| qwenwork  | prompt | 已验证   | prompt | on(默认) | not wired                            | no auto-capture; agent-mediated    |
+```
+
+（表样示意；`wired-on-disk` 反映该仓库实际接线状态——hook 宿主显示 `hooks+settings`/`hooks(仅SS)+settings(capture off)`/`hooks(仅SS)+AGENTS`，prompt 宿主显示 `AGENTS.md only`；`capture` 来源标注 `(默认)` 或 CLI 覆盖的 `(CLI)`。）
+
+### 主动沉淀（固定启用，ADR-0014）
+
+接线即向注入文件（默认 `AGENTS.md`）写入 `CODEWIKI-ACTIVE-SETTLE` 协议块：
 
 - **停顿点四判据即写即沉淀**（任务里程碑达成 / 关键技术决策落定 / 用户话题明显转向 / 收尾轮强制兜底）：任务记忆走 `add_task_memory` 直写（无闸门，ADR-0002），通用经验走 `ingest_note(status="draft")`（**确认闸门保留**，两区制 ADR-0004）——当轮落盘，下一轮 `get_task_context` 即取。
-- **收尾轮保险采集（必做）**：收尾轮仍重建 `[{role, content}]` 调 `capture_conversation(..., active_settle=true)` 落 raw。该标记声明"本会话记忆已直写"，`distill_conversation` 见到标记后**只产草稿笔记、跳过任务记忆生成**，避免与直写记忆双写噪声（ADR-0008）；不带标记的存量行为逐字节不变。保险采集兜住会话中漏沉淀的通用经验（蒸馏仍能捞回成笔记），且 `pending_raw_count` 等既有信号口径不变。**禁止手写 `raw/*.md` 文件。**
+- **收尾轮沉淀自查（必做）**：收尾轮检查本会话是否有未沉淀的进展/决策，漏了补写（不再采集全文）。蒸馏固定只产经验笔记、不产任务记忆（通道互斥，ADR-0014）——漏沉淀的会话失去蒸馏捞回兜底，漏报率由观察期数据验证，不达标可重开 capture。**禁止手写 `raw/*.md` 文件。**
 
 ### 注入文件：AGENTS.md 自动加载的核验状态（开放问题 1）
 

@@ -1,6 +1,10 @@
 ---
 type: Doctrine
 title: Team Operating Doctrine
+aliases:
+- Doctrine
+- 团队操作准则
+- Team Doctrine
 status: stable
 generated:
   by: codewiki/5.10.1

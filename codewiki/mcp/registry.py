@@ -1726,17 +1726,6 @@ _register(
                     "type": "string",
                     "description": "Optional task id this conversation is bound to. Stored as metadata and used by distill_conversation to route task memories back to the task.",
                 },
-                "active_settle": {
-                    "type": "boolean",
-                    "description": (
-                        "Optional raw-material marker (ADR-0008): set true when this "
-                        "session's task memories were already written directly via "
-                        "active settle (add_task_memory). Stored as a top-level "
-                        "frontmatter key; distill_conversation then produces draft "
-                        "notes only and deterministically skips task-memory "
-                        "generation. Default false."
-                    ),
-                },
             },
             "required": ["conversation"],
         },

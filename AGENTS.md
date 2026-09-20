@@ -135,7 +135,7 @@ Single-context layout: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.
 4. `get_task_context(task_id=<选中任务>)` 拉取任务描述 + 记忆 + 关联笔记
 5. `pending_raw_count > 0` 时**异步补蒸馏**：发一个异步 subagent（后台执行，不阻塞回答）补蒸馏，**清空本任务的全部待蒸馏积压**（不设条数上限）；补蒸馏只提取经验笔记（skip_memories 默认生效，ADR-0010 通道互斥），任务记忆由主动沉淀通道直写；主 Agent 直接回答用户提问，在自然停顿点重新 `get_task_context` 拉取最新记忆、展示待确认草稿。subagent 失败/超时不重试——未蒸馏的 raw 留在 raw/ 等下次会话再补。蒸馏产出的草稿笔记须 `confirm_note` 确认后才落盘；任务记忆直写、无需确认（ADR-0002）
 6. **项目定向（按条件执行）**：若本会话上下文中**没有**已注入的 Team Doctrine / 知识库概览，调用 `query_wiki(mode="overview")` 拉取一次；已注入则跳过，绝不重复拉取
-7. **会话收尾（按条件执行）**：本文件存在 CODEWIKI-ACTIVE-SETTLE 块 → 按该块执行（停顿点直写沉淀 + 收尾轮带 `active_settle=true` 的保险采集），跳过下方传统采集；不存在 → 按下方**传统收尾轮采集**执行
+7. **会话收尾（按条件执行）**：本文件存在 CODEWIKI-ACTIVE-SETTLE 块 → 按该块执行（停顿点直写沉淀），跳过下方传统采集；不存在 → 按下方**传统收尾轮采集**执行
 
 **传统收尾轮采集（任务完成 / 用户道别 / 用户显式要求记录时）：**
 将本会话对话重建为 `[{role, content}]` 列表，调用 `capture_conversation(conversation=..., source_session_id=<本会话id>, task_id=<任务id>)` 落 raw。**user 消息必须逐字保留**，assistant 保留关键结论原句，工具调用略去。同一会话多次收尾采集会被 supersede 替换，不会堆积。
@@ -144,7 +144,7 @@ Single-context layout: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.
 <!-- TEAM-MEMORY-TASK:END -->
 
 <!-- CODEWIKI-ACTIVE-SETTLE:START -->
-### 主动沉淀协议（自然停顿点即写即沉淀 + 收尾轮保险采集）
+### 主动沉淀协议（自然停顿点即写即沉淀）
 
 与批处理（收尾采集 → 下轮蒸馏）互补：停顿点即写即沉淀，任务记忆与草稿笔记下一轮 `get_task_context` 即可见，不必等蒸馏。
 
@@ -152,14 +152,11 @@ Single-context layout: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.
 1. 任务里程碑达成；
 2. 关键技术决策落定，或澄清/纠偏了产品机制、代码事实等关键认知；
 3. 用户话题明显转向；
-4. 收尾轮（强制兜底，必做）——无论会话中是否命中前三条，收尾轮必须做一次保险采集（第 ② 节）。
+4. 收尾轮（强制兜底，必做）——无论会话中是否命中前三条，收尾轮必须做一次沉淀自查：本会话是否有未沉淀的进展/决策？有则按下方两条路径补写。
 
 **不做字面每轮沉淀**：任务记忆追加无去重，每轮都写会灌爆记忆并反复触发 40 条/24KB 压缩阈值——只在停顿点沉淀。**宿主 IDE 自带的工作记忆（如 `.codebuddy/memory/`）与本协议的任务记忆是独立通道**，写了前者不豁免后者。
 
 **两条写入路径（均当轮落盘，下一轮 `get_task_context` 即取；禁止手写文件）：**
 - 任务记忆：`add_task_memory(task_id=<绑定的任务id>, content="本段进展/决策/下一步")` 直写——无需确认（ADR-0002）。写入标准（ADR-0009）：只记会改变下一步行动的进展/决策/约束；推翻旧记忆时传 `supersedes=<旧条目id>`，不要追加平行副本；近重复写入会被拒绝（difflib > 0.85），改用 supersedes 或合并改写后重试；
 - 通用经验：`ingest_note(status="draft", ...)` 落草稿——**确认闸门保留**：草稿笔记须经 `confirm_note` 确认后才进入全局检索语料，不得跳过确认。草稿落盘即可被下一轮 `get_task_context` 的 `related_notes` 以 `status: draft` 展示、能确认、能参与冲突检测。
-
-**② 收尾轮保险采集（必做）：**
-收尾轮将本会话对话重建为 `[{role, content}]` 列表，调用 `capture_conversation(conversation=..., source_session_id=<本会话id>, task_id=<任务id>, active_settle=true)` 落 raw。**user 消息必须逐字保留**（需求/纠正/决策是知识的主要来源），assistant 保留关键结论原句，工具调用略去。`active_settle=true` 声明「本会话记忆已直写」：蒸馏见到该标记只产草稿笔记、跳过任务记忆生成，避免双写噪声（ADR-0008）。同一会话重复采集由 supersede 覆盖，不会堆积。
 <!-- CODEWIKI-ACTIVE-SETTLE:END -->

@@ -1,21 +1,27 @@
 ---
 type: pitfall
-title: "调研 letta 须看 letta-code：letta-ai/letta 的 main 分支只是 landing page"
-tags: ["pitfall", "typescript"]
+title: 调研 letta 须看 letta-code：letta-ai/letta 的 main 分支只是 landing page
+tags:
+- pitfall
+- typescript
 metadata:
   date: 2026-09-20
   confidence_level: weak
   task_id: 他山之石
-  source_session: "8963b3e1a98b4608a6ab4e05850d2702"
+  source_session: 8963b3e1a98b4608a6ab4e05850d2702
   severity: medium
-  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3-50176a.md"
-  scene: "竞品调研（他山之石）"
-status: draft
+  source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-3-50176a.md
+  scene: 竞品调研（他山之石）
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-20T03:22:08Z }
-stale_after: 2027-03-19
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-20 03:22:08+00:00
+stale_after: '2027-03-19'
 origin: conversation
-
+verified:
+- by: codewiki/5.10.1
+  at: '2026-09-20T05:54:19Z'
 ---
 
 ## 背景

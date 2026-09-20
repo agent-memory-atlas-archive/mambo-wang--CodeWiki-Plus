@@ -136,18 +136,6 @@ def wiring_of(agent_id: str) -> str:
     return _DEFAULT_WIRING
 
 
-def active_settle_of(agent_id: str) -> bool:
-    """生效主动沉淀叠加，解析顺序 agent > family > 默认 ``False``。
-
-    显式 ``false`` 即短路（不再回退）；仅字段缺失才落到下一级。
-    """
-    agent = get_agent(agent_id) or {}
-    for source in (agent, _family_entry(agent_id)):
-        if "active_settle" in source:
-            return bool(source["active_settle"])
-    return False
-
-
 def inject_file_of(agent_id: str) -> str:
     """生效注入文件（宿主自动加载的记忆文件），解析顺序 agent > family > 默认 AGENTS.md。"""
     agent = get_agent(agent_id) or {}
@@ -182,12 +170,12 @@ def detect_project_agents(repo_path) -> List[Dict]:
 def support_matrix_markdown() -> str:
     """README-ready support matrix (verified vs theoretical tiers).
 
-    档位（wiring）与叠加（active_settle）列均经三级解析（agent > family > 默认）
-    输出，与 ``wiring_of`` / ``active_settle_of`` 口径一致。
+    档位（wiring）列经三级解析（agent > family > 默认）输出，与
+    ``wiring_of`` 口径一致。主动沉淀固定启用（ADR-0014），不再作为列。
     """
     lines = [
-        "| 智能体 | 家族 | 支持等级 | 档位 | 主动沉淀 |",
-        "|--------|------|----------|------|----------|",
+        "| 智能体 | 家族 | 支持等级 | 档位 |",
+        "|--------|------|----------|------|",
     ]
     rows = []
     for agent in load_registry().get("agents", []):
@@ -202,6 +190,5 @@ def support_matrix_markdown() -> str:
     for aid, fam, verified in sorted(rows, key=lambda r: (not r[2], r[0])):
         tier = "已验证" if verified else "理论支持"
         wiring = wiring_of(aid)
-        settle = "on" if active_settle_of(aid) else "off"
-        lines.append(f"| `{aid}` | {fam} | {tier} | {wiring} | {settle} |")
+        lines.append(f"| `{aid}` | {fam} | {tier} | {wiring} |")
     return "\n".join(lines)

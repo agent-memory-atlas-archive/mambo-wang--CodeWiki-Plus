@@ -2,7 +2,8 @@
 
 Covers docs/Hook多智能体支持设计方案.md §5 acceptance criteria:
   - hooks.yaml loads with 5 families (incl. prompt) and >= 9 agents;
-    verified tiers correct; wiring/active_settle resolve agent > family > default
+    verified tiers correct; wiring resolves agent > family > default
+    (active_settle field removed per ADR-0014 — always on)
   - family_event: claude/trae PascalCase, cursor camelCase mapping; arrays tolerated
   - detect_project_agents: only existing config dirs detected, none created
   - mtime cache invalidates on registry change
@@ -48,14 +49,15 @@ class TestRegistry:
             assert isinstance(a.get("verified"), bool)
 
     def test_qwenwork_registry_entry(self):
-        # qwenwork：prompt 家族、无仓库标记（不参与自动探测）、采集断供默认开叠加
+        # qwenwork：prompt 家族、无仓库标记（不参与自动探测）、宿主专属协议段
         agent = hr.get_agent("qwenwork")
         assert agent is not None
         assert agent["family"] == "prompt"
         assert agent["config_dir"] is None
         assert agent["verified"] is True
         assert agent["protocol"] == "qwenwork"
-        assert agent["active_settle"] is True
+        # ADR-0014：注册表不再有 active_settle 字段（主动沉淀固定启用）
+        assert "active_settle" not in agent
 
     def test_family_event_mapping(self):
         assert hr.family_event("claude", "session_start") == "SessionStart"
@@ -95,7 +97,7 @@ class TestRegistry:
 
 
 # --------------------------------------------------------------------------- #
-# 档位/叠加三级解析（agent > family > 默认）——注册表单源
+# 档位三级解析（agent > family > 默认）——注册表单源
 # --------------------------------------------------------------------------- #
 class TestWiringResolution:
     def test_wiring_of_known_agents(self):
@@ -105,12 +107,13 @@ class TestWiringResolution:
         assert hr.wiring_of("trae") == "hook"
         assert hr.wiring_of("cursor") == "hook"
 
-    def test_active_settle_of_known_agents(self):
-        # 采集断供宿主默认开；hook 采集完整宿主默认关（= 今日批处理行为）
-        assert hr.active_settle_of("qwenwork") is True
-        assert hr.active_settle_of("trae") is True
-        assert hr.active_settle_of("codebuddy") is False
-        assert hr.active_settle_of("qoder") is False
+    def test_no_active_settle_field_anywhere(self):
+        # ADR-0014：主动沉淀固定启用，注册表任何层级都不再有 active_settle 字段
+        reg = hr.load_registry()
+        for fam in reg.get("families", {}).values():
+            assert "active_settle" not in fam
+        for agent in reg.get("agents", []):
+            assert "active_settle" not in agent
 
     def test_inject_file_of_known_agents(self):
         # 注册表未声明 inject_file → 默认 AGENTS.md
@@ -124,21 +127,19 @@ class TestWiringResolution:
             "load_registry",
             lambda: {
                 "families": {
-                    "f1": {"wiring": "hook", "active_settle": True, "inject_file": "F1.md"},
+                    "f1": {"wiring": "hook", "inject_file": "F1.md"},
                 },
                 "agents": [
                     {
                         "id": "a1",
                         "family": "f1",
                         "wiring": "prompt",
-                        "active_settle": False,
                         "inject_file": "A1.md",
                     },
                 ],
             },
         )
         assert hr.wiring_of("a1") == "prompt"
-        assert hr.active_settle_of("a1") is False
         assert hr.inject_file_of("a1") == "A1.md"
 
     def test_family_overrides_default(self, monkeypatch):
@@ -148,43 +149,28 @@ class TestWiringResolution:
             "load_registry",
             lambda: {
                 "families": {
-                    "f2": {"wiring": "prompt", "active_settle": True, "inject_file": "F2.md"},
+                    "f2": {"wiring": "prompt", "inject_file": "F2.md"},
                 },
                 "agents": [{"id": "a2", "family": "f2"}],
             },
         )
         assert hr.wiring_of("a2") == "prompt"
-        assert hr.active_settle_of("a2") is True
         assert hr.inject_file_of("a2") == "F2.md"
 
     def test_defaults_when_nothing_declared(self, monkeypatch):
-        # agent 与家族都未声明 → 内置默认：hook / false / AGENTS.md
+        # agent 与家族都未声明 → 内置默认：hook / AGENTS.md
         monkeypatch.setattr(
             hr,
             "load_registry",
             lambda: {"families": {"f3": {}}, "agents": [{"id": "a3", "family": "f3"}]},
         )
         assert hr.wiring_of("a3") == "hook"
-        assert hr.active_settle_of("a3") is False
         assert hr.inject_file_of("a3") == "AGENTS.md"
 
     def test_unknown_agent_falls_back_to_defaults(self):
         # 未知 agent：等价于「无 agent 无家族」→ 全部落到默认
         assert hr.wiring_of("nonexistent") == "hook"
-        assert hr.active_settle_of("nonexistent") is False
         assert hr.inject_file_of("nonexistent") == "AGENTS.md"
-
-    def test_explicit_false_short_circuits_family(self, monkeypatch):
-        # agent 显式 false 必须短路——家族默认 true 不得透漏上来
-        monkeypatch.setattr(
-            hr,
-            "load_registry",
-            lambda: {
-                "families": {"f4": {"active_settle": True}},
-                "agents": [{"id": "a4", "family": "f4", "active_settle": False}],
-            },
-        )
-        assert hr.active_settle_of("a4") is False
 
 
 # --------------------------------------------------------------------------- #
@@ -213,17 +199,17 @@ class TestSupportMatrix:
         assert v_pos < t_pos
         assert "已验证" in md and "理论支持" in md
 
-    def test_wiring_and_settle_columns(self):
-        # 档位与叠加列（口径与 _of 解析器一致）
+    def test_wiring_column(self):
+        # 档位列（口径与 _of 解析器一致）；主动沉淀固定启用不再成列（ADR-0014）
         md = hr.support_matrix_markdown()
         header = md.splitlines()[0]
-        assert "档位" in header and "主动沉淀" in header
+        assert "档位" in header and "主动沉淀" not in header
         qw_row = next(line for line in md.splitlines() if line.startswith("| `qwenwork`"))
-        assert qw_row.endswith("| prompt | on |")
+        assert qw_row.endswith("| prompt |")
         cb_row = next(line for line in md.splitlines() if line.startswith("| `codebuddy`"))
-        assert cb_row.endswith("| hook | off |")
+        assert cb_row.endswith("| hook |")
         tr_row = next(line for line in md.splitlines() if line.startswith("| `trae`"))
-        assert tr_row.endswith("| hook | on |")
+        assert tr_row.endswith("| hook |")
 
 
 # --------------------------------------------------------------------------- #
