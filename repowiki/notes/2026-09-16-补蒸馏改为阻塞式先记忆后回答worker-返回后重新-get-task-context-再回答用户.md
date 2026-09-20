@@ -11,13 +11,13 @@ aliases:
 - pending_raw_count
 metadata:
   date: 2026-09-16
-  confidence_level: weak
+  confidence_level: shadow
   task_id: 产品维护
   related_modules:
   - agents
   - hooks
   - mcp
-status: stable
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.10.1
@@ -28,6 +28,7 @@ source_conversations:
 verified:
 - by: human:wangbao
   at: '2026-09-18T01:49:04Z'
+reject_reason: consolidated into 任务记忆系统设计方法（演进：阻塞式已被推翻，改回异步）
 ---
 
 ## 背景

@@ -16,8 +16,8 @@ metadata:
   - capture-conversation
   - distill-conversation
   source_ref: docs/adr/0006-session-binding-attribution-tombstone.md
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -26,6 +26,7 @@ stale_after: '2027-09-11'
 verified:
 - by: human:wangbao
   at: '2026-09-11T02:49:24Z'
+reject_reason: consolidated into 任务记忆系统设计方法
 ---
 
 ## Background
