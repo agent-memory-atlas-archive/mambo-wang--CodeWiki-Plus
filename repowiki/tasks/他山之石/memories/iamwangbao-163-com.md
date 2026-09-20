@@ -162,3 +162,7 @@ ADR-0013 B 项实施完成（2026-09-20）：① note_ingest.py 加 reason 校�
 ### 2026-09-20 20:43 #f5gt
 
 ADR-0015 落地完成：AGENTS.md 托管块瘦身与注入通道收敛。改动：①zh.yaml/en.yaml CodeWiki 块 89→45 行（保留采纳声明/标注依据/语言闸门，纠正识别三步流程并入使用建议第 3 条，归档示例 JSON 删除指向 get_prompt(ingest-note)，路由表压成单行）；②prompts.py _TASK_MEMORY_AGENTS_SECTION 40→8 行指针式（hook 注入优先，未注入时按 task-workflow prompt 执行，全文收敛到 hook 硬通道+prompt）；③本仓 AGENTS.md 163→97 行，Team memory fusion 节外移到 repowiki/wiki/team-memory-fusion.md；④本仓两块用产品渲染器刷新（_build_section + upsert_agents_section）。全量测试 1109 passed。golden fixture（D5）deferred 到下次动 ide_config.py 前补。待办：commit 未做（等用户确认）。
+
+### 2026-09-20 21:26 #os6r
+
+ADR-0015 已提交推送：cb305c7 feat: ADR-0015 AGENTS.md 托管块瘦身与注入通道收敛（5 文件，+102/-196），已推送 origin/develop。排除项：repowiki/schema.yaml（auto-sync 副作用重写，非本次改动）、.codebuddy/memory（工作记忆）。后续 deferred 项：①UserPromptSubmit 薄触发提升主动沉淀命中率（方案已给出，用户暂不做）；②golden fixture 测试（下次动 ide_config.py 前补）。
