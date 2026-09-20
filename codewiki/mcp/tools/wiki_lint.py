@@ -59,6 +59,10 @@ _ALL_CHECKS = {
     # ADR-0007 (conflict first-class object): open conflict cases overdue for
     # adjudication, or cases whose claimant files went missing
     "open_conflicts",
+    # ADR-0013 (letta borrow): task-memory threshold numbers mirrored in
+    # registry.py / prompts.py behaviour-contract copy must match the
+    # single-source constants in codewiki/mcp/tools/limits.py
+    "threshold_drift",
 }
 
 # 归档/调试暂存目录不参与 wiki 一致性审计：.trash/（deprecated 笔记归档区，
@@ -2267,6 +2271,85 @@ def _check_team_layout_gitignore(output_dir: Path) -> List[Dict[str, Any]]:
     return issues
 
 
+def _check_threshold_drift(output_dir: Path) -> List[Dict[str, Any]]:
+    """ADR-0013: threshold numbers in behaviour-contract copy must match limits.py.
+
+    The compaction thresholds (40 entries / 24KB / keep 20 / summary 4096)
+    live as constants in ``codewiki/mcp/tools/limits.py`` (single source),
+    but they are ALSO mirrored as literal numbers in the Agent-visible
+    behaviour-contract copy of ``registry.py`` (tool descriptions) and
+    ``prompts.py`` (task-workflow prompt).  That copy is deliberately NOT
+    f-string generated (readability of the LLM-facing protocol text comes
+    first) — so this check is the drift backstop: scan the copy for the
+    mirrored numbers and warn when they disagree with the constants.
+
+    Scope guard: only the compaction-threshold group is checked.  Other
+    numbers in the copy (warm-layer 2 entries, max_memories 20/5, level
+    percentages) are warm-layer behaviour contracts outside ADR-0013's
+    scope and are whitelisted out.
+    """
+    from codewiki.mcp.tools import limits
+
+    issues: List[Dict[str, Any]] = []
+
+    # (constant, expected regex in copy, human label)
+    expectations = [
+        (
+            limits.COMPACTION_THRESHOLD_COUNT,
+            re.compile(r"compaction thresholds? \((\d+) entries"),
+            "compaction threshold count",
+        ),
+        (
+            limits.COMPACTION_THRESHOLD_BYTES // 1024,
+            re.compile(r"thresholds \(\d+ entries / (\d+)KB\)"),
+            "compaction threshold KB",
+        ),
+        (
+            limits.COMPACTION_KEEP,
+            re.compile(r"keeping the most recent (\d+) entries in full"),
+            "compaction keep window",
+        ),
+        (
+            limits.COMPACTION_SUMMARY_MAX_CHARS,
+            re.compile(r"summary[^.]{0,80}?(\d{4}) chars"),
+            "summary max chars",
+        ),
+    ]
+
+    # Scan CodeWiki's own source files (not the audited repo's wiki tree):
+    # the copy lives in codewiki/mcp/ (two levels up from this module).
+    src_dir = Path(__file__).resolve().parent.parent
+    for fname in ("registry.py", "prompts.py"):
+        fpath = src_dir / fname
+        if not fpath.exists():
+            continue
+        try:
+            text = fpath.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for expected, pattern, label in expectations:
+            for m in pattern.finditer(text):
+                found = int(m.group(1))
+                if found != expected:
+                    issues.append(
+                        {
+                            "check": "threshold_drift",
+                            "severity": "warning",
+                            "message": (
+                                f"{label} in {fname} copy says {found}, "
+                                f"limits.py says {expected}"
+                            ),
+                            "file": f"codewiki/mcp/{fname}",
+                            "line": text.count("\n", 0, m.start()) + 1,
+                            "suggestion": (
+                                "Update the behaviour-contract copy to match "
+                                "codewiki/mcp/tools/limits.py (ADR-0013)."
+                            ),
+                        }
+                    )
+    return issues
+
+
 def _check_open_conflicts(output_dir: Path) -> List[Dict[str, Any]]:
     """ADR-0007: open conflict cases overdue for adjudication, or dangling.
 
@@ -2559,6 +2642,11 @@ def handle_lint_wiki(
 
     if "open_conflicts" in checks and output_dir:
         all_issues.extend(_check_open_conflicts(output_dir))
+
+    if "threshold_drift" in checks and output_dir:
+        # ADR-0013: scans CodeWiki's own source copy, not the wiki tree —
+        # output_dir only gates whether lint runs at all.
+        all_issues.extend(_check_threshold_drift(output_dir))
 
     # Deduplicate: if a link is already reported as stale_refs, don't also
     # report it as broken_links (same file + line = same underlying problem).

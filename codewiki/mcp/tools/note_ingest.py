@@ -286,6 +286,58 @@ def handle_ingest_note(
     if confidence_level not in ("strong", "weak", "shadow"):
         confidence_level = "weak"
 
+    # ADR-0013 (letta borrow, 方案 B): stable direct-write is the bypass
+    # around the draft→confirm gate, so it must carry an explicit reason
+    # (intent declaration — visibility/friction/attribution, NOT a
+    # verification mechanism; the schema only guarantees "filled in", not
+    # "true"). Optional structured evidence (test_ref/commit_ref/reviewed_by)
+    # reuses confirm_note's semantics: human-checkable anchors that promote
+    # confidence_level to strong. draft is exempt (confirm gate downstream).
+    reason = str(arguments.get("reason") or "").strip()
+    if note_status == "stable" and not reason:
+        return json.dumps(
+            {
+                "error": (
+                    "reason is required when status='stable' (ADR-0013): state why "
+                    "this note bypasses the draft→confirm gate, or ingest as "
+                    "draft and use confirm_note instead."
+                )
+            },
+            ensure_ascii=False,
+        )
+    evidence = arguments.get("evidence")
+    verification = None
+    if isinstance(evidence, dict):
+        _known_evidence = ("test_ref", "commit_ref", "reviewed_by")
+        verification = {
+            k: str(v)
+            for k, v in evidence.items()
+            if k in _known_evidence and str(v or "").strip()
+        }
+        unknown_evidence = set(evidence) - set(_known_evidence)
+        if unknown_evidence:
+            return json.dumps(
+                {
+                    "error": (
+                        f"evidence has unknown key(s) {sorted(unknown_evidence)}; "
+                        "recognized: test_ref, commit_ref, reviewed_by."
+                    )
+                },
+                ensure_ascii=False,
+            )
+        if verification:
+            confidence_level = "strong"
+    elif evidence:
+        return json.dumps(
+            {
+                "error": (
+                    "evidence must be an object with one of: test_ref, commit_ref, "
+                    "reviewed_by (strings)."
+                )
+            },
+            ensure_ascii=False,
+        )
+
     # Auto-match modules if not provided
     auto_matched: List[str] = []
     if not related_modules and session and session.module_tree:
@@ -384,6 +436,14 @@ def handle_ingest_note(
         metadata_lines.append(f"  source_ref: {json.dumps(source_ref, ensure_ascii=False)}")
     if scene:
         metadata_lines.append(f"  scene: {json.dumps(scene, ensure_ascii=False)}")
+    # ADR-0013: stable direct-write intent declaration + optional
+    # human-checkable verification anchors (mirrors confirm_note semantics).
+    if reason:
+        metadata_lines.append(f"  reason: {json.dumps(reason, ensure_ascii=False)}")
+    if verification:
+        metadata_lines.append(
+            f"  verification: {json.dumps(verification, ensure_ascii=False)}"
+        )
     frontmatter_lines.append("metadata:")
     frontmatter_lines.extend(metadata_lines)
     frontmatter_lines.append(f"status: {note_status}")

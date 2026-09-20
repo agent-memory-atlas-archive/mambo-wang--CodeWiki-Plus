@@ -869,6 +869,7 @@ _register(
                             "layout_violations",
                             "team_layout_gitignore",
                             "open_conflicts",
+                            "threshold_drift",
                         ],
                     },
                     "description": 'Which checks to run (default: ["all"])',
@@ -1032,9 +1033,44 @@ _register(
                     "type": "string",
                     "enum": ["draft", "stable"],
                     "description": (
-                        "Initial lifecycle status (OKF v0.2 vocabulary, default: draft). "
-                        "Use 'stable' only when the knowledge is already human-verified."
+                        "OKF status (default: draft → confirm_note gate). 'stable' is a "
+                        "direct-write bypass of that gate and REQUIRES the 'reason' "
+                        "parameter (ADR-0013)."
                     ),
+                },
+                "reason": {
+                    "type": "string",
+                    "description": (
+                        "ADR-0013: REQUIRED when status='stable' — state why this note "
+                        "bypasses the draft→confirm gate (e.g. 'user explicitly approved "
+                        "in this session'). Intent declaration for audit trail, NOT a "
+                        "verification mechanism. Optional (but recommended) for draft."
+                    ),
+                },
+                "evidence": {
+                    "type": "object",
+                    "description": (
+                        "ADR-0013 方案 B: optional human-checkable verification anchors "
+                        "(test_ref / commit_ref / reviewed_by). Mirrors confirm_note "
+                        "semantics: providing any recognized member promotes "
+                        "confidence_level to strong and records metadata.verification. "
+                        "Unknown keys are rejected."
+                    ),
+                    "properties": {
+                        "test_ref": {
+                            "type": "string",
+                            "description": "Test file path or test id that verifies this knowledge",
+                        },
+                        "commit_ref": {
+                            "type": "string",
+                            "description": "Commit hash that introduced/verified this knowledge",
+                        },
+                        "reviewed_by": {
+                            "type": "string",
+                            "description": "Human reviewer id who approved this knowledge",
+                        },
+                    },
+                    "additionalProperties": False,
                 },
                 "task_id": {
                     "type": "string",
@@ -2951,7 +2987,7 @@ _register(
                     "type": "string",
                     "description": (
                         "The caller-written summary (required for mode='submit', "
-                        "max 2048 chars). Covers key facts, settled decisions, open "
+                        "max 4096 chars). Covers key facts, settled decisions, open "
                         "items, and context still relevant to future work."
                     ),
                 },

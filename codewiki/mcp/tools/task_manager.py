@@ -188,14 +188,20 @@ def _write_task_file(output_dir: Path, task: Dict[str, Any], description: str) -
     KnowledgeStore(output_dir).write_task_file(task, description)
 
 
-# Compaction thresholds and keep-window (see docs/任务记忆存储与加载扩展性
-# 设计方案.md §3 Q6/Q7; ADR-0001). The compact tool is a stateless two-phase
-# (prepare/submit) MCP tool — the LLM summary is produced by the CALLER, never
-# by this tool (same constraint as distill_conversation's Mode C).
-_COMPACTION_THRESHOLD_COUNT = 40
-_COMPACTION_THRESHOLD_BYTES = 24 * 1024
-_COMPACTION_KEEP = 20
-_COMPACTION_SUMMARY_MAX_CHARS = 4096
+# Compaction thresholds live in limits.py (ADR-0013 single-source module);
+# re-exported here under their historical private names so existing imports
+# and tests keep working.
+from codewiki.mcp.tools.limits import (  # noqa: E402
+    COMPACTION_KEEP as _COMPACTION_KEEP,
+    COMPACTION_SUMMARY_MAX_CHARS as _COMPACTION_SUMMARY_MAX_CHARS,
+    COMPACTION_THRESHOLD_BYTES as _COMPACTION_THRESHOLD_BYTES,
+    COMPACTION_THRESHOLD_COUNT as _COMPACTION_THRESHOLD_COUNT,
+)
+from codewiki.mcp.tools.limits import (  # noqa: E402
+    COMPACTION_LEVEL_ORANGE as _COMPACTION_LEVEL_ORANGE,
+    COMPACTION_LEVEL_YELLOW as _COMPACTION_LEVEL_YELLOW,
+)
+
 _SUMMARY_HEADING = SUMMARY_HEADING  # re-export of the shared store constant
 
 
@@ -218,8 +224,6 @@ def _compaction_needed(total_entries: int, mem_bytes: int) -> bool:
 
 # ADR-0009 D9: compaction level — yellow/orange/red at 75%/87.5%/100% of the
 # existing thresholds (count and bytes, whichever is worse).
-_COMPACTION_LEVEL_YELLOW = 0.75
-_COMPACTION_LEVEL_ORANGE = 0.875
 
 
 def _compaction_level(total_entries: int, mem_bytes: int) -> str:
