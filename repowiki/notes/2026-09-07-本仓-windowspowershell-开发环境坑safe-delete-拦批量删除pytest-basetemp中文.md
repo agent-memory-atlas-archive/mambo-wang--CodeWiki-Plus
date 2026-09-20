@@ -18,7 +18,7 @@ metadata:
   disposition:
     verdict: excluded
     at: '2026-09-20'
-    reason: 一次性环境状态记录（safe-delete 包装器、pytest basetemp 路径），已被发布与依赖治理场景块中更稳定的条目覆盖，无独立方法价值
+    reason: 一次性环境状态记录，已被发布与依赖治理场景块中更稳定的条目覆盖，无独立方法价值
 status: stable
 author: iamwangbao-163-com
 generated:

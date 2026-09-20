@@ -19,6 +19,8 @@ metadata:
   severity: medium
   root_cause: Agent 优先服从工具 schema 的 options 建议条数（2-4），而非注入文案隐含的 UX 预期；且旧文案主动要求了第二步弹框。
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/IDE-Hook采集链路方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

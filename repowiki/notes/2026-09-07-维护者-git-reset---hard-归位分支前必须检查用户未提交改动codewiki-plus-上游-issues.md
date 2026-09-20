@@ -15,6 +15,8 @@ metadata:
   source_ref: conversations/conv-处理-PR-https-github.com-mambo-wang-CodeWiki-Plus-pull-17.md
   scene: 上游 PR 维护
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/发布与依赖治理方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

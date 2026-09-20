@@ -14,6 +14,8 @@ metadata:
   source_ref: conversations/conv-@command-codewiki-蒸馏对话提取记忆和经验.md
   scene: 蒸馏产物提交推送
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/发布与依赖治理方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

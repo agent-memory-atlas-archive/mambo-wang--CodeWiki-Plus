@@ -17,6 +17,8 @@ metadata:
   root_cause: git filter-repo 的设计行为：为防止把重写后的历史误推到尚未重写的旧历史仓，它会主动移除 remote 配置（含 origin）并重写所有
     ref；重写后的提交与远端同名分支失去共同祖先，于是表现为「分支分叉」。
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/发布与依赖治理方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

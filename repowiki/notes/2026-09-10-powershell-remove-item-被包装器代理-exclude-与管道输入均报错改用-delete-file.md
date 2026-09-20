@@ -19,6 +19,8 @@ metadata:
   source_ref: conversations/conv-发布版本.md
   scene: 发版本 / 发布前清理
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/发布与依赖治理方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

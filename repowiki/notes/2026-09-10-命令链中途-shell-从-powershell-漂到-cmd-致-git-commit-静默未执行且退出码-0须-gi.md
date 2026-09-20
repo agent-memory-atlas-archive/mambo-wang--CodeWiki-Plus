@@ -16,6 +16,8 @@ metadata:
   scene: 版本控制 / 提交落盘
   compiled_into: ''
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/发布与依赖治理方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:
