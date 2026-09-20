@@ -335,20 +335,16 @@ artifacts:
       {modules_block}
       ### Usage advice
 
-      1. **Before coding**: search `query_wiki` for the relevant module docs to learn the architecture conventions and dependencies
+      1. **Before coding**: search `query_wiki` for module docs to learn the architecture conventions and dependencies
       2. **When deciding**: search `query_wiki` for existing `decision` notes so the same ground is not covered twice
-      3. **After an important decision**: archive it with `ingest_note` so future agents and teammates can find it
-      4. **Ongoing maintenance**: run `lint_wiki` to catch docs that went stale and keep them in sync with the code
+      3. **After an important decision**: archive with `ingest_note`; **when corrected/criticized by the user**: reflect → draft → archive after confirmation (three-step flow and archiving example: `get_prompt(name="ingest-note")`)
+      4. **Ongoing maintenance**: run `lint_wiki` to catch docs that went stale
 
       ### Cite your sources explicitly
 
-      When answering about this repo's knowledge or code, **cite the source at every key claim** — never write "according to the docs/code" without naming it:
-
-      - Citing a doc/note found via `query_wiki` → annotate `（source: <file>）`, where `<file>` matches the `file` field of the search result exactly
-      - Citing a code fact → annotate `<code file>:<line>`, using the line numbers you actually read from the code — **do not copy line numbers from docs that may be stale**
-      - When the basis comes from this session's own code inspection rather than a doc → say so, e.g. `source: code inspection — <code file>:<line>`
-
-      In-body citations are a traceability promise for humans; the trailing `codewiki:referenced-docs` comment is the machine adoption signal. The two coexist.
+      - Citing a `query_wiki` result → annotate `（source: <file>）`, matching the returned `file` field exactly
+      - Citing a code fact → annotate `<code file>:<line>`, using the line numbers you actually read
+      - When the basis comes from this session's own code inspection → say so
 
       ### Adoption declaration (retrieval feedback)
 
@@ -360,54 +356,15 @@ artifacts:
 
       Paths must match the `file` field returned by query_wiki exactly. Declared documents earn an adoption count and rank higher in future retrievals; notes frequently retrieved but never adopted get flagged by the `low_adoption` check in `lint_wiki`. Only declare docs you genuinely used — missed reports are tolerable, false declarations are not.
 
-      ### Correction detection and experience capture
-
-      When the user corrects, complains, or supplies context you lacked, run the three-step flow:
-
-      1. **Reflect**: state plainly what you got wrong, the correct approach, and the root cause
-      2. **Draft a note**: structured content (background → correct approach → root-cause analysis)
-      3. **Ask for confirmation**: show the draft and ask "shall I record this to the Wiki?" — **get explicit confirmation before calling `ingest_note`**; never save silently
-
-      Correction signals: explicit rejection ("that's wrong"), frustration about recurring mistakes ("again…"), still unhappy after your revision, critical context you lacked ("this project has always…"), naming/behavior mismatch pointed out.
-
-      Only record experience with reuse value — would a future agent or new teammate in the same situation benefit? Temporary adjustments and personal preferences do not count.
-
-      **Archiving example:**
-
-      ```json
-      {{
-        "note_type": "lesson",
-        "title": "OrderService.process() only validates parameters, it does not run business logic",
-        "content": "## Background\n\nThe agent assumed OrderService.process() contained the full business logic and made a wrong design assumption from the method name.\n\n## Correct approach\n\nprocess() only validates and formats inputs; the actual business handling lives in OrderService.execute(). In legacy projects, method names drifting from behavior is common — read the implementation rather than trusting the name.\n\n## Root cause\n\nA decade-old project: methods were refactored repeatedly but never renamed.",
-        "related_modules": ["order"]
-      }}
-      ```
-
-      **Note**: not every correction deserves a note. Only record what has reuse value — temporary adjustments specific to this task, personal preferences and the like do not. Test: would this help a future agent or a new teammate in the same situation?
-
       ### Proactive knowledge capture
 
-      Do not wait for a correction. Trigger signals (any one): root cause found after multi-step debugging, a choice made among two or more options, code behavior disagreeing with docs/naming, implicit project knowledge supplied by the user, an investigation converging on a clear conclusion, a reusable pattern found.
+      Trigger signals (any one): root cause found after multi-step debugging, a choice made among two or more options, code behavior disagreeing with docs/naming, implicit project knowledge supplied by the user, an investigation converging on a clear conclusion, a reusable pattern found.
 
       **Four-question filter (all must pass):** useful in a future conversation without this context? another agent/new teammate benefits directly? `query_wiki` confirms no existing coverage? a "fact/decision/pattern/lesson" rather than temporary task state?
 
-      **Routing table:**
+      **Routing table:** tech choice → `ingest_note(note_type="decision")`; pitfall → `pitfall`; lesson learned → `lesson`; architecture finding → `architecture`; temporary workaround (with restore conditions) → `workaround`; multi-option comparison → `write_doc_file(page_type="comparison")`; archived research conclusion → `write_doc_file(page_type="query")`.
 
-      | Knowledge type | How to write it |
-      |---------|---------|
-      | Tech choice / trade-off made | `ingest_note(note_type="decision")` |
-      | Pitfall / easy-to-miss trap | `ingest_note(note_type="pitfall")` |
-      | Lesson learned (debugging, corrected assumptions) | `ingest_note(note_type="lesson")` |
-      | Architecture-level finding | `ingest_note(note_type="architecture")` |
-      | Temporary workaround (with restore conditions) | `ingest_note(note_type="workaround")` |
-      | Multi-option comparison (with a table) | `write_doc_file(page_type="comparison")` |
-      | Archived research conclusion | `write_doc_file(page_type="query")` |
-
-      **Execution flow:**
-
-      Extract candidates → four-question filter → `query_wiki` dedup check → draft structured content (background → conclusion → root cause → scope) → **show the draft and write only after confirmation**. Present accumulated candidates together at a natural pause instead of interrupting repeatedly.
-
-      **Do not record:** temporary variables/paths/parameters of this task, personal user preferences, information already stated in code comments or the README, unverified guesses.
+      Execution details (structured template, dedup check, confirmation flow): `get_prompt(name="ingest-note")`. Do not record: temporary variables/paths/parameters of this task, personal user preferences, information already stated in code comments or the README, unverified guesses.
 
       ### Output language (language gate)
 

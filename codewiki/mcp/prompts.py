@@ -50,24 +50,16 @@ _ACTIVE_SETTLE_END = "<!-- CODEWIKI-ACTIVE-SETTLE:END -->"
 # 步，由 Agent 现场判断（本文件是否存在 ACTIVE-SETTLE 块、SessionStart 是否
 # 已注入 doctrine/概览）。块内不得出现其他标记块的完整注释标记字面量，
 # 否则按标记定位的 upsert/删除会误命中——引用块名时只写名称不写标记。
+# ADR-0015：协议全文收敛到 SessionStart hook 硬通道 + task-workflow prompt，
+# 文件版只留指针与兜底（非 hook 宿主由接线 prompt 写入全文版）。
 _TASK_MEMORY_AGENTS_SECTION = f"""{_TASK_MEMORY_AGENTS_START}
 ## Task memory (任务记忆)
 
-跨会话延续长线工作上下文。任务记忆是**任务范围内的进度知识**（本次做了什么、下一步、待办），与 Wiki 笔记（**跨任务的通用经验**）互补。
+跨会话延续长线工作上下文。任务记忆是**任务范围内的进度知识**，与 Wiki 笔记（**跨任务的通用经验**）互补。
 
-**会话开始时（必须执行）：**
-1. `list_tasks(status="active")` 列出进行中的任务
-2. **必须用 `ask_followup_question` 弹框，且只弹一次、一框列全**：只调用 1 次，questions 数组只放 1 个 question（标题「任务关联」，multiSelect=false），options 一次性列出「每个进行中任务」+「新建任务…（在输入框直接输入名称）」+「跳过」。**严禁**因工具 schema 建议 2-4 个 options 就拆成多个 question 或分多次弹框；唯一例外是用户选了「新建任务…」却没给名字，可再弹一次要名字
-3. 用 `set_session_task(source_session_id=<会话id>, task_id=<任务id>)` 绑定；列表里没有的任务名先 `create_task(title=<任务名>)` 再绑定；用户选「跳过」则本次不关联
-4. `get_task_context(task_id=<选中任务>)` 拉取任务描述 + 记忆 + 关联笔记
-5. `pending_raw_count > 0` 时**异步补蒸馏**：发一个异步 subagent（后台执行，不阻塞回答）补蒸馏，**清空本任务的全部待蒸馏积压**（不设条数上限）；补蒸馏只提取经验笔记（skip_memories 默认生效，ADR-0010 通道互斥），任务记忆由主动沉淀通道直写；主 Agent 直接回答用户提问，在自然停顿点重新 `get_task_context` 拉取最新记忆、展示待确认草稿。subagent 失败/超时不重试——未蒸馏的 raw 留在 raw/ 等下次会话再补。蒸馏产出的草稿笔记须 `confirm_note` 确认后才落盘；任务记忆直写、无需确认（ADR-0002）
-6. **项目定向（按条件执行）**：若本会话上下文中**没有**已注入的 Team Doctrine / 知识库概览，调用 `query_wiki(mode="overview")` 拉取一次；已注入则跳过，绝不重复拉取
-7. **会话收尾（按条件执行）**：本文件存在 CODEWIKI-ACTIVE-SETTLE 块 → 按该块执行（停顿点直写沉淀），跳过下方传统采集；不存在 → 按下方**传统收尾轮采集**执行
+**会话开始时（必须执行）**：若本会话已收到 SessionStart hook 注入的任务关联指引，按其执行（弹框规则、补蒸馏、收尾采集以注入为准）；**未收到注入时**，按 `get_prompt(name="task-workflow")` 的「会话开始：关联任务」一节执行——用 `ask_followup_question` 弹一次任务关联框（一框列全所有进行中任务 + 新建 + 跳过），绑定后 `get_task_context` 拉取上下文。
 
-**传统收尾轮采集（任务完成 / 用户道别 / 用户显式要求记录时）：**
-将本会话对话重建为 `[{{role, content}}]` 列表，调用 `capture_conversation(conversation=..., source_session_id=<本会话id>, task_id=<任务id>)` 落 raw。**user 消息必须逐字保留**，assistant 保留关键结论原句，工具调用略去。同一会话多次收尾采集会被 supersede 替换，不会堆积。
-
-完整工作流与实现约束见 MCP prompt：`get_prompt(name="task-workflow")` —— 按需获取。
+完整工作流（补蒸馏、会话中采集、收尾、检索、存储布局与实现约束）见 MCP prompt：`get_prompt(name="task-workflow")` —— 按需获取。
 {_TASK_MEMORY_AGENTS_END}"""
 
 # 旧 QwenWork 专属协议块标记（遗留）：已被 CODEWIKI-ACTIVE-SETTLE 泛化取代
