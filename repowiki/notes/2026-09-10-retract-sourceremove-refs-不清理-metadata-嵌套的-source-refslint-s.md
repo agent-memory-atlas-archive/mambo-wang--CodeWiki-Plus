@@ -13,8 +13,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-user_command-commands-codewiki-撤回已导入的外部文档-撤回外部文档工作流。当-`inges.md
   scene: 知识库维护 / 撤回源文档
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -24,6 +24,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-10T09:02:19Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Background
