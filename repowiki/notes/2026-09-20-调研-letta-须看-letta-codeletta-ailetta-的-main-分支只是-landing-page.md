@@ -8,12 +8,14 @@ metadata:
   task_id: 他山之石
   source_session: "8963b3e1a98b4608a6ab4e05850d2702"
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working-3.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-3-50176a.md"
   scene: "竞品调研（他山之石）"
 status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-20T03:22:08Z }
 stale_after: 2027-03-19
+origin: conversation
+
 ---
 
 ## 背景
