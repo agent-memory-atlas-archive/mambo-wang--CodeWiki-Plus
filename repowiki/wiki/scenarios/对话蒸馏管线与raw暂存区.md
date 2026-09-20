@@ -47,6 +47,10 @@ metadata:
 10. Phase 5 方向：资产置信分层（strong/weak/shadow）+ 负反馈闭环（`flag_misrecall` 达阈值自动降权）。
 11. **tool_digest 两级消化**（codewiki/src/tool_digest.py，stdlib-only；capture_conversation 与 _ide_hook 共享同一 import 单点，不会漂移）：纯噪音（thinking/system 等）无条件丢弃；tool_use 保留一行；tool_result 仅留疑似错误。前提是 content-block 列表结构。
 12. **raw 文件名相似度判据 100% 误报**：对 raw/ 首条指令 slug 做相似度扫描，≥0.55 命中全部误报（同会话 supersede 重复捕获的 -2 后缀、模板前缀），有效信号 0——重复任务感知类判据不能建立在文件名相似度上，须先剔除 supersede 副本与模板前缀两大污染源。
+13. **蒸馏提取纪律（ADR-0012，吸收自 hindsight）**：每条 note 必须说明为何值得持久化（一行 rationale）；NEVER compute——只记对话中明说的数字与结论，不做算术/计数/推断。
+14. **采集层信息丢失不可重放**：capture_conversation 落盘前先 digest_blocks，成功结果早已被 tool_digest 的 return "" 丢弃——已落盘对话无法重放，改 tool_digest 只对未来对话有效。
+15. **编辑类工具调用整块丢弃（Tier 1b）**：replace_in_file 等进 `_LOW_SIGNAL_TOOL_NAMES`，调用行+结果行整块丢弃；仅丢结果行（Tier 2）会让结果块丢失工具归属。
+16. **知识管线三类静默降级**：开放命名空间用白名单必然静默漏判（tool_digest 改黑名单）；候选按文件名排序被截断；schema 与 handler 契约不同步。
 
 ## 判断逻辑
 - 借鉴外部记忆管线：借分层不借 LLM、借模式不借 hook、借粒度不借无闸门。

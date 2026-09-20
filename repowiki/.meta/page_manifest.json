@@ -146,13 +146,13 @@
       "written_at": "2026-09-18T06:08:26Z"
     },
     "wiki/scenarios/对话蒸馏管线与raw暂存区.md": {
-      "git_head": "d9b3937499837b87de545125ad3473fef7a2c199",
+      "git_head": "8c500901da3250f87efd0dbb30f948bff3371f00",
       "components": [],
       "files": [],
       "source_fingerprint": null,
       "repo": "CodeWiki-Plus",
       "producer": "codewiki/5.10.1",
-      "written_at": "2026-09-18T06:42:33Z"
+      "written_at": "2026-09-20T01:59:01Z"
     },
     "wiki/scenarios/MCP-Server薄壳架构与参数约定.md": {
       "git_head": "f84894efeec28c75949db496ba2675c067378b7d",
