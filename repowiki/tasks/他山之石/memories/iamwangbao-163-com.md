@@ -138,3 +138,7 @@ letta 调研完成（2026-09-19）：letta-ai/letta main 分支只是 landing pa
 - 已落地：_DISTILL_SYSTEM 新增第 6 条纪律「Reasoned and literal」（codewiki/mcp/tools/distill_conversation.py），tests/test_distill_p1.py 补断言，全量 1169 passed 零回归。
 - ADR-0012 已写入 docs/adr/；decision 草稿笔记已补「落地」章节；调研报告处置表 #3 改为 absorbed（已落地）。
 - 待办：两条草稿笔记（索引抑制 pitfall、distill 规则 decision）仍待用户 confirm_note。
+
+### 2026-09-20 10:56 #d489
+
+letta 借鉴 grill 拷问定案（2026-09-20）：ADR-0013 已落盘 docs/adr/0013-letta-stable-reason-and-limits-module.md。落地两项：① ingest_note 加可选 reason 字段进 frontmatter，status=stable 直写时必填（draft/confirm_note/batch_set_status/add_task_memory 豁免）；② 新建 codewiki/mcp/tools/limits.py 收敛 task_manager 压缩阈值组（40 条/24KB/keep 20/摘要 4096）与写入窗口软限（5 条），lint_wiki 加 threshold_drift 检查防文案漂移。排除四项：worktree 隔离（consolidate 已有两段式）、step-count 触发（轮与 step 不同构）、失败压制（触发稀疏，自我修正推翻初判）、技能同通道（skill_hint 已有）。顺序 E 先 B 后（同文件 registry.py 避免冲突）。调研报告 §四已同步处置状态。
