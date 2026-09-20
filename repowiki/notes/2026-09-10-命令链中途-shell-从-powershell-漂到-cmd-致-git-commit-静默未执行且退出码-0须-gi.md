@@ -15,8 +15,8 @@ metadata:
   source_ref: conversations/conv-user_command-commands-codewiki-知识聚合（L2-场景块）-知识聚合工作流（团队记忆融合-P.md
   scene: 版本控制 / 提交落盘
   compiled_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -26,6 +26,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-10T09:02:21Z'
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## Background
