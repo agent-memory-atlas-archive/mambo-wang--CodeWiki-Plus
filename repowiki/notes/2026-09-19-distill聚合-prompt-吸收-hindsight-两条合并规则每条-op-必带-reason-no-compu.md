@@ -5,7 +5,7 @@ tags:
 - decision
 metadata:
   date: 2026-09-19
-  confidence_level: strong
+  confidence_level: shadow
   task_id: 他山之石
   related_modules:
   - knowledge-loop
@@ -15,7 +15,7 @@ metadata:
   verification:
     commit_ref: ADR-0012
     test_ref: tests/test_distill_p1.py::test_prompt_contains_p1_disciplines_and_fields
-status: stable
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.10.1
@@ -25,6 +25,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-20T01:40:39Z'
+reject_reason: consolidated into 竞品调研与借鉴方法 与 对话蒸馏管线与raw暂存区
 ---
 
 ## 背景
