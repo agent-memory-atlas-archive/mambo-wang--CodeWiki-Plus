@@ -11,8 +11,8 @@ metadata:
   severity: medium
   source_ref: raw\conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: MCP 层 i18n
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
@@ -22,6 +22,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-08T05:28:17Z'
+reject_reason: consolidated into MCP-Server薄壳架构与参数约定
 ---
 
 ## Background
