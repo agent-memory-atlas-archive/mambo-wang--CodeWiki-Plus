@@ -13,8 +13,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-继续调研.md
   scene: 采集覆盖率探测 / 借鉴调研证伪
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -24,6 +24,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-11T03:55:14Z'
+reject_reason: consolidated into 竞品调研与借鉴方法
 ---
 
 ## 背景
