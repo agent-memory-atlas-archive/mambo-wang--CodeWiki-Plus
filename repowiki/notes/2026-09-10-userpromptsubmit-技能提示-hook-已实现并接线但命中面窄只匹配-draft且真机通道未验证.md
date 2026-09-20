@@ -15,6 +15,10 @@ metadata:
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-docs-articles-CodeWiki-Plus系列13：把知识编译成行.md
   scene: 产品维护 / 技能提示 hook
   confidence_level: weak
+  disposition:
+    verdict: deferred
+    at: '2026-09-20'
+    reason: architecture 类事实记录，真机通道验证未完成，等验证结论出来后再决定是否入场景块
 status: stable
 author: iamwangbao-163-com
 generated:

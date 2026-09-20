@@ -17,6 +17,8 @@ metadata:
   - agents
   - hooks
   - mcp
+  consolidated_into:
+  - wiki/scenarios/任务记忆系统设计方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

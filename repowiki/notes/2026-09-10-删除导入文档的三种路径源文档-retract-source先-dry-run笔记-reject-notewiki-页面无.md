@@ -14,6 +14,8 @@ metadata:
   source_ref: conversations/conv-我做方案设计的时候，是否应该把设计方案放到repowiki中呢.md
   scene: 知识库维护 / 删除资产
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

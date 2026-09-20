@@ -14,6 +14,8 @@ metadata:
   source_ref: conversations/conv-user_command-commands-codewiki-外部文档知识抽取-请导入外部文档并从中抽取结构化知识。采用-c23ccd.md
   scene: 外部文档知识抽取
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

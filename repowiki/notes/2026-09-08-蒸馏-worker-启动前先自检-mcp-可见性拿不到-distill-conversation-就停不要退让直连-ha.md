@@ -16,6 +16,8 @@ metadata:
   severity: medium
   root_cause: subagent frontmatter 的 toolsMCP 声明只是意图，不等于运行时授权生效；MCP server 未连接时声明静默失效而非报错，worker
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/任务记忆系统设计方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

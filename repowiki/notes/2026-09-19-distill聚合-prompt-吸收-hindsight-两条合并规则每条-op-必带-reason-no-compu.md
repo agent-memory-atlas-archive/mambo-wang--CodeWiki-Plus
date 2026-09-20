@@ -15,6 +15,8 @@ metadata:
   verification:
     commit_ref: ADR-0012
     test_ref: tests/test_distill_p1.py::test_prompt_contains_p1_disciplines_and_fields
+  consolidated_into:
+  - wiki/scenarios/竞品调研与借鉴方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

@@ -13,6 +13,8 @@ metadata:
   source_ref: conversations/conv-如何启用skill自动编译功能，是有环境变量控制吗？.md
   scene: 技能提取
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/技能提取与注入资产治理.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

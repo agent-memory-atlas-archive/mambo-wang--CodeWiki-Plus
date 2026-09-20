@@ -19,6 +19,10 @@ metadata:
   - capture
   verification:
     test_ref: tests/test_ide_hook_capture.py::test_envelope_does_not_supersede_full_transcript
+  disposition:
+    verdict: excluded
+    at: '2026-09-20'
+    reason: 已完成的代码变更记录，结论（无 transcript 事件 no-op）已体现在 IDE-Hook 采集链路场景块判断逻辑中，无独立增量
 status: stable
 author: iamwangbao-163-com
 generated:

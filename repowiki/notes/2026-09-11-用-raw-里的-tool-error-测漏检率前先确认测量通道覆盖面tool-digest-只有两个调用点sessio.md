@@ -14,6 +14,8 @@ metadata:
   source_ref: conversations/conv-继续调研.md
   scene: 采集覆盖率探测 / 借鉴调研证伪
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/竞品调研与借鉴方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

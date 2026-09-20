@@ -13,6 +13,8 @@ metadata:
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-docs-articles-CodeWiki-Plus系列13：把知识编译成行.md
   scene: 产品维护 / 技能反馈
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/技能提取与注入资产治理.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

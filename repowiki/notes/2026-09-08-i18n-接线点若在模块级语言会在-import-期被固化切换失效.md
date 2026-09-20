@@ -12,6 +12,8 @@ metadata:
   source_ref: raw\conv-@d-repos-CodeWiki-CN-codewiki-mcp-prompts.py-代码里的prompt的titl.md
   scene: MCP 层 i18n
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/MCP-Server薄壳架构与参数约定.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

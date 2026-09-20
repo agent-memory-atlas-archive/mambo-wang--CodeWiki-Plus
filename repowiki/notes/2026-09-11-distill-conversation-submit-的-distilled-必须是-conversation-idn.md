@@ -13,6 +13,8 @@ metadata:
   source_ref: conversations/conv-@command-codewiki-蒸馏对话提取记忆和经验.md
   scene: 对话蒸馏 Mode C 提交
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

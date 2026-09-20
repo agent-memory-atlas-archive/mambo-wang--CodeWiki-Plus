@@ -17,6 +17,8 @@ metadata:
   - distill-conversation
   source_ref: docs/adr/0006-session-binding-attribution-tombstone.md
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/任务记忆系统设计方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

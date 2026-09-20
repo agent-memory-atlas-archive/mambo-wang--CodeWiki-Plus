@@ -34,9 +34,11 @@ metadata:
   - notes/2026-09-07-prompt-正文是逻辑模板混合体不能整块搬进-yaml-语料.md
   - notes/2026-09-07-server-在-serverpy-模块顶层构造语言初始化必须早于它.md
   - notes/2026-09-07-存量中文落盘产物不追溯重写语言策略只作用于新生成整体重写路径.md
-  summary: 补入 MCP 层 i18n 定案（语言优先级/启动期确定/存量不追溯）、code_routing 两档真实规则、note_lifecycle
-    拆分、deprecated 笔记引用前查 status
-  heat: 5
+  - notes/2026-09-08-i18n-接线点若在模块级语言会在-import-期被固化切换失效.md
+  - notes/2026-09-08-windows-上-localegetlocale-返回英文语言名而非-iso-代码中文系统会被误判成英文.md
+  - notes/2026-09-08-双语语料与模板的一致性命名空间错位英文版-yaml-半角冒号两类静默故障.md
+  summary: 补入 i18n 模块级固化、Windows locale 误判、双语语料两类静默故障
+  heat: 6
   confidence_level: weak
 ---
 ## 工作场景

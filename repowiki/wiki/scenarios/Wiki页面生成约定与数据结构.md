@@ -28,9 +28,12 @@ metadata:
   - notes/2026-09-05-unsupported-claims-只扫带-confidence-xxx-的规则行且只做格式邻近性检查不校验语义支撑.md
   - notes/2026-09-05-wikiindexmd-条目-summary-复用页面-description-时相对链接失效-render-index.md
   - notes/2026-09-05-删除-rawsources-下某-source-前先盘点引用与-source-id-所有权删后-10-页断链-readm.md
-  summary: 补入 sources 四处同名语义区分、三生产者字段形态、stale_evidence/unsupported_claims 能力边界、doc_similarity
-    MinHash、ingest_source 四层闸门、index 相对链接重写
-  heat: 5
+  - notes/2026-09-10-已落库结论变更的更新流程wiki-页-edit-doc-file-原地改笔记新写reject-note-旧的confir.md
+  - notes/2026-09-10-删除导入文档的三种路径源文档-retract-source先-dry-run笔记-reject-notewiki-页面无.md
+  - notes/2026-09-10-retract-sourceremove-refs-不清理-metadata-嵌套的-source-refslint-s.md
+  - notes/2026-09-07-旧生成器-frontmatter-metadata-listmapping-混合坏结构会静默崩溃全库索引重建异常被吞.md
+  summary: 补入结论变更更新流程、删除资产三路径、retract_source 嵌套 source_refs 漏清、frontmatter 坏结构静默崩溃索引
+  heat: 6
   confidence_level: weak
 ---
 ## 工作场景

@@ -11,6 +11,10 @@ metadata:
   severity: medium
   source_ref: conversations/conv-继续调研-c2bc52.md
   confidence_level: weak
+  disposition:
+    verdict: deferred
+    at: '2026-09-20'
+    reason: 脱敏收口决策已有实现，但「收口点是否完备」的验证（如新采集路径是否都过 secret_redact）未完成，等验证后归入对话蒸馏管线场景块
 status: stable
 author: iamwangbao-163-com
 generated:

@@ -14,6 +14,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-75d169.md
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/技能提取与注入资产治理.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

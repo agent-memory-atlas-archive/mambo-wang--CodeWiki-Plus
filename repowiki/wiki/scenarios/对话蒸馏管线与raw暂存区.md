@@ -24,8 +24,14 @@ metadata:
   - notes/2026-08-25-蒸馏时无知识密度的对话也提交空结果否则-raw-无法归档清理.md
   - notes/2026-09-07-tool-digest-两级消化机制tool-use-保留一行tool-result-仅留疑似错误前提是-content.md
   - notes/2026-09-07-文件名相似度判据在-raw-上-100-误报同会话-supersede-重复捕获与模板前缀是两大污染源.md
-  summary: 补入 L0 链接优先零索引归档、tool_digest 两级消化、raw 文件名相似度判据 100% 误报的两大污染源、无知识密度对话也提交空结果
-  heat: 5
+  - notes/2026-09-11-distill-conversation-submit-的-distilled-必须是-conversation-idn-fc7c66.md
+  - notes/2026-09-11-distill-conversation-submit-的-distilled-必须是-conversation-idn.md
+  - notes/2026-09-10-capture-conversation-落盘前先-digest-blocks历史成功步骤永久丢失不可重放.md
+  - notes/2026-09-10-编辑类工具调用须整块丢弃tier-1b且仅丢结果行会让结果块丢失工具归属.md
+  - notes/2026-09-10-知识管线三类静默降级开放命名空间用白名单候选按文件名排序被截断schema-与-handler-契约不同步.md
+  summary: 补入蒸馏提取纪律（ADR-0012 reason+NO COMPUTATION）、distilled 内联形状、采集层不可重放、Tier 1b
+    整块丢弃、三类静默降级
+  heat: 6
   confidence_level: weak
 ---
 ## 工作场景

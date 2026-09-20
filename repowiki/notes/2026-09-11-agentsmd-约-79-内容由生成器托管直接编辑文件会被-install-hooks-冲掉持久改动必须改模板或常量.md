@@ -16,6 +16,8 @@ metadata:
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-83a270.md
   scene: AGENTS.md 注入内容精简
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/技能提取与注入资产治理.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

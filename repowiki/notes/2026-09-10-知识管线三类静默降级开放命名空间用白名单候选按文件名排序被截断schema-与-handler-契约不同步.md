@@ -16,6 +16,8 @@ metadata:
   - skill_creator
   - registry
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/对话蒸馏管线与raw暂存区.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

@@ -14,6 +14,8 @@ metadata:
   source_ref: conversations/conv-user_command-commands-codewiki-撤回已导入的外部文档-撤回外部文档工作流。当-`inges.md
   scene: 知识库维护 / 撤回源文档
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/Wiki页面生成约定与数据结构.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

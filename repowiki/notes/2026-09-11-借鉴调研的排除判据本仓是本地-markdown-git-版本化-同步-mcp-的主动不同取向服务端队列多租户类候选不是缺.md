@@ -15,6 +15,8 @@ metadata:
   source_ref: conversations/conv-继续调研.md
   scene: 他山之石增量调研处置
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/竞品调研与借鉴方法.md
 status: deprecated
 author: iamwangbao-163-com
 generated:

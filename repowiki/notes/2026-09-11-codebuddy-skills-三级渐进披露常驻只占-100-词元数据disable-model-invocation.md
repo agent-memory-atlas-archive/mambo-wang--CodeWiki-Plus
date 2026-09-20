@@ -13,6 +13,8 @@ metadata:
   source_ref: conversations/conv-@command-codewiki-蒸馏对话提取记忆和经验.md
   scene: 技能上下文开销与安装策略
   confidence_level: shadow
+  consolidated_into:
+  - wiki/scenarios/技能提取与注入资产治理.md
 status: deprecated
 author: iamwangbao-163-com
 generated:
