@@ -12,8 +12,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-如何启用skill自动编译功能，是有环境变量控制吗？.md
   scene: 技能提取
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -23,6 +23,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-11T03:55:11Z'
+reject_reason: consolidated into 技能提取与注入资产治理
 ---
 
 ## 背景

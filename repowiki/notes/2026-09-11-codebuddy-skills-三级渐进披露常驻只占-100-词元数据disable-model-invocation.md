@@ -12,8 +12,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@command-codewiki-蒸馏对话提取记忆和经验.md
   scene: 技能上下文开销与安装策略
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -23,6 +23,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-11T03:55:10Z'
+reject_reason: consolidated into 技能提取与注入资产治理
 ---
 
 ## 事实（CodeBuddy 官方 Skills 文档，2026-09 查证）

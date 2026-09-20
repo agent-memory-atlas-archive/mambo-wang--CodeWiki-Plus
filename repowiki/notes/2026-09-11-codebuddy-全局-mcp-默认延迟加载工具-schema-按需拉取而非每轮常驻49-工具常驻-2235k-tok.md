@@ -13,8 +13,8 @@ metadata:
   - MCP_Server
   severity: medium
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-75d169.md
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -24,6 +24,7 @@ origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-12T00:57:21Z'
+reject_reason: consolidated into 技能提取与注入资产治理
 ---
 
 ## CodeBuddy 全局 MCP 默认延迟加载：工具 schema 按需拉取而非每轮常驻
