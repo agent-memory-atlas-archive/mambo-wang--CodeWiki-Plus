@@ -17,8 +17,8 @@ metadata:
   - ci
   - skills/windows-python-release/SKILL.md
   compiled_into: ''
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
@@ -27,6 +27,7 @@ stale_after: '2027-03-09'
 verified:
 - by: human:wangbao
   at: '2026-09-10T02:01:31Z'
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## 事实

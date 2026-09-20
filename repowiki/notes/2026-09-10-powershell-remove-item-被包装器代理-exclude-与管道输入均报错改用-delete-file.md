@@ -18,8 +18,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-发布版本.md
   scene: 发版本 / 发布前清理
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -29,6 +29,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-10T09:02:10Z'
+reject_reason: consolidated into 发布与依赖治理方法
 ---
 
 ## Background
