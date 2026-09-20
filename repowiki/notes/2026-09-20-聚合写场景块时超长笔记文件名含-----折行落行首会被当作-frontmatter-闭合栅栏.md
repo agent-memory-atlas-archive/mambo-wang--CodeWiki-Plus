@@ -1,6 +1,8 @@
 ---
 type: pitfall
-title: "聚合写场景块时超长笔记文件名含 --- 折行落行首会被当作 frontmatter 闭合栅栏"
+title: "聚合写场景块时超长笔记文件名含 
+status: stable
+--- 折行落行首会被当作 frontmatter 闭合栅栏"
 tags: ["pitfall"]
 metadata:
   date: 2026-09-20
