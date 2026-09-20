@@ -137,13 +137,13 @@
       "written_at": "2026-09-08T05:54:02Z"
     },
     "wiki/scenarios/发布与依赖治理方法.md": {
-      "git_head": "7abfd2e7f9b25e6b48a71ba9296e3e6ea1c71e91",
+      "git_head": "2171b53c3876a421cc7233695b44c1a188d1fdf2",
       "components": [],
       "files": [],
       "source_fingerprint": null,
       "repo": "CodeWiki-Plus",
       "producer": "codewiki/5.10.1",
-      "written_at": "2026-09-18T06:08:26Z"
+      "written_at": "2026-09-20T02:01:22Z"
     },
     "wiki/scenarios/对话蒸馏管线与raw暂存区.md": {
       "git_head": "d1f75b45f2b67b60d44d008db344b3527c079e43",
