@@ -32,6 +32,7 @@ def _pin_language_zh(monkeypatch):
     yield
     i18n.set_lang(original)
 
+
 PY_A = '''"""module a"""\ndef func_a():\n    return 1\n'''
 
 PY_B = '''"""module b"""\nimport a\n\ndef func_b():\n    return a.func_a()\n\ndef func_other():\n    return 42\n'''
