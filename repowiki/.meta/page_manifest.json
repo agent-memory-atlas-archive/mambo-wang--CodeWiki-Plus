@@ -164,13 +164,13 @@
       "written_at": "2026-09-20T02:02:23Z"
     },
     "wiki/scenarios/IDE-Hook采集链路方法.md": {
-      "git_head": "344e2e08a3fe84c36d2b2e47254d6501f3bc942f",
+      "git_head": "a56d62bbf47979bc77053c1040d1214b393ad0ea",
       "components": [],
       "files": [],
       "source_fingerprint": null,
       "repo": "CodeWiki-Plus",
       "producer": "codewiki/5.10.1",
-      "written_at": "2026-09-18T06:09:52Z"
+      "written_at": "2026-09-20T02:03:22Z"
     },
     "wiki/scenarios/Wiki页面生成约定与数据结构.md": {
       "git_head": "92bb7bb20109350ff1bda3c0d0519918cfbcc7fa",

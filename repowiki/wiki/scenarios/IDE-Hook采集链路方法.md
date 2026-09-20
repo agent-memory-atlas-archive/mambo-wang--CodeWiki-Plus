@@ -55,6 +55,8 @@ IDE hook 采集链路（capture_session_end.py → _ide_hook.py → capture_conv
 12. **stdin 解码一律 `utf-8-sig` + `lstrip("\ufeff")`**（PowerShell 管道可能注入多个 BOM）；验证 hook 优先用 `--conversation <file>` 文件方式而非管道。
 13. **非交互装技能**：`npx skills add` 加 `-y` 跳过 TUI、`-a codebuddy` 指定 agent；Universal 目录 `~/.agents/skills/` 始终落盘（TUI 未完成也已安装）；纯 SKILL.md 技能可直接复制到 `~/.codebuddy/skills/<id>/`，新会话生效（无 hook 时档位状态不持久化，压缩后可能漂移需重说一次）。
 14. **UserPromptSubmit 的 _ide_hook --enable 是 draft 技能提示通道（advisory）**：只提示不捕获，从 stdin 读事件载荷，把 prompt 与 `repowiki/skills/*/SKILL.md` 中 `status: draft` 的未安装技能做 containment 匹配后提示。
+15. **CodeBuddy Hooks matcher 语义**：SessionStart 只匹配 source=startup、SessionEnd 只匹配 reason=other，空串匹配全部——取值已是官方唯一合法值，不存在「换成更宽/更具体的值就能多覆盖官方场景」的写法。
+16. **弹框工具的 options 条数建议会诱导 Agent 拆成多框**：ask_followup_question 的 schema 建议 2-4 个 options，Agent 为遵守建议把 9 个任务拆进多个 question 或分多次弹框——须在注入文案里显式覆盖（「一框列全，选项条数不受建议限制」）。
 
 ## 判断逻辑
 - transcript 噪声只保留 user/assistant；hook 无 transcript 的生命周期事件（SessionEnd/Stop/PreCompact）一律 no-op，只留 stderr 诊断、不落盘（事件信封路径已移除）。
