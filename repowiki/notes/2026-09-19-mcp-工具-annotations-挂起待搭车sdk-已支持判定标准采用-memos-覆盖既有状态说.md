@@ -1,15 +1,22 @@
 ---
 type: decision
-title: "MCP 工具 annotations 挂起待搭车：SDK 已支持、判定标准采用 memos 覆盖既有状态说"
-tags: ["decision"]
+title: MCP 工具 annotations 挂起待搭车：SDK 已支持、判定标准采用 memos 覆盖既有状态说
+tags:
+- decision
 metadata:
   date: 2026-09-19
   confidence_level: weak
-  related_modules: ["mcp"]
-status: draft
+  related_modules:
+  - mcp
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-19T11:05:10Z }
-stale_after: 2027-09-19
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-19 11:05:10+00:00
+stale_after: '2027-09-20'
+verified:
+- by: human:wangbao
+  at: '2026-09-20T02:38:19Z'
 ---
 
 ## 背景

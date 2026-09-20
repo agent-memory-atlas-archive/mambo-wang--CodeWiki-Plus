@@ -1,19 +1,38 @@
 ---
 type: pitfall
-title: "修 subagent/hook 定义只改已装副本会被 install-hooks 覆盖打回：必须改随包源变体并加源变体守门测试"
-tags: ["pitfall", "readfile"]
-aliases: ["toolsMCP 无效", "distill-worker 空转", "修复被覆盖打回", "源变体守门测试", "install-hooks 覆盖拷贝", "mcpServers 授权", "改源副本还是项目副本"]
+title: 修 subagent/hook 定义只改已装副本会被 install-hooks 覆盖打回：必须改随包源变体并加源变体守门测试
+tags:
+- pitfall
+- readfile
+aliases:
+- toolsMCP 无效
+- distill-worker 空转
+- 修复被覆盖打回
+- 源变体守门测试
+- install-hooks 覆盖拷贝
+- mcpServers 授权
+- 改源副本还是项目副本
 metadata:
   date: 2026-09-16
   confidence_level: weak
   task_id: 产品维护
-  related_modules: ["agents", "hooks", "cli"]
+  related_modules:
+  - agents
+  - hooks
+  - cli
   severity: high
-  root_cause: "install_hooks 对 agent 定义是强制覆盖拷贝、项目副本没有回写机制；tests/test_install_hooks.py 的断言又把错误 schema 固化成契约（原为 assert \"toolsMCP: codewiki\" in installed），ide_config.py 注释还把错误 schema 写成各宿主契约——三处叠加让上游修复无法存活。"
-status: draft
+  root_cause: 'install_hooks 对 agent 定义是强制覆盖拷贝、项目副本没有回写机制；tests/test_install_hooks.py
+    的断言又把错误 schema 固化成契约（原为 assert "toolsMCP: codewiki" in installed），ide_config.py
+    注释还把错误 schema 写成各宿主契约——三处叠加让上游修复无法存活。'
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-16T13:47:04Z }
-stale_after: 2027-03-15
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-16 13:47:04+00:00
+stale_after: '2027-03-19'
+verified:
+- by: human:wangbao
+  at: '2026-09-20T02:38:17Z'
 ---
 
 ## 背景
