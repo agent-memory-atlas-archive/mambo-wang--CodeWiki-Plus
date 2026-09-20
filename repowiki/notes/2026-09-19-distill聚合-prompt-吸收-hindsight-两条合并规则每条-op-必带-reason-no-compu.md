@@ -1,21 +1,30 @@
 ---
 type: decision
-title: "distill/聚合 prompt 吸收 hindsight 两条合并规则：每条 op 必带 reason + NO COMPUTATION"
-tags: ["decision"]
+title: distill/聚合 prompt 吸收 hindsight 两条合并规则：每条 op 必带 reason + NO COMPUTATION
+tags:
+- decision
 metadata:
   date: 2026-09-19
-  confidence_level: weak
+  confidence_level: strong
   task_id: 他山之石
-  related_modules: ["knowledge-loop"]
+  related_modules:
+  - knowledge-loop
   severity: medium
-  source_ref: "conversations/conv-https-github.com-vectorize-io-hindsight-调研项目.md"
-  scene: "他山之石竞品调研（hindsight）"
-status: draft
+  source_ref: conversations/conv-https-github.com-vectorize-io-hindsight-调研项目.md
+  scene: 他山之石竞品调研（hindsight）
+  verification:
+    commit_ref: ADR-0012
+    test_ref: tests/test_distill_p1.py::test_prompt_contains_p1_disciplines_and_fields
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.10.1, at: 2026-09-19T14:53:38Z }
-stale_after: 2027-09-19
+generated:
+  by: codewiki/5.10.1
+  at: 2026-09-19 14:53:38+00:00
+stale_after: '2027-09-20'
 origin: conversation
-
+verified:
+- by: human:wangbao
+  at: '2026-09-20T01:40:39Z'
 ---
 
 ## 背景
