@@ -7,7 +7,7 @@ metadata:
   confidence_level: weak
   source_session: "f880020901b44931982aa724834955df"
   severity: medium
-  source_ref: "raw\\conv-user_command-commands-codewiki-文档质量审计-请对-Wiki-文档执行全面质量审计。按以下.md"
+  source_ref: "conversations/conv-user_command-commands-codewiki-文档质量审计-请对-Wiki-文档执行全面质量审计。按以下-3ed82e.md"
   scene: "Wiki 文档质量审计"
 status: draft
 author: iamwangbao-163-com
