@@ -64,6 +64,9 @@ codewiki/mcp/ 的架构分层、工具参数面与检索契约。适用于新增
 16. **引用 query_wiki 返回的笔记前先查 status**：deprecated 表示方案已被否决/取代，不可作为行动依据；仅 draft/confirmed 可采纳。
 17. **code_routing 代码注入分档是文件粒度两档，非传闻三档**：纯 boilerplate 文件（file_categories == {"boilerplate"}）仅签名（≤15 参数）；business/infra/混合文件整文件全量；1-hop 依赖仅签名。「infra 摘要」档不存在（prompt_template.py:596-659）。
 18. **confirm/reject 生命周期实现已拆到 note_lifecycle.py**（2026-09 重构）：knowledge_loop.py 仅 2.4KB 兼容门面；handle_confirm_note 在 note_lifecycle.py:56-91（draft→stable、append verified、续期 stale_after）。找实现别去 knowledge_loop.py。
+19. **i18n 接线点若在模块级，语言会在 import 期被固化**：`Server(...)` 与 `_register_prompts(server)` 均为模块级，语言初始化必须放在 Server 构造之前；任何在模块级求值的中文字面量都会在 import 那一刻被定死。
+20. **Windows 上 locale.getlocale() 返回英文语言名而非 ISO 代码**：中文系统会被误判成英文（返回 'Chinese (...)' 而非 'zh_CN'）；语言判定须显式映射或用其他 API。
+21. **双语语料与模板一致性两类静默故障**：命名空间错位（语料插错组，`t()` 对缺失 key 返回带前缀哨兵不抛错，默认中文路径下照样渲染，单看结果不易察觉）；英文版 YAML 半角冒号（值内含 `:` 会被解析器吃掉）。
 
 ## 判断逻辑
 - dispatch() 已有统一异常兜底，handler 内抛异常是安全契约。
