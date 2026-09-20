@@ -136,3 +136,7 @@ SessionStart 任务关联弹框已改为「单框列全」：只允许 1 次 ask
 ### 2026-09-20 19:15 #wbkl
 
 auto_push 链路梳理完成：核心逻辑在 codewiki/src/git_sync.py 的 auto_push()——_resolve_auto_push 读 schema.yaml conventions.git_sync.auto_push（默认 False）；执行顺序：暂存区守卫（用户已手动 add 则中止）→ git add -A 只暂存 repowiki/ 子树 → unstage .lck → 用仓库现有 git 身份 commit（message 前缀 codewiki:）→ 无 upstream 则跳过推送保留本地提交 → push 失败走 fetch+rebase 重试≤5 次（冲突 abort），永不 force-push/reset，失败保留本地提交下次搭载（D12 失败契约）。锚点两类：handler 自带（close_session/capture_conversation/distill_conversation/batch_ingest/ingest_note/write_doc_file）+ registry.py _PUSH_ON_WRITE 12 个工具由 dispatch() 经 auto_push_into_result 统一收口；batch_ingest 用 defer_push() 抑制子项推送、批边界只推一次。auto_push 开启时 auto_stage 自动失效（互斥）。本仓库 schema.yaml 已开 auto_push: true。
+
+### 2026-09-20 20:04 #fdxk
+
+auto_push 预暂存守卫重构完成：用户反馈「经常没提交推送」要求 force-push。诊断根因：预暂存守卫（git_sync.py）在暂存区有用户手动 add 的任何内容时整体中止 auto_push，用户常暂存文件导致频繁静默跳过。force-push 被否决（D10 决策「永不 force」，改写远端历史危及他人提交）。修复：守卫改为路径限定提交 git commit -m msg -- <repowiki/>，只提交知识子树，用户暂存的业务文件留在暂存区不被卷入不阻塞同步；子树内用户暂存的知识内容随行（接受）。测试 test_auto_push_coexists_with_preexisting_staged_content 改写，test_phase4_second_slice 12 passed + test_git_sync_auto_stage 11 passed。MCP server 需重启生效。
