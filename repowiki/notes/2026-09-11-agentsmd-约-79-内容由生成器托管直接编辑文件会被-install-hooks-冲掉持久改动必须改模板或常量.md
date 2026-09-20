@@ -15,8 +15,8 @@ metadata:
   severity: high
   source_ref: conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-83a270.md
   scene: AGENTS.md 注入内容精简
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -26,8 +26,9 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-11T03:55:10Z'
-source_conversations: ['conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md']
-
+source_conversations:
+- conversations/conv-user_command-commands-codewiki-启用-禁用任务管理（跨会话任务记忆）-管理-team-me-3.md
+reject_reason: consolidated into 技能提取与注入资产治理
 ---
 
 ## 背景

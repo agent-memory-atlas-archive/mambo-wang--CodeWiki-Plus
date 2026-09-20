@@ -12,8 +12,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@d-repos-CodeWiki-CN-docs-articles-CodeWiki-Plus系列13：把知识编译成行.md
   scene: 产品维护 / 技能反馈
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -23,6 +23,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-10T09:02:13Z'
+reject_reason: consolidated into 技能提取与注入资产治理
 ---
 
 ## Background
