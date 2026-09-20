@@ -13,8 +13,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-我做方案设计的时候，是否应该把设计方案放到repowiki中呢.md
   scene: 知识库维护 / 删除资产
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -24,6 +24,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-10T09:02:18Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## Background
