@@ -16,8 +16,8 @@ metadata:
   - capture-conversation
   severity: high
   root_cause: supersede 继承源只覆盖 raw/.index.json 中 status=pending 的条目；蒸馏删除文件并摘掉索引条目后继承源消失，而一次性凭证已在首次捕获时被销毁，导致归属无处可取。
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -26,6 +26,7 @@ stale_after: '2027-03-10'
 verified:
 - by: human:wangbao
   at: '2026-09-11T02:49:24Z'
+reject_reason: consolidated into 任务记忆系统设计方法
 ---
 
 ## 现象

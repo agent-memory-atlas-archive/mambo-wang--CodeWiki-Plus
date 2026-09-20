@@ -15,8 +15,8 @@ metadata:
   - tool_digest
   - skill_creator
   - registry
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.9.0
@@ -27,6 +27,7 @@ verified:
   at: '2026-09-10T07:47:27Z'
 - by: human:wangbao
   at: '2026-09-10T07:49:22Z'
+reject_reason: consolidated into 对话蒸馏管线与raw暂存区
 ---
 
 ## 坑一：开放命名空间用白名单，必然静默漏判

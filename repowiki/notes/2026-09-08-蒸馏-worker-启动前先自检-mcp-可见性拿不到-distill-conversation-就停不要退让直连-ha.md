@@ -15,8 +15,8 @@ metadata:
   - mcp
   severity: medium
   root_cause: subagent frontmatter 的 toolsMCP 声明只是意图，不等于运行时授权生效；MCP server 未连接时声明静默失效而非报错，worker
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
@@ -27,6 +27,7 @@ verified:
   at: '2026-09-10T07:47:26Z'
 source_conversations:
 - conversations/conv-manually_attached_skills-Please-use-the-use_skill-tool-to-in-75d169.md
+reject_reason: consolidated into 任务记忆系统设计方法
 ---
 
 ## 背景
