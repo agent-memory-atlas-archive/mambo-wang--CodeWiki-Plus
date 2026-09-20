@@ -154,3 +154,7 @@ ADR-0013 E 项实施完成（2026-09-20）：① 新建 codewiki/mcp/tools/limit
 ### 2026-09-20 12:25 #5c41
 
 ADR-0013 B 项实施完成（2026-09-20）：① note_ingest.py 加 reason 校验（status=stable 必填，缺失拒绝并提示改走 draft→confirm；draft 可选）+ evidence 处理（复用 confirm_note 语义：test_ref/commit_ref/reviewed_by，提供时升 confidence_level=strong 并记 metadata.verification，未知 key 拒绝）；② reason/verification 写进 frontmatter metadata；③ registry.py ingest_note schema 加 reason/evidence 参数描述，status 描述同步更新；④ 新增 tests/test_ingest_reason_evidence.py 7 用例，修 4 处既有裸 stable 调用补 reason；⑤ 全量 1182 passed。ADR-0013 全部落地（E+B）。
+
+### 2026-09-20 19:39 #ki12
+
+完成 hook/AGENTS.md 竞品调研（claude-mem、hindsight、teamai-cli、letta-code、openwiki、better-harness、caveman、project-cairn）。核心结论：①AGENTS.md 应瘦身成路由层（cairn ≤60 行预算 + 文档职责表），细节外置 wiki 按需检索；②task-memory 协议存在 AGENTS.md 块与 SessionStart hook 双通道重复注入，应单点收敛（建议保留 hook 硬通道，AGENTS.md 留一行指针）；③hook 可借鉴 teamai-cli golden fixture 钉渲染输出、claude-mem 原生 async:true（需真机验证 CodeBuddy 支持）；④明确不借 claude-mem 六事件全采集（噪音）、inline bash 路径解析、letta commit-on-write（模型相反）。下一步：向用户确认优化方案后落地。
