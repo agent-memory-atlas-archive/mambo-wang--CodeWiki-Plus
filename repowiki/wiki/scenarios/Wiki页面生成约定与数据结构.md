@@ -60,6 +60,9 @@ wiki 页面生成的 OKF/frontmatter 约定、数据结构消费与知识资产�
 18. **ingest_source 四层确认闸门**（只警告不落盘）：L0 SHA-256 字节去重 → L1 version_sibling 语义指纹 → L2 同名不同内容 conflict → L3 frontmatter supersedes。任何被算过的条目都要标记并落盘（提前 return 分支也须 _save_registry）。
 19. **删除 raw/sources 前先盘点引用与 source id 所有权**：source id 可能被多个页面 frontmatter/正文引用，删后断链不可逆；先查引用面再删。
 20. **wiki/index.md 条目 summary 复用页面 description 时相对链接失效**：_render_index 须按 relpath 重写链接，否则模块页 description 里的相对链接在 index 上下文断链。
+21. **已落库结论变更的更新流程**：wiki 页（queries/comparisons）用 edit_doc_file 原地改；笔记新写 + reject_note 旧的 + confirm 新的；ADR 须回源同步。方向变则新写 decision 笔记，仅表述/证据变则原地改。
+22. **删除导入文档的三种路径**：源文档 retract_source（先 dry_run，remove_refs 模式不清理 metadata 嵌套的 source_refs，lint stale_refs 也漏）；笔记 reject_note；wiki 页面无工具级删除。
+23. **旧生成器 frontmatter 坏结构会静默崩溃全库索引**：孤儿 list 项 + mapping 键混合结构 → YAML 解析为 list → retrieval.py 的 _meta.get() AttributeError → build_full_index 崩溃且异常被吞。修复后全库索引恢复。
 
 ## 判断逻辑
 - 去重三条件：同一真实事物 / 名称变体 / 类型兼容；核心原则 related ≠ same。
