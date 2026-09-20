@@ -13,8 +13,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-@settings.json-5-5-sessionStart和sessionEnd的matcher是否需要优化，发现某.md
   scene: hook 采集
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.8.0
@@ -24,6 +24,7 @@ origin: conversation
 verified:
 - by: human:wangbao
   at: '2026-09-08T05:28:18Z'
+reject_reason: consolidated into IDE-Hook采集链路方法
 ---
 
 ## Background

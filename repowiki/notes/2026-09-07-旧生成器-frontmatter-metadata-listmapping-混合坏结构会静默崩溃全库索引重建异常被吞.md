@@ -13,8 +13,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-user_command-commands-codewiki-外部文档知识抽取-请导入外部文档并从中抽取结构化知识。采用-c23ccd.md
   scene: 外部文档知识抽取
-  confidence_level: weak
-status: stable
+  confidence_level: shadow
+status: deprecated
 author: iamwangbao-163-com
 generated:
   by: codewiki/5.7.0
@@ -24,6 +24,7 @@ origin: conversation
 verified:
 - by: human:mambo-wang
   at: '2026-09-07T03:50:23Z'
+reject_reason: consolidated into Wiki页面生成约定与数据结构
 ---
 
 ## 背景
