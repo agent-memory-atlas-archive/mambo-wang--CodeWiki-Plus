@@ -98,6 +98,9 @@ def test_prompt_contains_p1_disciplines_and_fields():
     assert "Accurate attribution" in p
     assert '"priority": 85' in p
     assert '"scene":' in p
+    # P2 (hindsight absorption): discipline 6 — reason required + no computation
+    assert "Reasoned and literal" in p
+    assert "NEVER compute" in p
 
 
 # --------------------------------------------------------------------------- #

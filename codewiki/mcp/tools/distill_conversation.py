@@ -83,7 +83,12 @@ _DISTILL_SYSTEM = (
     "4. AI outputs: an assistant-generated plan or analysis is extractable only "
     "when the user adopted/confirmed it or it was validated in practice.\n"
     "5. Drop low value: greetings, one-shot requests ('just fix this formatting "
-    "for now'), and anything obvious from the code must NOT be extracted.\n\n"
+    "for now'), and anything obvious from the code must NOT be extracted.\n"
+    "6. Reasoned and literal: every note MUST state why it is worth persisting "
+    "(one line in the body, e.g. under ## Rationale); and NEVER compute — "
+    "record only numbers and conclusions that were explicitly stated in the "
+    "conversation, never derived ones (no arithmetic, no counting, no "
+    "inference over stated figures).\n\n"
     "Return ONLY a single JSON object (no markdown fences) shaped exactly as:\n"
     "{\n"
     '  "notes": [\n'

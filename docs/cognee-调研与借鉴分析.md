@@ -71,18 +71,20 @@ turn 分析一次调用同时产出：答案路由、对**上一轮实际服务�
 
 从 AGENTS.md/对话/commit message 用 LLM 结构化抽取 `Rule` 节点，并建 `rule_associated_from` 边回链到来源 `DocumentChunk`。**memify 默认自动跑**，cognify 默认不跑。
 
-## 三、值得 CodeWiki 借鉴的
+## 三、逐条证伪裁决（2026-09-19 grill 复核后定稿）
 
-| # | 借鉴点 | cognee 依据 | CodeWiki 现状与落点 |
+> 初稿曾认为 #1-#5 值得落地。经对本仓代码逐条核对（grill-with-docs），**8 个借鉴点全部证伪、0 采纳**——其中 6 条本仓已有等价实现，2 条语义不同。下表「CodeWiki 现状」列为本次代码核对结论。
+
+| # | 借鉴点 | cognee 依据 | 证伪结论（依据本次代码核对） |
 |---|---|---|---|
-| 1 | **水位线增量持久化 + 失败不推进 + 陈旧检测** | `session_persist_watermark.py`：只处理新增量，成功才推进，会话缩短视为水位线过期从头来 | CodeWiki 蒸馏靠 pending raw 清单轮询。任务记忆/多仓工作区若出现「周期性全量重算」场景（如 Doctrine 刷新、index 重建），应套用同款水位线三件套，避免 O(n²) |
-| 2 | **LIVE 确定性 + BATCH LLM 两级提取** | 错误轨迹零成本即时成 lesson（置信 0.85），每 10 条才付一次 LLM；两路汇入同一确定性 applier | CodeWiki hook 采集目前只落 raw 不做任何即时提取。可在 capture 侧加零 LLM 的确定性快路径（如识别到报错堆栈/用户否定词直接标记 raw 高优先级），蒸馏 subagent 只处理需要推理的部分 |
-| 3 | **脱敏先行，错误文本入库前正则抹除** | `agent_context_extraction.py:62-93`：Bearer/JWT/secret/UUID/长数字全抹 | `capture_conversation` 落 raw 前应加同款确定性脱敏——raw 是要长期留存并喂给 LLM 的， secrets 进了 raw 就晚了 |
-| 4 | **单次 LLM 调用多产出** | turn 分析一次调用出路由+条目评分+候选更新 | CodeWiki 蒸馏 submit 已是单次提交，但「确认草稿时顺便产出 adoption/冲突信号」这类同上下文多产出可参考，减少对同一内容的重复 LLM 调用 |
-| 5 | **流式加权公式替代裸计数** | `w += α(r−w)`，α=0.1，裁剪 [0,1]；频率与反馈双通道分开存 | CodeWiki 的 adoption 计数是裸累加，老笔记权威值只增不减。借鉴流式更新让「近期零采纳」能自然衰减权威值，且反馈（显式确认/拒绝）与频率（被检索次数）分通道，语义不混 |
-| 6 | **幂等标记 + overlay 合并写** | 每条 Q&A 的 `memify_metadata` 记各 stage 处理结果；update 只传本 stage 的 key 防 stale 覆盖 | CodeWiki 的 supersede/近重复拒绝已有类似语义；「多写方并发更新同一条目时只传增量 key」的 overlay 纪律值得写进任务记忆存储层的约定 |
-| 7 | **单会话锁防多触发源重复干活** | `try_acquire_improve_lock`：抢不到直接返回空，不排队 | CodeWiki 补蒸馏 subagent 若与主动沉淀并发写同一任务记忆，应有同款「抢锁失败即放弃」而非双写 |
-| 8 | **novelty 检索限定在同类节点集** | 蒸馏 lesson 的查重只搜 `session_learnings` 节点集，不搜全图 | CodeWiki `ingest_note` 前的 `query_wiki` 查重可加 note_type/来源范围过滤，减少跨类型误判 related≠same |
+| 1 | 水位线增量持久化 + 失败不推进 + 陈旧检测 | `session_persist_watermark.py`：只处理新增量，成功才推进，会话缩短视为水位线过期从头来 | **已有等价实现**：本仓 pending-status 机制即等价水位线——raw 落盘即 pending、蒸馏成功才归档到 `conversations/`（一次处理+移动，失败重试同一条 raw）。不存在 cognee「每次 improve 全量重算」的 O(n²) 前提场景。重启信号：若未来出现周期性全量重算（Doctrine 刷新、index 重建），再引入水位线三件套 |
+| 2 | LIVE 确定性 + BATCH LLM 两级提取 | 错误轨迹零成本即时成 lesson（置信 0.85），每 10 条才付一次 LLM | **快路径已有，残余缺口 excluded**：`tool_digest.py` 已在采集时零 LLM 确定性保留 `[tool-error:]` 错误链进 raw（即时提取已存在）。缺的「raw 优先级标记」不采纳：蒸馏是积压清空制（不设条数上限），没有排队就没有优先级的前提。重启信号：若 raw 积压大到需要排序，该修采集/蒸馏频率失衡而非加排序 |
+| 3 | 脱敏先行，错误文本入库前正则抹除 | `agent_context_extraction.py:62-93`：Bearer/JWT/secret/UUID/长数字全抹 | **已有等价实现**：`capture_conversation.py:266` 与 `tool_digest.py:338` 均已调用 `redact_secrets`（`codewiki/src/secret_redact.py`，2026-09-11 PyPI token 事故后加的），手动 capture 与 IDE hook 两条采集路径全覆盖。cognee 的价值在于独立互证了这条防线 |
+| 4 | 单次 LLM 调用多产出 | turn 分析一次调用出路由+条目评分+候选更新 | **已有等价实现**：蒸馏 submit 单次提交即产出 notes + memories + 冲突信号；`confirm_note` 是确定性操作无 LLM，不存在对同一内容的重复调用 |
+| 5 | 流式加权公式替代裸计数 | `w += α(r−w)`，α=0.1，裁剪 [0,1]；频率与反馈双通道分开存 | **已有等价实现**：`retrieval.py:622` `compute_usage_heat` 已有三件套——`boost_cap=0.15` 封顶、`cold_penalty=0.2`（180 天闲置衰减，floor 0.8）、`adopted_weight=0.06`（采纳 2× 召回）。「近期零采纳自然衰减」已由冷惩罚覆盖，cognee 的 α 公式只是另一种参数化，无增量价值 |
+| 6 | 幂等标记 + overlay 合并写 | 每条 Q&A 的 `memify_metadata` 记各 stage 处理结果；update 只传本 stage 的 key | **已有等价实现**：`store.py:188` file_lock + supersede 机制 + 近重复拒绝（difflib > 0.85）已覆盖幂等与防 stale 覆盖语义 |
+| 7 | 单会话锁防多触发源重复干活 | `try_acquire_improve_lock`：抢不到直接返回空，不排队 | **已有等价实现**：`locks.py` 跨平台文件锁原语已有；蒸馏 submit 返回 noop（raw 被并行流程抢先处理时静默跳过）即「抢锁失败即放弃」语义 |
+| 8 | novelty 检索限定在同类节点集 | 蒸馏 lesson 的查重只搜 `session_learnings` 节点集，不搜全图 | **语义不同，不采纳**：跨类型召回进弱冲突带是 Doctrine「related ≠ same」的有意设计——跨类型候选交给人工裁决而非静默过滤，加 note_type 过滤会削弱冲突检测 |
 
 ## 四、不建议借鉴的
 
@@ -94,4 +96,4 @@ turn 分析一次调用同时产出：答案路由、对**上一轮实际服务�
 
 ## 五、一句话总结
 
-cognee 与 CodeWiki 是同一命题（会话→持久知识闭环）的两种底座实现：它验证了**水位线增量、确定性快路径+LLM 慢路径、脱敏先行、流式加权**这四个底座无关的工程习惯的价值——这四条全部可以平移进 CodeWiki 的采集/蒸馏/权威值体系；而它的图库底座、自动静默加权和实验性质心机制，在 Markdown 单机哲学下应明确不借。
+cognee 与 CodeWiki 是同一命题（会话→持久知识闭环）的两种底座实现。经逐条证伪，8 个候选借鉴点 **0 采纳**：本仓的 `secret_redact`（双路径脱敏）、`usage_heat`（封顶/冷惩罚/采纳加权）、pending-status（等价水位线）、file_lock + noop（等价抢锁放弃）与 cognee 的对应机制是同一命题的两种实现，且本仓版本更符合「入库必经显式确认闸门」核心原则。cognee 调研的真正价值在于**独立收敛互证**——两个项目在互不知情的情况下对同一工程问题给出了同构答案，验证了本仓现有设计的方向正确性；而它的图库底座、自动静默加权和实验性质心机制，在 Markdown 单机哲学下应明确不借。
