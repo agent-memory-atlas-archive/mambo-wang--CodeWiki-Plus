@@ -7,12 +7,14 @@ metadata:
   confidence_level: weak
   source_session: "575221042e1e4a71b69f2e05be56bed8"
   severity: medium
-  source_ref: "raw\\conv-working_memory_content-The-following-is-the-existing-working.md"
+  source_ref: "conversations/conv-working_memory_content-The-following-is-the-existing-working-4f79bd.md"
   scene: "内部服务器运维"
 status: draft
 author: iamwangbao-163-com
 generated: { by: codewiki/5.10.1, at: 2026-09-20T11:35:47Z }
 stale_after: 2027-03-19
+origin: conversation
+
 ---
 
 ## 背景
