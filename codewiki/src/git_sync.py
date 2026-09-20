@@ -354,16 +354,17 @@ def auto_push(output_dir: str | Path, tool_name: str) -> Optional[str]:
     except ValueError:
         return None
 
-    # 0) PRE-EXISTING staged content guard (real-repo acceptance finding
-    # 2026-09-02): ``git commit`` commits the WHOLE index.  If the user
-    # already staged their own changes, auto_push must ABORT — silently
-    # committing them is a boundary violation.  We never unstage their work.
-    pre_staged = _run_git(repo_root, ["diff", "--cached", "--name-only"])
-    if pre_staged and pre_staged.strip():
-        return (
-            "git_sync(auto_push): 暂存区已有非工具改动（可能是用户手动 git add 的内容），"
-            "为避免误提交已跳过自动推送；请先提交或暂存（stash）你的改动。"
-        )
+    # 0) PRE-EXISTING staged content (real-repo acceptance finding
+    # 2026-09-02): ``git commit`` without a pathspec commits the WHOLE
+    # index — silently sweeping user-staged changes into the knowledge
+    # commit is a boundary violation.  The original fix ABORTED whenever
+    # anything was staged, which made auto_push a frequent silent no-op
+    # (the top "why didn't it push?" complaint: users stage files all the
+    # time).  Since 2026-09-20 the commit below is pathspec-limited to
+    # the knowledge subtree instead: user-staged content outside
+    # ``<repowiki>/`` stays staged, is never committed, and no longer
+    # blocks the sync.  User-staged changes INSIDE the subtree are
+    # knowledge content and ride along — accepted.
 
     # 1) stage only the knowledge tree
     if _run_git(repo_root, ["add", "-A", "--", rel]) is None:
@@ -382,11 +383,15 @@ def auto_push(output_dir: str | Path, tool_name: str) -> Optional[str]:
         if not restaged or not restaged.strip():
             return None
 
-    # 2) commit with the repo's own identity (decision B)
+    # 2) commit with the repo's own identity (decision B), pathspec-limited
+    # to the knowledge subtree so user-staged content outside it is never
+    # swept in (see step 0 above).
     from datetime import date
 
     msg = f"codewiki: auto-sync knowledge ({tool_name}, {date.today().isoformat()})"
-    if _run_git(repo_root, ["commit", "-q", "-m", msg]) is None:
+    if (
+        _run_git(repo_root, ["commit", "-q", "-m", msg, "--", rel]) is None
+    ):
         return "git_sync(auto_push): 提交失败，改动保留在工作区。"
 
     # 3) No content guard: the branch is the user's unit of publication, so
