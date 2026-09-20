@@ -218,13 +218,13 @@
       "written_at": "2026-09-18T06:08:11Z"
     },
     "wiki/scenarios/竞品调研与借鉴方法.md": {
-      "git_head": "f909aa88de6f63a8f3b25174d4449c938194f1f8",
+      "git_head": "002b81e30d40c0313596e8eb986ed05a2248d7da",
       "components": [],
       "files": [],
       "source_fingerprint": null,
       "repo": "CodeWiki-Plus",
       "producer": "codewiki/5.10.1",
-      "written_at": "2026-09-18T06:37:52Z"
+      "written_at": "2026-09-20T01:57:24Z"
     }
   }
 }
