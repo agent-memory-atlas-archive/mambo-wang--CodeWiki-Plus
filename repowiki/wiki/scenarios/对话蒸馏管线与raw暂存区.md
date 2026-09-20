@@ -62,6 +62,7 @@ metadata:
 - 不要断言 `no_knowledge` 的 raw 被保留。
 - submit **超时**后不盲目重试（不幂等，会重复写入与字节交错）；返回 `missing_result` 才是「未执行」可重试。
 - 不要把 subagent 自报的「已入库/已生效」直接转述给用户。
+- **distilled 内联形状必须是 `{conversation_id: {notes, memories}}`**：裸 `{notes}` + conversation_id 参数会报 missing_result 且不报参数错误（文件侧通道支持裸形状，内联不支持）。
 
 ## 关键事实依据
 - `_distill_one` 每文件一次 LLM 调用，文件间不共享上下文。
