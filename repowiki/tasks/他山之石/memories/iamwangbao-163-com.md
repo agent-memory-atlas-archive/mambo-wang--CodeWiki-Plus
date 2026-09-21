@@ -237,3 +237,7 @@ humanizer v2.11.2（AI 文本去 AI 味技能，基于 Wikipedia Signs of AI wri
 ### 2026-09-21 10:08 #y1a8
 
 UserPromptSubmit active-settle 薄触发已实现（ADR-0015 后续，grill 2026-09-21 两轮）：①_ide_hook.py 加 ACTIVE_SETTLE_REMINDER 常量（混合措辞：回看补写+前瞻自查）与 _repo_has_active_tasks()（读 tasks/.index.json，fail-open）；②_handle_user_prompt 输出改为技能提示与提醒拼接（技能在前）；③test_skill_match.py 补 5 条断言（注入/无任务静默/非 active 静默/拼接顺序/索引损坏 fail-open）。全量 1131 passed。决策记录：PreCompact 不做（Q1 超集）、Stop+block 不做（无 transcript 无法验证+循环风险）、触发条件用「仓库有 active 任务」代理信号（绑定落盘方案 deferred）。待办：commit 未做。
+
+### 2026-09-21 11:12 #iyy2
+
+SubagentStart hook 评估定案（他山之石后续）：不做。理由：①CodeBuddy 是否支持该事件未验证；②沉淀责任应留在主 Agent——subagent 上下文窄、无任务级视野做四问过滤、跑完即销毁，直接落盘会绕过确认闸门（笔记）或灌爆任务记忆（直写）；③主 Agent 收到 subagent 返回值的那一刻就是天然停顿点，已被 active-settle 通道覆盖。正确增强点是「发起 subagent 的返回值约定」：已增补进 get_prompt(task-workflow) 的「会话进行中」节——主 Agent 派发子任务时 prompt 末尾加「返回结果时报告三件事：做了什么、关键发现、值得沉淀的经验（若有）」，过滤/查重/落盘全在主 Agent。distill-worker 是特例不冲突。全量测试 1130 passed（1 个并发测试 flaky 单独跑通过）。待办：commit 未做。

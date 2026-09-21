@@ -1391,6 +1391,7 @@ def _prompt_task_workflow(args: dict[str, str]) -> str:
 ## 会话进行中
 - 采集对话时带上 `task_id`（capture_conversation 的 task_id 参数，或经 set_session_task 绑定后自动带）
 - 蒸馏时（distill-conversations 流程）LLM 会同时产出 `notes`（通用知识，draft 待确认）和 `memories`（任务进度），后者**直写落盘**到 `repowiki/tasks/<task_id>/memories/<user_id>.md`（当前用户的分片文件；ADR-0002：任务记忆不做确认闸门——噪声成本被任务生命周期限定；笔记的 confirm 闸门保持不变）
+- **发起 subagent 的返回值约定**：主 Agent 用 Task 工具派发编码/调研/测试/review 等子任务时，在 prompt 末尾加一句「返回结果时报告三件事：做了什么、关键发现、值得沉淀的经验（若有）」。**沉淀责任留在主 Agent**——subagent 上下文最窄、无任务级视野做四问过滤，且跑完即销毁，直接落盘会绕过确认闸门（笔记）或灌爆任务记忆（直写）；主 Agent 收到返回值的那一刻就是天然停顿点，按主动沉淀协议过滤、查重、落盘。例外：蒸馏 worker 本身就是沉淀 worker，协议在其定义文件里，产出草稿仍由主 Agent 确认，闸门未断。
 
 ## 会话结束
 - **收尾采集（先于结束动作执行）**：任务完成 / 用户道别 / 用户显式要求记录时，将本会话对话重建为 `[{{role, content}}]` 列表，调用 `capture_conversation(conversation=..., source_session_id=<本会话id>, task_id=<任务id>)` 落 raw——**user 消息必须逐字保留**（需求/纠正/决策是知识的主要来源），assistant 保留关键结论原句，工具调用略去。同一会话多次收尾采集会被 supersede 替换，不会堆积
