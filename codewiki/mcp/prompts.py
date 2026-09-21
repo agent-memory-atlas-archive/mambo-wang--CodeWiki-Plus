@@ -131,57 +131,69 @@ def _truthy_arg(value: str) -> bool:
     return value.strip().lower() in ("1", "true", "yes", "on")
 
 
-def _prompt_init_wiki(args: dict[str, str]) -> str:
-    repo_path = _resolve_path(args.get("repo_path", ""))
-    # T6: 可选启用任务管理（跨会话任务记忆 + 对话采集 Hook）
-    enable_task_management = args.get("enable_task_management", "").strip().lower()
-    # 采集开关（ADR-0014）：默认 on；off 时移除 SessionEnd 采集注册，
-    # 主动沉淀是唯一记忆写入通道。主动沉淀本身固定启用，不再有开关。
-    capture_arg = args.get("capture", "").strip().lower()
-    capture_off = capture_arg in ("0", "false", "no", "off")
-    if enable_task_management in ("1", "true", "yes", "on"):
-        capture_cli_flag = " --capture off" if capture_off else ""
-        capture_note = (
-            """
-**采集开关（--capture off）**：CLI 命令追加 `--capture off` 后，接线移除 SessionEnd（trae 为 Stop）采集注册，主动沉淀成为唯一记忆写入通道（任务记忆 `add_task_memory` 直写 + 草稿笔记 `ingest_note(draft)`）；SessionStart（任务关联）与 UserPromptSubmit（技能提示）保留，hook 脚本与 distill-worker 照常拷贝。主动沉淀（ADR-0014）固定启用，不再有开关。"""
-            if capture_off
-            else ""
-        )
-        # 档位自动判定（ADR-0014）：按注册表判定，无手动覆盖。
-        mode_note = (
-            """
-**档位自动判定**：接线档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（如 QwenWork）走 prompt 档（只写注入文件，不建配置目录、不拷脚本、不改 settings），无手动覆盖参数。"""
-        )
-        hook_block = f"""## 步骤 2: 启用任务管理（跨会话任务记忆 + 对话采集）
-为支持跨会话任务记忆，启用 SessionEnd hook 使会话结束时自动把原始对话捕获到 repowiki/raw/（仅采集、不蒸馏；蒸馏由后台 distill_conversation 完成），并向 AGENTS.md 写入任务引导段，使新建会话时 Agent 提示用户关联已有任务或输入任务名新建。
-{capture_note}{mode_note}
-**本步骤与 team-memory-hook 启用的逻辑完全一致**：注册 SessionStart/SessionEnd 事件 + 从 codewiki 包强制拷贝采集脚本与 distill-worker subagent 定义到目标项目。**每次都强制覆盖拷贝**，不要因为目标已存在就跳过。接线支持 CodeBuddy（`.codebuddy/`）、Qoder（`.qoder/`）、Claude Code（`.claude/`）、Gemini CLI（`.gemini/`），四个 IDE 的 settings.json 结构与事件注册完全一致，仅配置目录不同。**只为项目根目录已存在配置目录的智能体接线（自动检测到哪些目录才为哪些接线），绝不主动新建 `.qoder`/`.claude` 等配置目录**——用户明确点名要接未检测到的智能体时，先向用户确认，并提示需先初始化该工具的配置目录。
+# ---------------------------------------------------------------------------
+# 任务管理接线公共块（单点收敛）
+# ---------------------------------------------------------------------------
+# 以 team-memory-hook 步骤 2A 的富版本为唯一母本，供 init-wiki /
+# init-workspace / team-memory-hook 三个 prompt 复用——三处手工维护的
+# 副本已出现文本漂移（init-wiki 版缺 TRAE 完整变体与反斜杠陷阱警告），
+# 收敛后漂移根治。独有内容（action 提示、2B 关闭、status 诊断）留在
+# 各自 prompt 内，不进本块。
 
-**首选路径：运行 CLI 自动检测接线（推荐）**
+
+def _task_management_wiring_steps(repo_path: str, capture_off: bool) -> str:
+    """生成任务管理接线步骤正文（CLI 优先 + 手动兜底 + AGENTS.md 标记块 + 模拟验证）。
+
+    ``repo_path``：接线目标根目录（单仓=仓库根；多仓=工作区根/harness 仓）。
+    ``capture_off``：True 时 CLI 命令追加 ``--capture off`` 并附采集开关说明。
+    """
+    capture_cli_flag = " --capture off" if capture_off else ""
+    capture_note = (
+        """
+**采集开关（--capture off）**：接线移除 SessionEnd（trae 为 Stop）采集注册，主动沉淀成为唯一记忆写入通道（任务记忆 `add_task_memory` 直写 + 草稿笔记 `ingest_note(draft)`）；SessionStart（任务关联）与 UserPromptSubmit（技能提示）保留，hook 脚本与 distill-worker 照常拷贝。主动沉淀（ADR-0014）固定启用，不再有开关。
+"""
+        if capture_off
+        else ""
+    )
+    return f"""**首选路径：运行 CLI 自动检测接线（推荐，覆盖全部已探测到的智能体）**
 
 ```powershell
 codewiki install-hooks --repo-path {repo_path}{capture_cli_flag}
 ```
 
-CLI 自动检测项目根目录存在哪些 IDE 配置目录（`.codebuddy/` / `.qoder/` / `.claude/` / `.gemini/` / `.trae/`），检测到哪些就为哪些自动完成全部接线（拷贝脚本与 distill-worker、幂等合并 settings.json、upsert AGENTS.md 引导段）。CLI 不可用时回退到下方手动步骤，Qoder/Claude Code/Gemini CLI 仅需把 `.codebuddy` 目录换成 `.qoder` / `.claude` / `.gemini`；TRAE 的脚本目录同样换成 `.trae`，但配置文件是 `.trae/hooks.json`（`version: 1` + `hooks` 映射，条目**不写 `matcher`**），采集事件名用 `Stop` 而非 `SessionEnd`，且 TRAE 的 Stop 不提供 transcript（采集实际不生效，接线仅为就位）——细节见 `team-memory-hook` prompt。**手动接线同样只为已检测到（目录已存在）的智能体执行；未检测到的一律不接、绝不创建其目录，除非用户明确点名并确认。**
+CLI 会自动检测项目根目录下存在哪些智能体配置目录（按 `codewiki/hooks.yaml` 注册表探测），检测到哪些就为哪些自动完成全部接线：
+- 强制拷贝 hook 脚本与 `distill-worker.md` 到对应 `.codebuddy|.qoder|.claude|.gemini|.trae/hooks/` 与 `agents/`
+- 幂等合并 `settings.json`（TRAE 为 `.trae/hooks.json`：顶层补 `version: 1`，SessionEnd 注册映射为 Stop 且不写 matcher）的 SessionStart/SessionEnd 注册（保留已有无关配置，重复运行不产生重复条目）
+- 向 `AGENTS.md` upsert 任务记忆引导段（多 IDE 共享一份，只写一次）
 
-1. **确保两个 hook 脚本与 distill-worker subagent 就位（每次都强制覆盖拷贝）**。脚本必须物理存在于目标项目，IDE 不会自动创建它们。用以下命令解析 CodeWiki 自带的源文件路径，并**强制复制**到目标目录（务必复制，不要凭记忆重写，以免与 `codewiki` 包行为不一致）：
+CLI 不可用（`codewiki` 命令未安装）时，回退到下方手动步骤。手动接线时以 `.codebuddy` 为例，**Qoder / Claude Code / Gemini CLI 仅目标目录不同**：`.codebuddy/` ↔ `.qoder/` ↔ `.claude/` ↔ `.gemini/`（settings.json、hooks/、agents/ 的相对位置与内容完全一致，command 均为项目相对路径）。**仅为探测到的智能体执行手动接线；未探测到的智能体一律不接、不创建其目录**——本机安装了某工具不等于本仓库在用它，除非用户明确点名并确认。
 
-   ```powershell
-   # 源文件随 codewiki 包发布：codewiki/hooks/ 下两个 hook 脚本 + codewiki/agents/distill-worker.md
-   $pkg = python -c "import codewiki, os; print(os.path.dirname(codewiki.__file__).replace('\\\\','/'))"
-   $destDir = Join-Path '{repo_path}' '.codebuddy/hooks'
-   $agentDir = Join-Path '{repo_path}' '.codebuddy/agents'
-   New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-   New-Item -ItemType Directory -Force -Path $agentDir | Out-Null
-   Copy-Item (Join-Path $pkg 'hooks/capture_session_end.py') (Join-Path $destDir 'capture_session_end.py') -Force
-   Copy-Item (Join-Path $pkg 'hooks/task_session_start.py') (Join-Path $destDir 'task_session_start.py') -Force
-   Copy-Item (Join-Path $pkg 'agents/distill-worker.md') (Join-Path $agentDir 'distill-worker.md') -Force
-   python -c "import ast; ast.parse(open(r'$destDir/capture_session_end.py', encoding='utf-8').read()); ast.parse(open(r'$destDir/task_session_start.py', encoding='utf-8').read()); assert open(r'$agentDir/distill-worker.md', encoding='utf-8').read().startswith('---'), 'distill-worker.md missing'; print('hook scripts + distill-worker.md copied OK')"
-   ```
+### 手动兜底步骤
+1. **确保两个 hook 脚本与 distill-worker subagent 就位（每次都强制覆盖拷贝）**。脚本必须物理存在于目标项目，IDE 不会自动创建它们。
+   **不论目标是否已存在，每次启用都要从 CodeWiki 自带的源文件重新复制覆盖**，
+   以保证与目标 `codewiki` 包版本一致（不要因为"已存在"就跳过，否则升级包后会残留旧脚本）：
+   用以下命令解析 CodeWiki 自带的源文件路径，并**强制复制**到目标目录
+   （务必复制，不要凭记忆重写，以免与 `codewiki` 包行为不一致）：
 
-   若 `import codewiki` 失败（未 pip 安装且不在源码 checkout 内），回退：从 `CODEWIKI_HOME` 环境变量指向的 checkout 取 `$env:CODEWIKI_HOME/codewiki/hooks/` 下的两个脚本与 `$env:CODEWIKI_HOME/codewiki/agents/distill-worker.md`，同样 Copy-Item 到 `$destDir` / `$agentDir`。兜底都不满足时，提示用户先 `pip install codewiki` 或设置 `CODEWIKI_HOME`，不要凭记忆写脚本。**为 Qoder/Claude Code 接线时，把 `$destDir` / `$agentDir` 中的 `.codebuddy` 换成 `.qoder` / `.claude` 即可。**
+     ```powershell
+     # 源文件随 codewiki 包发布：codewiki/hooks/ 下两个 hook 脚本 + codewiki/agents/distill-worker.md
+     $pkg = python -c "import codewiki, os; print(os.path.dirname(codewiki.__file__).replace('\\\\','/'))"
+     $destDir = Join-Path '{repo_path}' '.codebuddy/hooks'
+     $agentDir = Join-Path '{repo_path}' '.codebuddy/agents'
+     New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+     New-Item -ItemType Directory -Force -Path $agentDir | Out-Null
+     Copy-Item (Join-Path $pkg 'hooks/capture_session_end.py') (Join-Path $destDir 'capture_session_end.py') -Force
+     Copy-Item (Join-Path $pkg 'hooks/task_session_start.py') (Join-Path $destDir 'task_session_start.py') -Force
+     Copy-Item (Join-Path $pkg 'agents/distill-worker.md') (Join-Path $agentDir 'distill-worker.md') -Force
+     python -c "import ast; ast.parse(open(r'$destDir/capture_session_end.py', encoding='utf-8').read()); ast.parse(open(r'$destDir/task_session_start.py', encoding='utf-8').read()); assert open(r'$agentDir/distill-worker.md', encoding='utf-8').read().startswith('---'), 'distill-worker.md missing'; print('hook scripts + distill-worker.md copied OK')"
+     ```
 
+     若 `import codewiki` 失败（未 pip 安装且不在源码 checkout 内），回退：从
+     `CODEWIKI_HOME` 环境变量指向的 checkout 取
+     `$env:CODEWIKI_HOME/codewiki/hooks/` 下的两个脚本与
+     `$env:CODEWIKI_HOME/codewiki/agents/distill-worker.md`，同样 Copy-Item 到 `$destDir` / `$agentDir`。
+     兜底都不满足时，提示用户先 `pip install codewiki` 或设置 `CODEWIKI_HOME`，不要凭记忆写脚本。
+     **为 Qoder/Claude Code 接线时，把上面 `$destDir` / `$agentDir` 中的 `.codebuddy` 换成 `.qoder` / `.claude` 即可。**
 2. 创建或合并 `{repo_path}/.codebuddy/settings.json`，加入以下 hook 注册（保留文件中已有的无关配置；Qoder/Claude Code/Gemini CLI 写入 `.qoder/settings.json` / `.claude/settings.json` / `.gemini/settings.json`，command 中目录名随配置目录变化，其余完全一致）。**command 用项目相对路径（宿主以项目根为工作目录执行命令），不写机器相关绝对路径、也不用 `$*_PROJECT_DIR` 变量（各宿主变量展开经实测不可靠）**——settings.json 随仓库共享，绝对路径提交后队友克隆到其他目录即失效：
 
 ```json
@@ -197,18 +209,39 @@ CLI 自动检测项目根目录存在哪些 IDE 配置目录（`.codebuddy/` / `
 }}
 ```
 
-   - `SessionStart`（matcher=`startup`）：新会话开始同步返回 `hookSpecificOutput.additionalContext`，把任务关联引导注入给 Agent，是"新建会话提示选任务"的确定性触发点。
-   - `SessionEnd`：唯一可靠携带 `transcript_path` 的事件，能抓到完整正文。`PreCompact`/`Stop` 不带 transcript，无正文可采（hook 只输出 stderr 诊断、不落盘），故不注册。
+   - `SessionStart`（matcher=`startup`）：新会话开始同步返回 `hookSpecificOutput.additionalContext`，把任务关联引导注入给 Agent，是"新建会话提示选任务"的确定性触发点；如需覆盖 `--resume` 恢复场景，matcher 改为 `startup|resume`。
+   - `SessionEnd`：唯一可靠携带 `transcript_path` 的事件，能抓到完整正文。
+   `PreCompact`/`Stop` 不带 transcript，无正文可采（hook 只输出 stderr 诊断、不落盘），故不注册。
+
+2b. **TRAE（trae 家族）变体**：写入 `{repo_path}/.trae/hooks.json`（不是 settings.json），顶层多一个 `version` 字段，SessionEnd 换成 `Stop`（TRAE 无 SessionEnd 事件），且不写 matcher（TRAE 的 matcher 仅对 PreToolUse/PostToolUse/Notification 有效）：
+
+```json
+{{
+  "version": 1,
+  "hooks": {{
+    "SessionStart": [
+      {{ "hooks": [ {{ "type": "command", "command": "python \\".trae/hooks/task_session_start.py\\"", "timeout": 15 }} ] }}
+    ],
+    "Stop": [
+      {{ "hooks": [ {{ "type": "command", "command": "python \\".trae/hooks/capture_session_end.py\\"", "timeout": 30 }} ] }}
+    ],
+    "UserPromptSubmit": [
+      {{ "hooks": [ {{ "type": "command", "command": "python -m codewiki.mcp._ide_hook --enable", "timeout": 10 }} ] }}
+    ]
+  }}
+}}
+```
+
+   注意 TRAE 的 Stop 每轮 Query 结束都触发（非会话级）且不携带 transcript_path——hook 采集无正文可采（仅 stderr 诊断、不落盘），对话捕获依赖 AGENTS.md「会话收尾轮」norm 由 Agent 中介采集补漏。接线前须向用户说明此降级。TRAE 环境变量注入 `TRAE_PROJECT_DIR` 与 `CLAUDE_PROJECT_DIR`，脚本已支持。
 
 3. 向 `{repo_path}/AGENTS.md` 写入任务记忆会话引导段（启用采集后，新建会话时 Agent 才会提示用户关联/新建任务）。
    **只动标记块，绝不改 AGENTS.md 其余内容**：若已存在 `{_TASK_MEMORY_AGENTS_START}` 到 `{_TASK_MEMORY_AGENTS_END}` 之间的块，用下面文本整体替换；若不存在，追加到文件末尾（前面留一个空行）。以下文本按原样写入，含 START/END 注释标记：
 
 {_TASK_MEMORY_AGENTS_SECTION}
 
-4. 前置条件：hook 启动的 python 进程必须能 import `codewiki` 包。满足任一即可：codewiki 已通过 pip 安装；hook 位于 CodeWiki 源码 checkout 内；或设置了 `CODEWIKI_HOME` 环境变量指向 checkout。都不满足时 wrapper 会跳过采集并输出带操作指引的 systemMessage（绝不阻塞 IDE）。
-
-5. 用模拟事件验证两个脚本（Qoder/Claude Code 用对应目录路径替换 `.codebuddy`）：
-   - SessionEnd（期望 stdout 返回 `{{"continue": true, "systemMessage": "team-memory capture started in background"}}`）：wrapper 是 fire-and-forget，只回报「后台采集已启动」，**不回报采集结果**；是否真的落盘要等 1-2 秒后看 `{repo_path}/repowiki/raw/` 是否新增该会话的 `conv-*.md`（frontmatter 的 `source_session` 为 verify-1）。stdin 事件缺失或 JSON 非法时，systemMessage 会明确返回 `team-memory capture skipped: ...`，不会谎报成功：
+4. 前置条件：hook 启动的 python 进程必须能 import `codewiki` 包。满足任一即可：codewiki 已通过 pip 安装；hook 位于 CodeWiki 源码 checkout 内；或设置了 `CODEWIKI_HOME` 环境变量指向 checkout。都不满足时 wrapper 会跳过采集并输出带操作指引的 systemMessage（绝不阻塞 IDE）
+5. 用模拟事件验证两个脚本（Qoder/Claude Code 用对应目录路径替换 `.codebuddy`；TRAE 的会话结束事件是 Stop，不带 transcript_path，见下方 TRAE 变体）：
+   - SessionEnd（先准备一个小的 transcript 文件，如 `[{{"role":"user","content":"测试"}}]` 存为 d:/tmp/conv.json；期望 stdout 返回 `{{"continue": true, "systemMessage": "team-memory capture started in background"}}`）：wrapper 是 fire-and-forget，只回报「后台采集已启动」，**不回报采集结果**；是否真的落盘要等 1-2 秒后看 `{repo_path}/repowiki/raw/` 是否新增 `conv-*.md`（`source_session` = verify-1）。stdin 事件缺失或 JSON 非法时返回 `team-memory capture skipped: ...`，不会谎报成功。拼 `cwd` 时别写反斜杠路径（`d:\\repos` 里的 `\\r`/`\\C` 是非法 JSON 转义，事件会被整体丢弃）：
 
 ```powershell
 '{{"session_id":"verify-1","transcript_path":"d:/tmp/conv.json","cwd":"{repo_path}","hook_event_name":"SessionEnd","reason":"other"}}' | python "{repo_path}/.codebuddy/hooks/capture_session_end.py"
@@ -220,9 +253,39 @@ CLI 自动检测项目根目录存在哪些 IDE 配置目录（`.codebuddy/` / `
 '{{"session_id":"verify-2","cwd":"{repo_path}","hook_event_name":"SessionStart","source":"startup"}}' | python "{repo_path}/.codebuddy/hooks/task_session_start.py"
 ```
 
-6. 验证完成后删除测试产物：`{repo_path}/repowiki/raw/` 下 verify-1 会话生成的 conv-*.md 文件
+   - TRAE Stop（期望 stdout 的 systemMessage 正常返回、`repowiki/raw/` **不**新增任何文件——TRAE 无 SessionEnd/transcript_path，hook 无正文可采、不落盘，这是采集降级的预期行为；对话捕获由 Agent「会话收尾轮」norm 承担）：
 
-> 注意：hook 只负责 capture_conversation（落 raw），真正的蒸馏需另行运行 distill_conversation（异步、LLM 重活）。"""
+```powershell
+'{{"session_id":"verify-3","hook_event_name":"Stop","stop_hook_active":false,"loop_count":0,"last_assistant_message":"done"}}' | python "{repo_path}/.trae/hooks/capture_session_end.py"
+```
+
+6. 验证完成后删除测试产物：`{repo_path}/repowiki/raw/` 下 verify-1 会话生成的 conv-*.md 文件"""
+
+
+def _prompt_init_wiki(args: dict[str, str]) -> str:
+    repo_path = _resolve_path(args.get("repo_path", ""))
+    # T6: 任务管理（跨会话任务记忆 + 对话采集 Hook）默认启用（opt-out）：
+    # 无参/任意值渲染接线步骤，仅显式 false/0/no/off 跳过——拼错值宁可多接
+    # 一次（幂等无害），不可静默跳过。
+    enable_task_management = args.get("enable_task_management", "").strip().lower()
+    task_mgmt_off = enable_task_management in ("0", "false", "no", "off")
+    # 采集开关（ADR-0014）：默认 on；off 时移除 SessionEnd 采集注册，
+    # 主动沉淀是唯一记忆写入通道。主动沉淀本身固定启用，不再有开关。
+    capture_arg = args.get("capture", "").strip().lower()
+    capture_off = capture_arg in ("0", "false", "no", "off")
+    if not task_mgmt_off:
+        capture_cli_flag = " --capture off" if capture_off else ""
+        # 档位自动判定（ADR-0014）：按注册表判定，无手动覆盖。
+        mode_note = (
+            """
+**档位自动判定**：接线档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（如 QwenWork）走 prompt 档（只写注入文件，不建配置目录、不拷脚本、不改 settings），无手动覆盖参数。"""
+        )
+        hook_block = f"""## 步骤 2: 启用任务管理（跨会话任务记忆 + 对话采集）
+为支持跨会话任务记忆，启用 SessionEnd hook 使会话结束时自动把原始对话捕获到 repowiki/raw/（仅采集、不蒸馏；蒸馏由后台 distill_conversation 完成），并向 AGENTS.md 写入任务引导段，使新建会话时 Agent 提示用户关联已有任务或输入任务名新建。
+{mode_note}
+**本步骤与 team-memory-hook 启用的逻辑完全一致**：注册 SessionStart/SessionEnd 事件 + 从 codewiki 包强制拷贝采集脚本与 distill-worker subagent 定义到目标项目。**只为项目根目录已存在配置目录的智能体接线（自动检测到哪些目录才为哪些接线），绝不主动新建 `.qoder`/`.claude` 等配置目录**——用户明确点名要接未检测到的智能体时，先向用户确认，并提示需先初始化该工具的配置目录。
+
+{_task_management_wiring_steps(repo_path, capture_off)}"""
         step_shift = 1
     else:
         hook_block = ""
@@ -261,7 +324,34 @@ CLI 自动检测项目根目录存在哪些 IDE 配置目录（`.codebuddy/` / `
 
 
 def _prompt_init_workspace(args: dict[str, str]) -> str:
-    return """请把当前工作目录初始化（或重新同步）为多仓 harness 工作区。按以下步骤执行：
+    workspace_path = _resolve_path(args.get("workspace_path", ""))
+    # 任务管理（跨会话任务记忆 + 对话采集 Hook）默认启用（opt-out），口径与
+    # init-wiki 一致：无参/任意值渲染接线步骤，仅显式 false/0/no/off 跳过。
+    # 接线目标恒为工作区根（harness 仓）——任务管理是工作区级能力，AGENTS.md
+    # 与 repowiki/raw/ 都在工作区根；业务仓不接线（colocated/centralized
+    # 行为一致，无例外）。
+    enable_task_management = args.get("enable_task_management", "").strip().lower()
+    task_mgmt_off = enable_task_management in ("0", "false", "no", "off")
+    capture_arg = args.get("capture", "").strip().lower()
+    capture_off = capture_arg in ("0", "false", "no", "off")
+    if not task_mgmt_off:
+        mode_note = (
+            """
+**档位自动判定**：接线档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（如 QwenWork）走 prompt 档（只写注入文件，不建配置目录、不拷脚本、不改 settings），无手动覆盖参数。"""
+        )
+        hook_block = f"""## 步骤 4: 启用任务管理（跨会话任务记忆 + 对话采集）
+为支持跨会话任务记忆，启用 SessionEnd hook 使会话结束时自动把原始对话捕获到工作区 repowiki/raw/（仅采集、不蒸馏；蒸馏由后台 distill_conversation 完成），并向工作区根 AGENTS.md 写入任务引导段，使新建会话时 Agent 提示用户关联已有任务或输入任务名新建。
+{mode_note}
+**接线目标恒为工作区根（harness 仓），业务仓不接线**——任务管理是工作区级能力：AGENTS.md（任务引导段宿主）与 repowiki/raw/（采集落盘地）都在工作区根，会话按 harness 模型开在工作区根；colocated 与 centralized 两种布局行为一致，无例外。**只为工作区根已存在配置目录的智能体接线（自动检测到哪些目录才为哪些接线），绝不主动新建 `.qoder`/`.claude` 等配置目录**——用户明确点名要接未检测到的智能体时，先向用户确认，并提示需先初始化该工具的配置目录。
+
+无论步骤 1 走的是哪个分支（full / clone-only / 直接补克隆），本步骤都要执行——接线只依赖工作区根目录存在，且幂等，属「重新同步」语义的一部分。
+
+{_task_management_wiring_steps(workspace_path, capture_off)}
+
+## 步骤 5: 登记业务仓（仅新工作区需要）"""
+    else:
+        hook_block = "## 步骤 4: 登记业务仓（仅新工作区需要）"
+    return f"""请把当前工作目录初始化（或重新同步）为多仓 harness 工作区。按以下步骤执行：
 
 ## 步骤 1: 判断目录现状
 - init_workspace 作用于当前工作目录；若用户提到的工作区不是当前目录，先与用户确认
@@ -278,10 +368,9 @@ def _prompt_init_workspace(args: dict[str, str]) -> str:
 ## 步骤 3: 校验产物与克隆结果
 - 直接补克隆的场景：确认每个登记目录含 `.git`，且 harness 仓 `git status` 保持干净（.gitignore 生效）；克隆失败时把原因告知用户，修好网络/凭据后重跑 bootstrap 脚本
 - 调用了 init_workspace 的场景：先看返回的 `mode` 字段——`clone-only`（接管）说明骨架已就位且未被触碰，只需校验 `clones`；`full`（完整流程）才需要校验下列产物
-- `bootstrap.sh` / `bootstrap.ps1` 存在且登记表结构完好（`declare -A repos=(` / `$repos = [ordered]@{`）
+- `bootstrap.sh` / `bootstrap.ps1` 存在且登记表结构完好（`declare -A repos=(` / `$repos = [ordered]@{{`）
 - `AGENTS.md` 同时含 `<!-- CodeWiki Workspace Conventions -->` 与 `<!-- CodeWiki LLM Wiki -->` 两个标记块
-
-## 步骤 4: 登记业务仓（仅新工作区需要）
+{hook_block}
 - 对用户提到的每个业务仓，用 add_workspace_repo(url=<克隆URL>) 逐个登记（目录名自动取仓库名）；用户没给 URL 就先询问，不要凭记忆猜测
 - 登记完成后**不要自动生成 wiki**：不调用 init_wiki / analyze_repo / analyze_workspace，等用户显式要求时再生成
 - 生成时按布局选工具：**centralized** 下 `init_wiki` 不适用于仓库级（知识统一汇入工作区 repowiki，无独立仓库 wiki）——单仓代码知识用 `analyze_repo(<repo_path>)`（自动推导输出目录并路由到 `wiki/modules/<名>/` 分区），跨仓拓扑与工作区总览用 `analyze_workspace(workspace_path=<工作区根>)`；**colocated** 下按既有流程 `init_wiki` + `analyze_repo`（各仓 wiki 位于 `<repo>/repowiki/`）
@@ -1194,111 +1283,7 @@ claude 家族（CodeBuddy/Qoder/Claude Code/Gemini CLI 及理论支持工具）�
 - 向用户报告哪些智能体已启用、哪些未启用
 
 ## 步骤 2A: 启用
-**首选路径：运行 CLI 自动检测接线（推荐，覆盖全部已探测到的智能体）**
-
-```powershell
-codewiki install-hooks --repo-path {repo_path}{capture_cli_flag}
-```
-
-CLI 会自动检测项目根目录下存在哪些智能体配置目录（按 `codewiki/hooks.yaml` 注册表探测），检测到哪些就为哪些自动完成全部接线：
-- 强制拷贝 hook 脚本与 `distill-worker.md` 到对应 `.codebuddy|.qoder|.claude|.gemini|.trae/hooks/` 与 `agents/`
-- 幂等合并 `settings.json`（TRAE 为 `.trae/hooks.json`：顶层补 `version: 1`，SessionEnd 注册映射为 Stop 且不写 matcher）的 SessionStart/SessionEnd 注册（保留已有无关配置，重复运行不产生重复条目）
-- 向 `AGENTS.md` upsert 任务记忆引导段（多 IDE 共享一份，只写一次）
-
-CLI 不可用（`codewiki` 命令未安装）时，回退到下方手动步骤。手动接线时以 `.codebuddy` 为例，**Qoder / Claude Code / Gemini CLI 仅目标目录不同**：`.codebuddy/` ↔ `.qoder/` ↔ `.claude/` ↔ `.gemini/`（settings.json、hooks/、agents/ 的相对位置与内容完全一致，command 均为项目相对路径）。**仅为步骤 1 探测到的智能体执行手动接线；未探测到的智能体一律不接、不创建其目录**——本机安装了某工具不等于本仓库在用它，除非用户明确点名并确认。
-
-### 手动兜底步骤
-1. **确保两个 hook 脚本与 distill-worker subagent 就位（每次都强制覆盖拷贝）**。脚本必须物理存在于目标项目，IDE 不会自动创建它们。
-   **不论目标是否已存在，每次启用都要从 CodeWiki 自带的源文件重新复制覆盖**，
-   以保证与目标 `codewiki` 包版本一致（不要因为"已存在"就跳过，否则升级包后会残留旧脚本）：
-   用以下命令解析 CodeWiki 自带的源文件路径，并**强制复制**到目标目录
-   （务必复制，不要凭记忆重写，以免与 `codewiki` 包行为不一致）：
-
-     ```powershell
-     # 源文件随 codewiki 包发布：codewiki/hooks/ 下两个 hook 脚本 + codewiki/agents/distill-worker.md
-     $pkg = python -c "import codewiki, os; print(os.path.dirname(codewiki.__file__).replace('\\\\','/'))"
-     $destDir = Join-Path '{repo_path}' '.codebuddy/hooks'
-     $agentDir = Join-Path '{repo_path}' '.codebuddy/agents'
-     New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-     New-Item -ItemType Directory -Force -Path $agentDir | Out-Null
-     Copy-Item (Join-Path $pkg 'hooks/capture_session_end.py') (Join-Path $destDir 'capture_session_end.py') -Force
-     Copy-Item (Join-Path $pkg 'hooks/task_session_start.py') (Join-Path $destDir 'task_session_start.py') -Force
-     Copy-Item (Join-Path $pkg 'agents/distill-worker.md') (Join-Path $agentDir 'distill-worker.md') -Force
-     python -c "import ast; ast.parse(open(r'$destDir/capture_session_end.py', encoding='utf-8').read()); ast.parse(open(r'$destDir/task_session_start.py', encoding='utf-8').read()); assert open(r'$agentDir/distill-worker.md', encoding='utf-8').read().startswith('---'), 'distill-worker.md missing'; print('hook scripts + distill-worker.md copied OK')"
-     ```
-
-     若 `import codewiki` 失败（未 pip 安装且不在源码 checkout 内），回退：从
-     `CODEWIKI_HOME` 环境变量指向的 checkout 取
-     `$env:CODEWIKI_HOME/codewiki/hooks/` 下的两个脚本与
-     `$env:CODEWIKI_HOME/codewiki/agents/distill-worker.md`，同样 Copy-Item 到 `$destDir` / `$agentDir`。
-     兜底都不满足时，提示用户先 `pip install codewiki` 或设置 `CODEWIKI_HOME`，不要凭记忆写脚本。
-     **为 Qoder/Claude Code 接线时，把上面 `$destDir` / `$agentDir` 中的 `.codebuddy` 换成 `.qoder` / `.claude` 即可。**
-2. 创建或合并 `{repo_path}/.codebuddy/settings.json`，加入以下 hook 注册（保留文件中已有的无关配置；Qoder/Claude Code/Gemini CLI 写入 `.qoder/settings.json` / `.claude/settings.json` / `.gemini/settings.json`，command 中目录名随配置目录变化，其余完全一致）。**command 用项目相对路径（宿主以项目根为工作目录执行命令），不写机器相关绝对路径、也不用 `$*_PROJECT_DIR` 变量（各宿主变量展开经实测不可靠）**——settings.json 随仓库共享，绝对路径提交后队友克隆到其他目录即失效：
-
-```json
-{{
-  "hooks": {{
-    "SessionStart": [
-      {{ "matcher": "startup", "hooks": [ {{ "type": "command", "command": "python \\".codebuddy/hooks/task_session_start.py\\"", "timeout": 15 }} ] }}
-    ],
-    "SessionEnd": [
-      {{ "matcher": "other", "hooks": [ {{ "type": "command", "command": "python \\".codebuddy/hooks/capture_session_end.py\\"", "timeout": 30 }} ] }}
-    ]
-  }}
-}}
-```
-
-   - `SessionStart`（matcher=`startup`）：新会话开始同步返回 `hookSpecificOutput.additionalContext`，把任务关联引导注入给 Agent，是"新建会话提示选任务"的确定性触发点；如需覆盖 `--resume` 恢复场景，matcher 改为 `startup|resume`。
-   - `SessionEnd`：唯一可靠携带 `transcript_path` 的事件，能抓到完整正文。
-   `PreCompact`/`Stop` 不带 transcript，无正文可采（hook 只输出 stderr 诊断、不落盘），故不注册。
-
-2b. **TRAE（trae 家族）变体**：写入 `{repo_path}/.trae/hooks.json`（不是 settings.json），顶层多一个 `version` 字段，SessionEnd 换成 `Stop`（TRAE 无 SessionEnd 事件），且不写 matcher（TRAE 的 matcher 仅对 PreToolUse/PostToolUse/Notification 有效）：
-
-```json
-{{
-  "version": 1,
-  "hooks": {{
-    "SessionStart": [
-      {{ "hooks": [ {{ "type": "command", "command": "python \\".trae/hooks/task_session_start.py\\"", "timeout": 15 }} ] }}
-    ],
-    "Stop": [
-      {{ "hooks": [ {{ "type": "command", "command": "python \\".trae/hooks/capture_session_end.py\\"", "timeout": 30 }} ] }}
-    ],
-    "UserPromptSubmit": [
-      {{ "hooks": [ {{ "type": "command", "command": "python -m codewiki.mcp._ide_hook --enable", "timeout": 10 }} ] }}
-    ]
-  }}
-}}
-```
-
-   注意 TRAE 的 Stop 每轮 Query 结束都触发（非会话级）且不携带 transcript_path——hook 采集无正文可采（仅 stderr 诊断、不落盘），对话捕获依赖 AGENTS.md「会话收尾轮」norm 由 Agent 中介采集补漏。接线前须向用户说明此降级。TRAE 环境变量注入 `TRAE_PROJECT_DIR` 与 `CLAUDE_PROJECT_DIR`，脚本已支持。
-
-3. 向 `{repo_path}/AGENTS.md` 写入任务记忆会话引导段（启用采集后，新建会话时 Agent 才会提示用户关联/新建任务）。
-   **只动标记块，绝不改 AGENTS.md 其余内容**：若已存在 `{_TASK_MEMORY_AGENTS_START}` 到 `{_TASK_MEMORY_AGENTS_END}` 之间的块，用下面文本整体替换；若不存在，追加到文件末尾（前面留一个空行）。以下文本按原样写入，含 START/END 注释标记：
-
-{_TASK_MEMORY_AGENTS_SECTION}
-
-4. 前置条件：hook 启动的 python 进程必须能 import `codewiki` 包。满足任一即可：codewiki 已通过 pip 安装；hook 位于 CodeWiki 源码 checkout 内；或设置了 `CODEWIKI_HOME` 环境变量指向 checkout。都不满足时 wrapper 会跳过采集并输出带操作指引的 systemMessage（绝不阻塞 IDE）
-5. 用模拟事件验证两个脚本（Qoder/Claude Code 用对应目录路径替换 `.codebuddy`；TRAE 的会话结束事件是 Stop，不带 transcript_path，见下方 TRAE 变体）：
-   - SessionEnd（先准备一个小的 transcript 文件，如 `[{{"role":"user","content":"测试"}}]` 存为 d:/tmp/conv.json；期望 stdout 返回 `{{"continue": true, "systemMessage": "team-memory capture started in background"}}`）：wrapper 是 fire-and-forget，只回报「后台采集已启动」，**不回报采集结果**；是否真的落盘要等 1-2 秒后看 `{repo_path}/repowiki/raw/` 是否新增 `conv-*.md`（`source_session` = verify-1）。stdin 事件缺失或 JSON 非法时返回 `team-memory capture skipped: ...`，不会谎报成功。拼 `cwd` 时别写反斜杠路径（`d:\repos` 里的 `\r`/`\C` 是非法 JSON 转义，事件会被整体丢弃）：
-
-```powershell
-'{{"session_id":"verify-1","transcript_path":"d:/tmp/conv.json","cwd":"{repo_path}","hook_event_name":"SessionEnd","reason":"other"}}' | python "{repo_path}/.codebuddy/hooks/capture_session_end.py"
-```
-
-   - SessionStart（期望 stdout 的 hookSpecificOutput.additionalContext 中包含"任务关联"）：
-
-```powershell
-'{{"session_id":"verify-2","cwd":"{repo_path}","hook_event_name":"SessionStart","source":"startup"}}' | python "{repo_path}/.codebuddy/hooks/task_session_start.py"
-```
-
-   - TRAE Stop（期望 stdout 的 systemMessage 正常返回、`repowiki/raw/` **不**新增任何文件——TRAE 无 SessionEnd/transcript_path，hook 无正文可采、不落盘，这是采集降级的预期行为；对话捕获由 Agent「会话收尾轮」norm 承担）：
-
-```powershell
-'{{"session_id":"verify-3","hook_event_name":"Stop","stop_hook_active":false,"loop_count":0,"last_assistant_message":"done"}}' | python "{repo_path}/.trae/hooks/capture_session_end.py"
-```
-
-6. 验证完成后删除测试产物：`{repo_path}/repowiki/raw/` 下 verify-1 会话生成的 conv-*.md 文件
+{_task_management_wiring_steps(repo_path, capture_off)}
 
 ## 步骤 2B: 关闭
 **首选路径：运行 `codewiki install-hooks --repo-path {repo_path} --ide <name>` 可重新接线；关闭采集时**：
@@ -1593,7 +1578,14 @@ _PROMPT_REGISTRY: list[dict[str, Any]] = [
             ("capture", False),
         ],
     },
-    {"name": "init-workspace", "args": []},
+    {
+        "name": "init-workspace",
+        "args": [
+            ("workspace_path", False),
+            ("enable_task_management", False),
+            ("capture", False),
+        ],
+    },
     {
         "name": "add-workspace-repo",
         "args": [("workspace_path", False), ("url", True), ("clone", False)],
