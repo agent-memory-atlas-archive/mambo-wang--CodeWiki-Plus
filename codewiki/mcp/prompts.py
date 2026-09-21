@@ -160,6 +160,7 @@ def _task_management_wiring_steps(repo_path: str, capture_off: bool) -> str:
 ```powershell
 codewiki install-hooks --repo-path {repo_path}{capture_cli_flag}
 ```
+{capture_note}
 
 CLI 会自动检测项目根目录下存在哪些智能体配置目录（按 `codewiki/hooks.yaml` 注册表探测），检测到哪些就为哪些自动完成全部接线：
 - 强制拷贝 hook 脚本与 `distill-worker.md` 到对应 `.codebuddy|.qoder|.claude|.gemini|.trae/hooks/` 与 `agents/`
@@ -274,12 +275,9 @@ def _prompt_init_wiki(args: dict[str, str]) -> str:
     capture_arg = args.get("capture", "").strip().lower()
     capture_off = capture_arg in ("0", "false", "no", "off")
     if not task_mgmt_off:
-        capture_cli_flag = " --capture off" if capture_off else ""
         # 档位自动判定（ADR-0014）：按注册表判定，无手动覆盖。
-        mode_note = (
-            """
+        mode_note = """
 **档位自动判定**：接线档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（如 QwenWork）走 prompt 档（只写注入文件，不建配置目录、不拷脚本、不改 settings），无手动覆盖参数。"""
-        )
         hook_block = f"""## 步骤 2: 启用任务管理（跨会话任务记忆 + 对话采集）
 为支持跨会话任务记忆，启用 SessionEnd hook 使会话结束时自动把原始对话捕获到 repowiki/raw/（仅采集、不蒸馏；蒸馏由后台 distill_conversation 完成），并向 AGENTS.md 写入任务引导段，使新建会话时 Agent 提示用户关联已有任务或输入任务名新建。
 {mode_note}
@@ -335,10 +333,8 @@ def _prompt_init_workspace(args: dict[str, str]) -> str:
     capture_arg = args.get("capture", "").strip().lower()
     capture_off = capture_arg in ("0", "false", "no", "off")
     if not task_mgmt_off:
-        mode_note = (
-            """
+        mode_note = """
 **档位自动判定**：接线档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（如 QwenWork）走 prompt 档（只写注入文件，不建配置目录、不拷脚本、不改 settings），无手动覆盖参数。"""
-        )
         hook_block = f"""## 步骤 4: 启用任务管理（跨会话任务记忆 + 对话采集）
 为支持跨会话任务记忆，启用 SessionEnd hook 使会话结束时自动把原始对话捕获到工作区 repowiki/raw/（仅采集、不蒸馏；蒸馏由后台 distill_conversation 完成），并向工作区根 AGENTS.md 写入任务引导段，使新建会话时 Agent 提示用户关联已有任务或输入任务名新建。
 {mode_note}
@@ -1183,17 +1179,9 @@ def _prompt_team_memory_hook(args: dict[str, str]) -> str:
     # 档位已移除（ADR-0014）：按注册表自动判定——支持 SessionStart 的宿主走
     # hook 档，不支持的（qwenwork）走 prompt 档，无手动覆盖。
     # 采集开关（ADR-0014）：prompts 层接受该参数并默认 on——未传或 on 时
-    # 输出与今日逐字节一致；off 时接线命令追加 `--capture off` 并附说明。
+    # 输出与今日逐字节一致；off 时公共接线块内嵌 `--capture off` 说明。
     # 主动沉淀固定启用，不再有开关。
-    capture_off = (args.get("capture", "").strip().lower() in ("0", "false", "no", "off"))
-    capture_cli_flag = " --capture off" if capture_off else ""
-    capture_note = (
-        """
-**采集开关（--capture off）**：接线移除 SessionEnd（trae 为 Stop）采集注册，主动沉淀成为唯一记忆写入通道（任务记忆 `add_task_memory` 直写 + 草稿笔记 `ingest_note(draft)`）；SessionStart（任务关联）与 UserPromptSubmit（技能提示）保留，hook 脚本与 distill-worker 照常拷贝。主动沉淀（ADR-0014）固定启用，不再有开关。
-"""
-        if capture_off
-        else ""
-    )
+    capture_off = args.get("capture", "").strip().lower() in ("0", "false", "no", "off")
     if action == "enable":
         action_hint = "用户请求：**启用**采集 Hook。执行步骤 1 确认现状后直接进入步骤 2A。"
     elif action == "disable":
@@ -1270,7 +1258,6 @@ codewiki install-hooks --repo-path {repo_path} --status
 - **理论支持**（家族归并推导，未经真机验证，接线后必须跑步骤 2A 第 5 步的模拟事件验证）：{_theoretical_str}
 
 {action_hint}
-{capture_note}
 采集 Hook 只负责把对话捕获到 `repowiki/raw/`（仅采集、不蒸馏）；蒸馏是独立的显式步骤，见 distill-conversations prompt。
 
 **当前项目探测结果**：`{repo_path}` 下检测到的智能体配置目录：{_detected_str}。**只为探测到的智能体接线**——探测不凭空创建任何目录；用户想接未探测到的智能体时，由用户自行初始化该工具的配置目录后重跑本流程。
