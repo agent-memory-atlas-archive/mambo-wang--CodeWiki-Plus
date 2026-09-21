@@ -405,7 +405,8 @@ def _prompt_add_workspace_repo(args: dict[str, str]) -> str:
 ## 注意事项
 - 同名同 URL 重复登记是空操作（安全可重试）；同名但 URL 不同会报错且不做任何修改——需人工核对
 - URL 不能含引号或换行
-- 不要在 bootstrap 脚本中手工插入登记行后再让工具改——登记表结构行由工具定位维护"""
+- 不要在 bootstrap 脚本中手工插入登记行后再让工具改——登记表结构行由工具定位维护
+- **手工兜底**（MCP 工具不可用时才手工接入，须同步三处）：① `bootstrap.ps1` / `bootstrap.sh` 的 repos 登记表增加仓库目录名与 URL；② `.gitignore` 增加一行 `/<业务仓目录>/`；③ `repowiki/wiki/repo-map.md` 补充该仓小节（职责、分区路径、检索方式）"""
 
 
 def _prompt_remove_workspace_repo(args: dict[str, str]) -> str:

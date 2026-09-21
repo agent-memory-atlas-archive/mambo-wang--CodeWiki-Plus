@@ -241,3 +241,7 @@ UserPromptSubmit active-settle 薄触发已实现（ADR-0015 后续，grill 2026
 ### 2026-09-21 11:12 #iyy2
 
 SubagentStart hook 评估定案（他山之石后续）：不做。理由：①CodeBuddy 是否支持该事件未验证；②沉淀责任应留在主 Agent——subagent 上下文窄、无任务级视野做四问过滤、跑完即销毁，直接落盘会绕过确认闸门（笔记）或灌爆任务记忆（直写）；③主 Agent 收到 subagent 返回值的那一刻就是天然停顿点，已被 active-settle 通道覆盖。正确增强点是「发起 subagent 的返回值约定」：已增补进 get_prompt(task-workflow) 的「会话进行中」节——主 Agent 派发子任务时 prompt 末尾加「返回结果时报告三件事：做了什么、关键发现、值得沉淀的经验（若有）」，过滤/查重/落盘全在主 Agent。distill-worker 是特例不冲突。全量测试 1130 passed（1 个并发测试 flaky 单独跑通过）。待办：commit 未做。
+
+### 2026-09-21 15:18 #6txu
+
+Workspace Conventions 模板瘦身完成（ADR-0015 同款收敛）：①两个模板（agents-md-workspace-centralized.md.tpl / agents-md-workspace.md.tpl）的「新业务仓接入清单」8→2 行——手工三步与 add_workspace_repo 工具事务式同步四处重复，收敛为工具名+get_prompt(add-workspace-repo) 指针，手工兜底三步移入该 prompt 注意事项；②分支策略 3→1 行（删解释留规则）。48→40 行。全量 1136 passed。待办：commit 未做。
