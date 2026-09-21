@@ -91,8 +91,8 @@ IDE 的 SessionStart 注入），会话开始按上方「Task memory」段完成
    落盘（frontmatter/content_hash/supersede 全套），**勿手写 raw/*.md**
 4. 同一 source_session 重复捕获由 supersede 替换旧 raw——会话中途可安全
    增量重捕，无重复堆积；蒸馏与补蒸馏流程与其他 IDE 一致
-   （任务记忆直写，笔记草稿待确认——ADR-0002；蒸馏固定只产经验笔记、
-   不产任务记忆，通道互斥——ADR-0010/0014）
+   （任务记忆直写，笔记草稿待确认；蒸馏固定只产经验笔记、
+   不产任务记忆，通道互斥）
 """,
 }
 
@@ -120,7 +120,7 @@ def _active_settle_section(protocol: str = "") -> str:
 **不做字面每轮沉淀**：任务记忆追加无去重，每轮都写会灌爆记忆并反复触发 40 条/24KB 压缩阈值——只在停顿点沉淀。**宿主 IDE 自带的工作记忆（如 `.codebuddy/memory/`）与本协议的任务记忆是独立通道**，写了前者不豁免后者。
 
 **两条写入路径（均当轮落盘，下一轮 `get_task_context` 即取；禁止手写文件）：**
-- 任务记忆：`add_task_memory(task_id=<绑定的任务id>, content="本段进展/决策/下一步")` 直写——无需确认（ADR-0002）。写入标准（ADR-0009）：只记会改变下一步行动的进展/决策/约束；推翻旧记忆时传 `supersedes=<旧条目id>`，不要追加平行副本；近重复写入会被拒绝（difflib > 0.85），改用 supersedes 或合并改写后重试；
+- 任务记忆：`add_task_memory(task_id=<绑定的任务id>, content="本段进展/决策/下一步")` 直写——无需确认。写入标准：只记会改变下一步行动的进展/决策/约束；推翻旧记忆时传 `supersedes=<旧条目id>`，不要追加平行副本；近重复写入会被拒绝（difflib > 0.85），改用 supersedes 或合并改写后重试；
 - 通用经验：`ingest_note(status="draft", ...)` 落草稿——**确认闸门保留**：草稿笔记须经 `confirm_note` 确认后才进入全局检索语料，不得跳过确认。草稿落盘即可被下一轮 `get_task_context` 的 `related_notes` 以 `status: draft` 展示、能确认、能参与冲突检测。
 """
     return _ACTIVE_SETTLE_START + "\n" + body + host + _ACTIVE_SETTLE_END
@@ -150,7 +150,7 @@ def _task_management_wiring_steps(repo_path: str, capture_off: bool) -> str:
     capture_cli_flag = " --capture off" if capture_off else ""
     capture_note = (
         """
-**采集开关（--capture off）**：接线移除 SessionEnd（trae 为 Stop）采集注册，主动沉淀成为唯一记忆写入通道（任务记忆 `add_task_memory` 直写 + 草稿笔记 `ingest_note(draft)`）；SessionStart（任务关联）与 UserPromptSubmit（技能提示）保留，hook 脚本与 distill-worker 照常拷贝。主动沉淀（ADR-0014）固定启用，不再有开关。
+**采集开关（--capture off）**：接线移除 SessionEnd（trae 为 Stop）采集注册，主动沉淀成为唯一记忆写入通道（任务记忆 `add_task_memory` 直写 + 草稿笔记 `ingest_note(draft)`）；SessionStart（任务关联）与 UserPromptSubmit（技能提示）保留，hook 脚本与 distill-worker 照常拷贝。主动沉淀固定启用，不再有开关。
 """
         if capture_off
         else ""
@@ -596,7 +596,7 @@ def _prompt_retract_source(args: dict[str, str]) -> str:
     name = (args.get("name") or "").strip()
     repo_path = _resolve_path(args.get("repo_path", ""))
     name_note = f"\n\n本次目标 name：`{name}`" if name else ""
-    return f"""撤回外部文档工作流。当 `ingest_source` 导入的源文档过时、被新版取代或内容根本错误时，用 `retract_source` 把它从知识库移除或标记退役——这是源文档层唯一有正式删除路径的入口（handler: codewiki/mcp/tools/source_ingest.py:741，注册: codewiki/mcp/registry.py:1458）。{name_note}
+    return f"""撤回外部文档工作流。当 `ingest_source` 导入的源文档过时、被新版取代或内容根本错误时，用 `retract_source` 把它从知识库移除或标记退役——这是源文档层唯一有正式删除路径的入口。{name_note}
 
 ## 前置：确定标识符 name
 - `name` 是 `ingest_source` 注册时的**标识符**，不是文件名
@@ -1324,7 +1324,7 @@ def _prompt_distill_conversations(args: dict[str, str]) -> str:
 ```
 
 - **notes（通用经验）**：只提取**持久有效**、未来的 Agent 或队友能直接受益的知识（带 rationale 的决策、被纠正的假设、踩坑点、不明显的架构事实、含恢复条件的临时方案）。跳过闲聊、问候和临时任务状态。没有合格内容就返回 `{{"notes": []}}`——绝不凑数。
-- **memories（任务记忆）**：记录**任务范围内的进度知识**（本次做了什么、剩余事项、达成的决策、下一步上下文），每条 1-3 句简洁 Markdown。仅当 raw 对话绑定 task_id 时有意义，工具会直写落盘到 `repowiki/tasks/<task_id>/memories/<user_id>.md`（当前用户的分片文件，带时间戳头，无需确认——任务记忆是任务作用域的进度知识，ADR-0002）；未绑定的对话返回 `{{"memories": []}}`。
+- **memories（任务记忆）**：记录**任务范围内的进度知识**（本次做了什么、剩余事项、达成的决策、下一步上下文），每条 1-3 句简洁 Markdown。仅当 raw 对话绑定 task_id 时有意义，工具会直写落盘到 `repowiki/tasks/<task_id>/memories/<user_id>.md`（当前用户的分片文件，带时间戳头，无需确认——任务记忆是任务作用域的进度知识）；未绑定的对话返回 `{{"memories": []}}`。
 
 没有合格内容就返回 `{{"notes": [], "memories": []}}`。
 
@@ -1335,7 +1335,7 @@ def _prompt_distill_conversations(args: dict[str, str]) -> str:
 工具对每条 submit 都会：与已有笔记去重、经 ingest_note 写入草稿（status=draft）、将任务记忆直写落盘到当前用户的 memories/<user_id>.md（`memories_written` 报告条数）、标记/删除已处理的 raw 文件并重建检索索引。结果按 capture 报告：新建笔记数 / 去重抑制数 / 合并数 / 落盘记忆数。
 
 ## 步骤 4: 与用户评审（必须）
-逐条展示产出的草稿（标题 + 一句话摘要），询问用户保留哪些。对接受的笔记调用 `confirm_note`，对拒绝的调用 `reject_note`。**绝不静默确认**——草稿评审是知识飞轮的质量闸门（笔记进全局检索库）；任务记忆无此闸门（ADR-0002），蒸馏时已直写落盘，下次 `get_task_context` 自动可见。
+逐条展示产出的草稿（标题 + 一句话摘要），询问用户保留哪些。对接受的笔记调用 `confirm_note`，对拒绝的调用 `reject_note`。**绝不静默确认**——草稿评审是知识飞轮的质量闸门（笔记进全局检索库）；任务记忆无此闸门，蒸馏时已直写落盘，下次 `get_task_context` 自动可见。
 
 ## 备选：后台 worker（Mode B）
 仅当 MCP server 进程配置了 MAIN_MODEL / LLM_BASE_URL / LLM_API_KEY 环境变量时，可改用 distill_conversation(run_in_background=true)，轮询 `repowiki/distill-jobs.json` 直到 status=completed，再执行步骤 4。IDE Agent 优先使用上面的 prepare/submit 流程。"""
@@ -1356,14 +1356,14 @@ def _prompt_task_workflow(args: dict[str, str]) -> str:
 4. `get_task_context(task_id=<选中任务>)` 拉取该任务的描述 + 记忆 + 关联笔记，作为继续工作的上下文
 5. **补蒸馏（异步，不阻塞回答）**：检查返回的 `pending_raw_count`（本任务未蒸馏的历史对话数）。若 > 0，**不要自己在回答前逐条 read_file 蒸馏**——用 Task 工具发一个**异步**蒸馏子代理（CodeBuddy：spawn「蒸馏 worker」subagent，`.codebuddy/agents/distill-worker.md`，已授权 codewiki MCP；claude 家族 Qoder/Claude Code/Gemini CLI：**自定义子代理拿不到 MCP 权限**，改 spawn 内置 general-purpose 子代理，让它先读对应 `.qoder|.claude|.gemini/agents/distill-worker.md` 作为剧本再执行）：
    - **清空本任务的全部待蒸馏积压**：prepare 的清单按 `captured_at` 升序，**不设条数上限，清单里每条都要处理完并 submit**（只挑最近几条会让老积压永远轮不到）
-   - subagent 执行：`distill_conversation(mode="prepare", task_id=<选中任务>)` 获取该任务的积压对话清单 → 按清单逐条 read_file 阅读 raw 文件，提取 `notes`（通用经验；memories 默认跳过——通道互斥 ADR-0010，任务记忆归主动沉淀直写）→ `distill_conversation(mode="submit", distilled=<提取结果>)` 提交（产出草稿笔记）
+   - subagent 执行：`distill_conversation(mode="prepare", task_id=<选中任务>)` 获取该任务的积压对话清单 → 按清单逐条 read_file 阅读 raw 文件，提取 `notes`（通用经验；memories 默认跳过——通道互斥，任务记忆归主动沉淀直写）→ `distill_conversation(mode="submit", distilled=<提取结果>)` 提交（产出草稿笔记）
    - 主 Agent **不等 subagent 完成，直接回答用户提问**；在自然停顿点（任务里程碑、话题切换、收尾轮）重新 `get_task_context` 拉取最新记忆，并向用户展示待确认的草稿笔记
    - subagent 失败/超时不重试——未蒸馏的 raw 留在 raw/ 等下次会话再补
    - 向用户展示待确认的草稿笔记：`confirm_note` 确认后才正式落盘（任务记忆已直写，无需确认）
 
 ## 会话进行中
 - 采集对话时带上 `task_id`（capture_conversation 的 task_id 参数，或经 set_session_task 绑定后自动带）
-- 蒸馏时（distill-conversations 流程）LLM 会同时产出 `notes`（通用知识，draft 待确认）和 `memories`（任务进度），后者**直写落盘**到 `repowiki/tasks/<task_id>/memories/<user_id>.md`（当前用户的分片文件；ADR-0002：任务记忆不做确认闸门——噪声成本被任务生命周期限定；笔记的 confirm 闸门保持不变）
+- 蒸馏时（distill-conversations 流程）LLM 会同时产出 `notes`（通用知识，draft 待确认）和 `memories`（任务进度），后者**直写落盘**到 `repowiki/tasks/<task_id>/memories/<user_id>.md`（当前用户的分片文件；任务记忆不做确认闸门——噪声成本被任务生命周期限定；笔记的 confirm 闸门保持不变）
 - **发起 subagent 的返回值约定**：主 Agent 用 Task 工具派发编码/调研/测试/review 等子任务时，在 prompt 末尾加一句「返回结果时报告三件事：做了什么、关键发现、值得沉淀的经验（若有）」。**沉淀责任留在主 Agent**——subagent 上下文最窄、无任务级视野做四问过滤，且跑完即销毁，直接落盘会绕过确认闸门（笔记）或灌爆任务记忆（直写）；主 Agent 收到返回值的那一刻就是天然停顿点，按主动沉淀协议过滤、查重、落盘。例外：蒸馏 worker 本身就是沉淀 worker，协议在其定义文件里，产出草稿仍由主 Agent 确认，闸门未断。
 
 ## 会话结束
@@ -1385,20 +1385,20 @@ def _prompt_task_workflow(args: dict[str, str]) -> str:
 **工具入口：**
 - `codewiki/mcp/tools/task_manager.py` — `create_task` / `list_tasks` / `get_task` / `complete_task` / `delete_task` / `set_session_task` / `add_task_memory` / `get_task_context` / `compact_task_memories`
 - 存储：`repowiki/tasks/.index.json`（可重建缓存：目录扫描为准，失配/损坏时自动重建）+ `<task_id>/task.md` + `<task_id>/memories/<user_id>.md`（每人只写自己的文件，多人 git 冲突隔离；条目带 `### YYYY-MM-DD HH:MM` 时间戳头；压缩后头部有「早期记忆（摘要）」段）+ `<task_id>/memories-archive/<user_id>.md`（压缩归档，append-only、永不自动加载）；`<task_id>/memories.md` 为存量单文件（只读兼容，热层，首次压缩并入当前用户文件后移除）；会话绑定在 `repowiki/.meta/task_bindings/`
-- `capture_conversation` / `distill_conversation` / `ingest_note` / `query_wiki` 均接受 `task_id`；蒸馏时 LLM 双轨产出 `notes`(通用知识，draft 待确认) 与 `memories`(任务进度，直写落盘——ADR-0002：任务记忆不做确认闸门)
+- `capture_conversation` / `distill_conversation` / `ingest_note` / `query_wiki` 均接受 `task_id`；蒸馏时 LLM 双轨产出 `notes`(通用知识，draft 待确认) 与 `memories`(任务进度，直写落盘——任务记忆不做确认闸门)
 
 **关键设计约束(实现时务必遵守)：**
 - task_id 由标题 slugify 生成且**不可变**；同名任务被拒绝；**无重命名**(删除后重建)。
 - `delete_task` 级联删除任务目录与绑定文件，但**不删**已打上 `task_id` 的笔记。
 - **绑定文件是一次性消费凭证**：`set_session_task` 写入 `repowiki/.meta/task_bindings/<session_id>.json` 后，首次 `capture_conversation` 成功落盘即退役到 `task_bindings/consumed/`（凭证不再生效，但 `task_id` 保留）；显式传 `task_id` 不消费绑定。同会话再次捕获（supersede）继承旧 raw 的 task_id；若旧 raw 已被蒸馏、无 pending 条目可继承，则回退读退役凭证（`task_source=binding-archived`），归属不丢。
 - `query_wiki` 不校验任务存在性(幽灵 `task_id` 允许)。
-- `memories/<user_id>.md` 追加式原子写(临时文件 + `os.replace`)，并发串行；**每人只写自己的文件**(文件所有权即 git 级互斥原语)；条目带 `### YYYY-MM-DD HH:MM` 时间戳头(ADR-0001：保持 markdown 不迁 JSONL，时间戳头是切条/截断/压缩的解析边界，存量无头文件运行时空行回退解析)。
+- `memories/<user_id>.md` 追加式原子写(临时文件 + `os.replace`)，并发串行；**每人只写自己的文件**(文件所有权即 git 级互斥原语)；条目带 `### YYYY-MM-DD HH:MM` 时间戳头(保持 markdown 不迁 JSONL，时间戳头是切条/截断/压缩的解析边界，存量无头文件运行时空行回退解析)。
 - `get_task_context`/`get_task` 的 memories 返回**分层有界**：热层=自己(+存量 legacy)文件取最近 20/5 条全量；温层=其他成员仅注入摘要+最近 2 条(超预算降级为一行线索)；`memories_total`/`memories_truncated` 标记截断、`max_memories` 参数翻页；`compaction_due=true` 表示热层超压缩阈值(40 条/24KB)且超出保留窗口，应跑 `compact_task_memories`(两段式无状态：`mode="prepare"` 取待压条目由调用方写摘要 → `mode="submit"` 落盘；**文件域压缩，只压自己的文件(+legacy 并入)，永不动他人文件**；原文按归属归档 `memories-archive/<user_id>.md` 不删，直写不走 confirm 闸门)。"""
 
 
 def _prompt_consolidate_knowledge(args: dict[str, str]) -> str:
     repo_path = _resolve_path(args.get("repo_path", ""))
-    return f"""知识聚合工作流（团队记忆融合 P2）。当用户说"聚合一下笔记""整理场景块""合并重复经验"，或 confirm_note / batch_set_status / wiki_stats / get_task_context 的响应里出现 `aggregation_hint`（consolidation_due=true）时，使用本流程把已确认笔记升级为 L2 工作方法场景块。
+    return f"""知识聚合工作流。当用户说"聚合一下笔记""整理场景块""合并重复经验"，或 confirm_note / batch_set_status / wiki_stats / get_task_context 的响应里出现 `aggregation_hint`（consolidation_due=true）时，使用本流程把已确认笔记升级为 L2 工作方法场景块。
 
 ## ⛔ 行为契约（必须遵守）
 - `aggregation_hint` 只是**提醒**：先向用户说明计数器已越线并询问"是否现在聚合"，得到同意才继续；**严禁不打招呼直接执行**。
@@ -1447,10 +1447,10 @@ def _prompt_consolidate_knowledge(args: dict[str, str]) -> str:
 
 def _prompt_skill_creator(args: dict[str, str]) -> str:
     repo_path = _resolve_path(args.get("repo_path", ""))
-    return f"""技能编译工作流（skill-creator T2+T3，docs/skill-creator需求与设计方案.md，ADR-0004 两区制）。当用户说"把经验编成技能""生成 SKILL""整理出可复用的行为指令"，或希望把已确认知识（场景块 + 精选笔记）升级为 IDE 可触发的 SKILL.md 时，使用本流程。**编译出的技能只落草稿区 `repowiki/skills/`（进索引进 lint、不生效）；install 到生效区 `.codebuddy/skills/` 是单独的用户动作——用户明确确认后才调用。**
+    return f"""技能编译工作流。当用户说"把经验编成技能""生成 SKILL""整理出可复用的行为指令"，或希望把已确认知识（场景块 + 精选笔记）升级为 IDE 可触发的 SKILL.md 时，使用本流程。**编译出的技能只落草稿区 `repowiki/skills/`（进索引进 lint、不生效）；install 到生效区 `.codebuddy/skills/` 是单独的用户动作——用户明确确认后才调用。**
 
 ## ⛔ 行为契约（必须遵守）
-- 素材边界：只用**已确认知识**——`wiki/scenarios/` 场景块、stable 状态的 procedure/pitfall/lesson/decision 笔记、既有技能名下的 open issues；**任务记忆不是技能素材**（直写落盘无确认闸门，ADR-0002）。
+- 素材边界：只用**已确认知识**——`wiki/scenarios/` 场景块、stable 状态的 procedure/pitfall/lesson/decision 笔记、既有技能名下的 open issues；**任务记忆不是技能素材**（直写落盘无确认闸门）。
 - **主干优先**：核心 SOP 必须是完整动作序列（有序步骤 + 每步判定点），踩坑只作为步骤注解，不能占据主干位置——通篇是坑的正文不算技能。
 - 永不自动编译、永不自动 install；触发词出现先向用户确认再执行。
 
@@ -1497,7 +1497,7 @@ def _prompt_promote_note(args: dict[str, str]) -> str:
     note_file = (args.get("note_file") or "").strip()
     repo_path = _resolve_path(args.get("repo_path", ""))
     target = note_file or "<候选笔记相对路径，如 notes/2026-08-01-port-conflict.md>"
-    return f"""笔记晋升工作流（P1 C 线，docs/知识飞轮增强设计方案-P1三项.md §4）。当 wiki_stats 返回的 `promotion_candidates` 出现候选笔记（status=stable、被 Agent 声明采纳达到门槛、树龄足够），或用户要求"把某条笔记晋升为正式 wiki 页面"时，使用本流程把反复被采纳的笔记 AI 重写为正式 wiki 页面，打通 notes → wiki 的断层。
+    return f"""笔记晋升工作流。当 wiki_stats 返回的 `promotion_candidates` 出现候选笔记（status=stable、被 Agent 声明采纳达到门槛、树龄足够），或用户要求"把某条笔记晋升为正式 wiki 页面"时，使用本流程把反复被采纳的笔记 AI 重写为正式 wiki 页面，打通 notes → wiki 的断层。
 
 ## 前置：确定晋升对象
 - 未指定笔记时：调用 `wiki_stats(repo_path="{repo_path}")`，读取 `promotion_candidates` 列表，向用户展示候选（file/title/type/adopted_count/age_days/suggested_page_type），由用户选定要晋升哪一条
