@@ -532,7 +532,7 @@ class TestAdoptShortCircuit:
         assert res["clones"]["repo-c"]["status"] == "ok"
         assert calls and calls[0][:2] == ["git", "clone"]
         # skeleton untouched; AGENTS.md tool-maintained blocks refreshed
-        # (content-identical upsert writes nothing, so bytes equal here)
+        # (content-identical upserts write nothing, so bytes equal here)
         assert (tmp_path / "AGENTS.md").read_bytes() == agents_before
         assert (tmp_path / "repowiki" / "wiki" / "repo-map.md").read_bytes() == repo_map_before
 
@@ -563,6 +563,23 @@ class TestAdoptShortCircuit:
         assert res["agents_md_conventions"] == "refreshed"
         assert "旧版遗留" not in _read(agents_path)  # in-block edit clobbered
         assert "agents_md_codewiki_block" in res
+
+    def test_clone_only_survives_agents_md_write_failure(self, tmp_path, monkeypatch):
+        # AGENTS.md locked/read-only must degrade to WARNING, not fail adoption.
+        _init(tmp_path)
+        from codewiki.mcp.tools import agents_md as am
+
+        def _boom(*args, **kwargs):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(am, "write_workspace_conventions", _boom)
+        monkeypatch.setattr(am, "write_agents_md", _boom)
+
+        res = _init(tmp_path)
+        assert res["status"] == "ok"
+        assert res["mode"] == "clone-only"
+        assert res["agents_md_conventions"].startswith("WARNING:")
+        assert res["agents_md_codewiki_block"].startswith("WARNING:")
 
     def test_missing_skeleton_falls_back_to_full(self, tmp_path):
         _init(tmp_path)

@@ -486,11 +486,15 @@ def _adopt_initialized_workspace(
     # initialized with; content-identical upserts write nothing.
     from codewiki.mcp.tools.agents_md import write_agents_md, write_workspace_conventions
 
-    results["agents_md_conventions"] = write_workspace_conventions(
-        workspace_path=str(workspace_p),
-        workspace_name=workspace_p.name,
-        layout=layout,
-    )
+    try:
+        results["agents_md_conventions"] = write_workspace_conventions(
+            workspace_path=str(workspace_p),
+            workspace_name=workspace_p.name,
+            layout=layout,
+        )
+    except Exception as e:  # must not block workspace adoption
+        results["agents_md_conventions"] = f"WARNING: {e}"
+        logger.warning("Failed to write workspace conventions block: %s", e)
     try:
         write_agents_md(repo_path=str(workspace_p), output_dir=str(output_dir_p), module_tree=None)
         results["agents_md_codewiki_block"] = str(workspace_p / "AGENTS.md")
@@ -605,11 +609,15 @@ def _run_full_skeleton_flow(
     # Conventions block first so it reads before the CodeWiki usage block.
     # Always force-refreshed: the block is tool-maintained, customizations
     # belong outside the markers.
-    results["agents_md_conventions"] = write_workspace_conventions(
-        workspace_path=str(workspace_p),
-        workspace_name=workspace_p.name,
-        layout=layout,
-    )
+    try:
+        results["agents_md_conventions"] = write_workspace_conventions(
+            workspace_path=str(workspace_p),
+            workspace_name=workspace_p.name,
+            layout=layout,
+        )
+    except Exception as e:  # must not block workspace scaffolding
+        results["agents_md_conventions"] = f"WARNING: {e}"
+        logger.warning("Failed to write workspace conventions block: %s", e)
     try:
         write_agents_md(repo_path=str(workspace_p), output_dir=str(output_dir_p), module_tree=None)
         results["agents_md_codewiki_block"] = str(workspace_p / "AGENTS.md")
