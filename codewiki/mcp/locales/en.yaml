@@ -439,13 +439,16 @@ review_checklist:
     performance:
       title: "Performance"
       questions: "Are there obvious N+1 queries or heavy work inside loops (IO, regex compilation, DB calls)?|Do the new data structures or algorithms match the expected scale?|Are unnecessary copies or serializations introduced?"
+      exclusions: "Report only after confirming the hot path: verify the path is called frequently under real load AND the scale mismatches expectations. One-off scripts, test code and startup paths are not reportable."
     code-quality:
       title: "Code quality"
       questions: "Is there duplicated logic worth extracting (already implemented in this file or module)?|Do names accurately reflect behavior (no misleading names)?|Is there dead code, unused variables, or comments that disagree with the code?"
+      exclusions: "Dead-code findings must exclude stub files (.pyi) and __init__.py re-exports; comment/code disagreement is reportable only when the comment clearly misleads, not for wording style."
   python:
     py-mutable-default:
       title: "Mutable default arguments"
       questions: "Is any function argument default a mutable object (list/dict/set) — state shared across calls?"
+      exclusions: "Do not report .pyi stub files (no runtime semantics); do not report defaults that are never mutated (read-only use) with clear intent."
     py-bare-except:
       title: "Bare except"
       questions: "Is a bare except / except Exception used, swallowing exceptions including KeyboardInterrupt?"

@@ -863,8 +863,16 @@ list_dependencies(repo_path='{repo_path}', module_level=true)
 - evidence.spec: SPEC 命中情况——逐条比对变更是否覆盖需求、有无超范围
 - evidence.convention: 项目规范 hits——检查变更是否违反（doctrine 为最高优先级）
 - evidence.module_knowledge: 历史 pitfall/lesson——检查是否重蹈覆辙
-- evidence.general: 通用清单——逐项过一遍
+- evidence.general: 通用清单——逐项过一遍；条目带 exclusions 字段时先核对该排除条件，命中则不报
 四轴依据冲突时裁决顺序 spec > convention > module_knowledge > general，冲突时引用双方依据不合并。
+
+评审纪律（强制）：
+- 覆盖率：target.changed_sources 里的每个文件必须有去向——要么出现在 findings，要么列入 report.skipped 并附原因；submit 会输出 coverage 警告，未覆盖文件多时先补审再提交
+- 不要找到第一个 blocker 就停：高危问题优先报告，但全部文件过完才算评审完成
+- 行号锚定：findings 的 line 必须来自 changed_sources 标注的行号空间（>> 前缀行），报告前用 changed_sources 核对，禁止凭记忆估行号
+- excluded 数组里的文件（secret/binary/noise/oversized）已被工具排除，不要尝试读取其内容；secret 类排除值得在 summary 里提醒用户注意
+- 修复边界：评审命令只产出报告——findings 展示给用户后停下，未经用户明确同意不得动手修复；用户明确说"修复"后才进入修复流程
+
 评审产出 findings 后，可选 review_changes(mode='submit', report=...) 落盘；
 对值得复用的发现，经用户确认后 ingest_note 沉淀（pitfall/decision）。
 """

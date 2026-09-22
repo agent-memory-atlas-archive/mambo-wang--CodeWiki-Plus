@@ -443,13 +443,16 @@ review_checklist:
     performance:
       title: "性能"
       questions: "是否存在明显 N+1 查询或循环内重活（IO、正则编译、DB 调用）？|新引入的数据结构/算法量级是否匹配预期规模？|是否引入了不必要的拷贝/序列化？"
+      exclusions: "仅确认热路径后才报告：先确认该路径在真实负载下被高频调用，且量级与预期规模不匹配。一次性脚本、测试代码、启动路径不报。"
     code-quality:
       title: "代码质量"
       questions: "是否有重复逻辑可抽取（本文件或同模块已有实现）？|命名是否准确反映行为（无误导性名称）？|是否有死代码、未使用变量、注释与代码不一致？"
+      exclusions: "死代码判定须排除存根文件（.pyi）与 __init__.py 的 re-export；注释与代码不一致仅在注释明显误导时报告，措辞风格差异不报。"
   python:
     py-mutable-default:
       title: "可变默认参数"
       questions: "函数参数默认值是否为可变对象（list/dict/set）——调用间共享状态？"
+      exclusions: ".pyi 存根文件不报（无运行时语义）；默认值从未被修改（只读使用）且语义清晰的不报。"
     py-bare-except:
       title: "裸 except"
       questions: "是否使用裸 except / except Exception 吞掉包括 KeyboardInterrupt 在内的异常？"
