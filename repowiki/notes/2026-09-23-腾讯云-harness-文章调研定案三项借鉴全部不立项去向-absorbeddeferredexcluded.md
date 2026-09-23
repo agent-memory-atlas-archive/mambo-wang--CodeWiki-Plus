@@ -1,18 +1,30 @@
 ---
 type: decision
-title: "腾讯云 Harness 文章调研定案：三项借鉴全部不立项，去向 absorbed/deferred/excluded"
-tags: ["codebuddy", "codewiki", "decision", "pretooluse", "sessionstart"]
+title: 腾讯云 Harness 文章调研定案：三项借鉴全部不立项，去向 absorbed/deferred/excluded
+tags:
+- codebuddy
+- codewiki
+- decision
+- pretooluse
+- sessionstart
 metadata:
   date: 2026-09-23
   confidence_level: weak
   task_id: 产品维护
-  related_modules: ["codewiki-mcp-prompts", "codewiki-hooks"]
-  source_ref: "https://mp.weixin.qq.com/s/SVm_GONXEElhEsX6CXylKg"
-  reason: "用户在 grill 评审中明确裁决「先不借鉴了」，三项去向判定已逐项确认"
-status: draft
+  related_modules:
+  - codewiki-mcp-prompts
+  - codewiki-hooks
+  source_ref: https://mp.weixin.qq.com/s/SVm_GONXEElhEsX6CXylKg
+  reason: 用户在 grill 评审中明确裁决「先不借鉴了」，三项去向判定已逐项确认
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.12.0, at: 2026-09-23T03:41:30Z }
-stale_after: 2027-09-23
+generated:
+  by: codewiki/5.12.0
+  at: 2026-09-23 03:41:30+00:00
+stale_after: '2027-09-23'
+verified:
+- by: human:wangbao
+  at: '2026-09-23T06:02:53Z'
 ---
 
 ## Background
