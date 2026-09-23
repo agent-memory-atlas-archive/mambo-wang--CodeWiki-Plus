@@ -120,3 +120,7 @@ prompts.py 渲染正文清理决策引用完成：用户提出 prompt 正文不�
 - 结果：6 条 store + 2 条 skip（与 2026-08-25 已有 stable 笔记重复）+ 2 条无知识（SessionEnd 信封、命令重复），均已清理/归档
 - 6 条确认 stable 笔记：query_wiki 全量重建索引、type-filter 单值精确匹配、analyze-repo 并行时序竞态、load-project-checklist 静默回退、changed-components 行区间近似、read-versioned-lines untracked 空列表
 - 待办：aggregation_hint 提示 consolidate_notes（58 条确认、阈值 10）与 refresh_doctrine（阈值 25）到期，已询问用户，待用户决定是否执行
+
+### 2026-09-23 15:12 #on0j
+
+修复 Windows 闪窗问题：用户反馈 auto_push 自动提交 repowiki 时每次弹几个 cmd 窗口很快关闭。根因：MCP server 由 IDE 无控制台拉起，git 子进程会新分配控制台窗口闪现；git_sync.py run_git_bounded 只设了 CREATE_NEW_PROCESS_GROUP 没设 CREATE_NO_WINDOW。修复：① git_sync.py 新增共享 helper windows_creationflags()（CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP，非 Windows 返回 0），run_git_bounded 改用它；② 同款修复 MCP server 内另外 4 处直接 subprocess 调用：config.py _git_config_value、doc_writer.py git rev-parse、note_query.py _last_commit_time git log、workspace_bootstrap.py _clone_repo git clone。新增守门测试 test_windows_creationflags_suppresses_console；test_git_sync_auto_stage 12 passed + test_phase4_second_slice 11 passed。MCP server 需重启生效。
