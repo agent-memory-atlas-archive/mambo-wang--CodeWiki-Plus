@@ -179,3 +179,7 @@ prompts.py 渲染正文清理决策引用完成：用户提出 prompt 正文不�
 ### 2026-09-23 09:10 #kyhw
 
 竞品调研：阅读腾讯云开发者文章《AI写得快≠真正提效：Harness 记忆与验证闭环》（作者焦成杰），完成与 CodeWiki 现状逐点代码核对。核心结论：①文章的「知识库+两级索引+成熟度/引用追踪+自动复盘」与 CodeWiki 知识飞轮高度同构，验证了方向；②真实差距 3 项——(a) PreToolUse 硬拦截「先读知识库再动手」：CodeWiki hooks.yaml 只有 SessionStart/UserPromptSubmit/SessionEnd 三类事件，无 PreToolUse，AGENTS.md 软约束遵守度差（用户 2026-09-18 反馈过漏记）；(b) 等待 skill（轮询到终态、按正确维度等、超时如实上报）：CodeWiki 完全没有，闭环止于「改完代码」；(c) 验证闭环 command（/close-loop 八步固化、运动员/裁判员分离、审查成员工具层面禁写、循环上限 3 轮）：CodeWiki 无此形态。③文章可借鉴细节：写入规范「脱离本次任务上下文仍成立才写」与四问过滤同源；成熟度四级 draft<verified<proven<archived 与 CodeWiki draft/stable/superseded 类似但多了跨场景 proven；衰减按类型定周期与 freshness by_type 同构；弱信号（hook 记读日志）/强信号（复盘声明采纳）双通道与 CodeWiki 检索命中/采纳声明双通道同构。④明确不借：Obsidian vault+REST API（CodeWiki 是 MCP 原生）、全量衰减扫描高频跑（CodeWiki lint 按需跑）。待用户决定是否把 3 项差距落 backlog。
+
+### 2026-09-23 11:41 #43pf
+
+腾讯云 Harness 文章调研定案（grill 评审完成）：用户裁决三项借鉴全部不立项。①PreToolUse 硬拦截→absorbed：claude-mem v13 源码反证 DENY 已被行业放弃，既有规划 P2-2（SessionStart 软闸门）+ P2-1'（附加上下文，spike 触发）已覆盖，文章仅作「软约束遵守度差」佐证；②等待 skill→deferred：归「发版本」任务线（等 PyPI 生效验证）；③close-loop 闭环→excluded：依赖作者公司 CI/CD/工单系统，超产品边界，CodeWiki 只覆盖第八步知识复盘。微借鉴一条：「不在中间任何一步静默停下」作为多步骤 prompt 写作原则。调研笔记已落 draft（notes/2026-09-23-腾讯云-harness-文章调研定案…），待确认。另：本会话早前 2 条蒸馏草稿已被用户拒绝（deprecated）。
