@@ -86,8 +86,6 @@ class TestGateOrdering:
 
     def test_secret_gate_records_despite_ext_filter(self, tmp_path):
         import subprocess
-        import sys
-        from pathlib import Path
 
         repo = tmp_path / "r"
         repo.mkdir()

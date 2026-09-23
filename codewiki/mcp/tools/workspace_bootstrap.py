@@ -729,12 +729,8 @@ def handle_init_workspace(arguments: dict) -> str:
                 "traces": traces,
                 "question": _i18n.t("tools.workspace_bootstrap.layout_question"),
                 "options": {
-                    LAYOUT_COLOCATED: _i18n.t(
-                        "tools.workspace_bootstrap.layout_colocated"
-                    ),
-                    LAYOUT_CENTRALIZED: _i18n.t(
-                        "tools.workspace_bootstrap.layout_centralized"
-                    ),
+                    LAYOUT_COLOCATED: _i18n.t("tools.workspace_bootstrap.layout_colocated"),
+                    LAYOUT_CENTRALIZED: _i18n.t("tools.workspace_bootstrap.layout_centralized"),
                 },
                 "next_steps": (
                     "Nothing was written. Present the two layouts to the user, then "

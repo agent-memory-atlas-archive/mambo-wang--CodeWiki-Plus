@@ -236,7 +236,7 @@ class TestCliQuery:
     def test_delimited_block_output(self, tmp_path):
         from codewiki.cli.commands.query import query_command
 
-        od = _mk_wiki(tmp_path)
+        _mk_wiki(tmp_path)
         res = CliRunner().invoke(query_command, ["端口冲突", "--repo-path", str(tmp_path)])
         assert res.exit_code == 0, res.output
         out = res.output
@@ -250,7 +250,7 @@ class TestCliQuery:
     def test_missing_terms_noted(self, tmp_path):
         from codewiki.cli.commands.query import query_command
 
-        od = _mk_wiki(tmp_path)
+        _mk_wiki(tmp_path)
         res = CliRunner().invoke(query_command, ["端口冲突 量子", "--repo-path", str(tmp_path)])
         assert res.exit_code == 0
         assert "missing_terms: 量子" in res.output
@@ -260,7 +260,9 @@ class TestCliQuery:
         from codewiki.cli.commands.query import query_command
 
         od = _mk_wiki(tmp_path)
-        res = CliRunner().invoke(query_command, ["端口冲突", "--check", "--repo-path", str(tmp_path)])
+        res = CliRunner().invoke(
+            query_command, ["端口冲突", "--check", "--repo-path", str(tmp_path)]
+        )
         assert res.exit_code == 0
         assert "relevant: true" in res.output
         assert "top_score:" in res.output
@@ -291,8 +293,10 @@ class TestCliQuery:
     def test_expand_flag(self, tmp_path):
         from codewiki.cli.commands.query import query_command
 
-        od = _mk_wiki(tmp_path)
-        res = CliRunner().invoke(query_command, ["端口冲突", "--repo-path", str(tmp_path), "--expand"])
+        _mk_wiki(tmp_path)
+        res = CliRunner().invoke(
+            query_command, ["端口冲突", "--repo-path", str(tmp_path), "--expand"]
+        )
         assert res.exit_code == 0
         assert "lsof" in res.output  # full page content included
 

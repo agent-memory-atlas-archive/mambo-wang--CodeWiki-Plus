@@ -411,10 +411,7 @@ def _repo_has_active_tasks(repo_path: str) -> bool:
     tasks = data.get("tasks") if isinstance(data, dict) else None
     if not isinstance(tasks, list):
         return False
-    return any(
-        isinstance(t, dict) and str(t.get("status", "")).lower() == "active"
-        for t in tasks
-    )
+    return any(isinstance(t, dict) and str(t.get("status", "")).lower() == "active" for t in tasks)
 
 
 def _handle_user_prompt(

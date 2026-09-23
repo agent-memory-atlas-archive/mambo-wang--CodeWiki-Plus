@@ -578,7 +578,12 @@ def _coverage_warnings(report: Any, session: Any) -> List[str]:
         if isinstance(f, dict) and isinstance(f.get("file"), str):
             covered.add(_norm(f["file"]))
     for s in report_dict.get("skipped") or []:
-        if isinstance(s, dict) and isinstance(s.get("file"), str) and isinstance(s.get("reason"), str) and s["reason"].strip():
+        if (
+            isinstance(s, dict)
+            and isinstance(s.get("file"), str)
+            and isinstance(s.get("reason"), str)
+            and s["reason"].strip()
+        ):
             covered.add(_norm(s["file"]))
 
     uncovered = sorted(changed_files - covered)
