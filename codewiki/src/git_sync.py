@@ -73,6 +73,8 @@ def windows_creationflags() -> int:
     return getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
         subprocess, "CREATE_NEW_PROCESS_GROUP", 0
     )
+
+
 # Repos whose auto_push is owned by an enclosing batch boundary.  Keyed by
 # repo root (not output_dir) so nested items that resolve to the same repo
 # are suppressed even when they carry their own output_dir.

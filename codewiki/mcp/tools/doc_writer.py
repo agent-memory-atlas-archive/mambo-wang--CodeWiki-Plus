@@ -549,7 +549,12 @@ def _build_okf_frontmatter(
             import os
             import subprocess
 
-            _kw: dict = {"capture_output": True, "stdin": subprocess.DEVNULL, "text": True, "timeout": 5}
+            _kw: dict = {
+                "capture_output": True,
+                "stdin": subprocess.DEVNULL,
+                "text": True,
+                "timeout": 5,
+            }
             if os.name == "nt":
                 # Console-less parent (IDE-spawned MCP server): without this
                 # flag every git child allocates a flashing console window.
