@@ -1146,3 +1146,4 @@
 {"t": "hit", "doc": "wiki/modules/DependencyAnalyzer.md", "at": "2026-09-23", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-20-powershell-单引号字符串内联-json-时反斜杠转义会失败改用正斜杠路径.md", "at": "2026-09-23", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-20-调研-letta-须看-letta-codeletta-ailetta-的-main-分支只是-landing-page.md", "at": "2026-09-23", "n": 1}
+{"t": "adopted", "doc": "notes/2026-09-18-全局-codewikiexe-无法-import-本地包install-hooks-需用-python--m-codew.md", "at": "2026-09-24T17:31:52", "key": "iamwangbao-163-com/0c5f224e2f844dff84734669c6f3b1d3"}
