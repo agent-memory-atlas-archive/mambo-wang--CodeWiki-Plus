@@ -13,6 +13,8 @@ metadata:
   severity: medium
   source_ref: conversations/conv-working_memory_content-The-following-is-the-existing-working-c22842.md
   scene: Wiki文档建档
+  compiled_into:
+  - skills/write-doc-file-content-file-sidechannel/SKILL.md
 status: stable
 author: iamwangbao-163-com
 generated:

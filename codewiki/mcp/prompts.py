@@ -316,7 +316,7 @@ def _prompt_init_wiki(args: dict[str, str]) -> str:
 - **代码分析**：使用 code-analysis prompt 仅做结构分析不生成文档
 
 ## 编译宿主命令文件
-调用 `codewiki sync-commands`，把全部工作流提示词（23 个）编译为当前宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。非 Trae/codebuddy 宿主（如 Qoder）不会自动把 MCP prompt 映射为命令，本步骤为它们提供可见入口；Trae 会自动转化，跳过也无妨。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。
+调用 `codewiki sync-commands`，把全部工作流提示词编译为当前宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。非 Trae/codebuddy 宿主（如 Qoder）不会自动把 MCP prompt 映射为命令，本步骤为它们提供可见入口；Trae 会自动转化，跳过也无妨。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。
 
 ## 注意事项
 - init_wiki 是幂等的：重复执行不会破坏已有内容
@@ -380,7 +380,7 @@ def _prompt_init_workspace(args: dict[str, str]) -> str:
 - 后续新增/移除业务仓分别用 `add_workspace_repo` / `remove_workspace_repo` prompt 或工具，不要手工改四个文件
 
 ## 编译宿主命令文件
-调用 `codewiki sync-commands`，把全部工作流提示词（23 个）编译为当前宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。非 Trae/codebuddy 宿主（如 Qoder）不会自动把 MCP prompt 映射为命令，本步骤为它们提供可见入口；Trae 会自动转化，跳过也无妨。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。"""
+调用 `codewiki sync-commands`，把全部工作流提示词编译为当前宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。非 Trae/codebuddy 宿主（如 Qoder）不会自动把 MCP prompt 映射为命令，本步骤为它们提供可见入口；Trae 会自动转化，跳过也无妨。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。"""
 
 
 def _prompt_add_workspace_repo(args: dict[str, str]) -> str:
