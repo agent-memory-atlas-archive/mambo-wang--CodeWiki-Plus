@@ -9,6 +9,8 @@ metadata:
   date: 2026-09-24
   confidence_level: weak
   reason: 真机实测事实，探针脚本已验证，待用户确认
+  compiled_into:
+  - skills/windows-dev-env/SKILL.md
 status: stable
 author: iamwangbao-163-com
 generated:

@@ -1,17 +1,26 @@
 ---
 type: pitfall
-title: "curl 直传 PyPI 时 email.parser 的 keys() 对重复头返回 N 次导致 project_urls 重复 16 条被 400 拒绝"
-tags: ["bytesparser", "pitfall"]
+title: curl 直传 PyPI 时 email.parser 的 keys() 对重复头返回 N 次导致 project_urls 重复 16 条被 400
+  拒绝
+tags:
+- bytesparser
+- pitfall
 metadata:
   date: 2026-09-23
   confidence_level: weak
   severity: medium
-  root_cause: "email.message.Message.keys() 对重复头每个实例返回一次，get_all(key) 又取全部实例，二者嵌套导致 N×N 重复"
-  reason: "v5.13.1 发布实操验证：修复后 200 OK 上传成功"
-status: draft
+  root_cause: email.message.Message.keys() 对重复头每个实例返回一次，get_all(key) 又取全部实例，二者嵌套导致
+    N×N 重复
+  reason: v5.13.1 发布实操验证：修复后 200 OK 上传成功
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.13.0, at: 2026-09-23T08:45:03Z }
-stale_after: 2027-03-22
+generated:
+  by: codewiki/5.13.0
+  at: 2026-09-23 08:45:03+00:00
+stale_after: '2027-03-25'
+verified:
+- by: human:wangbao
+  at: '2026-09-26T13:58:25Z'
 ---
 
 # curl 直传 PyPI 时 email.parser 的 keys() 对重复头返回 N 次导致 project_urls 重复 16 条被 400 拒绝

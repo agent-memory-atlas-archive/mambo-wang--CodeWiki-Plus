@@ -41,6 +41,7 @@
 - [第 10 篇：如何让AI写的Wiki可信——项目知识全生命周期管理](https://mp.weixin.qq.com/s/OdESdERtINqYTBkIIVFWlQ)（2026-09）
 - [第 11 篇：从对话中提炼经验编译成技能——谷歌 WikiSkill 落地实践](https://mp.weixin.qq.com/s/jpGqKd_pU-aLp2c9CryzgA)（2026-09-09）
 - [第 12 篇：本地知识库团队化改造](https://mp.weixin.qq.com/s/Ebsk6CoLN5Wj7ejwF3ytfQ)（2026-09-21）
+- [使用全景与最佳实践（本仓 articles/ 目录）](articles/2026-09-27-codewiki-使用全景与最佳实践.md)（2026-09-27）
 
 
 
