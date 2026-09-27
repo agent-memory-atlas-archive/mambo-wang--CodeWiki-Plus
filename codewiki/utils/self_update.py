@@ -69,9 +69,7 @@ def _read_state() -> dict:
 def _write_state(data: dict) -> None:
     try:
         STATE_DIR.mkdir(parents=True, exist_ok=True)
-        STATE_FILE.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        STATE_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError:
         pass  # fail-open
 
@@ -346,10 +344,18 @@ def _spawn_updater() -> None:
         if os.name == "nt":
             kwargs["creationflags"] = 0x00000008  # DETACHED_PROCESS
         subprocess.Popen(
-            [sys.executable, str(script_path), str(STATE_FILE), PACKAGE_NAME,
-             __version__, str(WAIT_FOR_EXIT_TIMEOUT)],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, **kwargs,
+            [
+                sys.executable,
+                str(script_path),
+                str(STATE_FILE),
+                PACKAGE_NAME,
+                __version__,
+                str(WAIT_FOR_EXIT_TIMEOUT),
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **kwargs,
         )
     except Exception:
         logger.debug("spawn updater failed", exc_info=True)  # fail-open
@@ -373,9 +379,16 @@ def _health_check_if_needed() -> None:
         if meta_v != codewiki.__version__:
             # 半升级损坏态：重装元数据版本自愈
             subprocess.run(
-                [sys.executable, "-m", "pip", "install", "--force-reinstall",
-                 f"{PACKAGE_NAME}=={meta_v}"],
-                capture_output=True, timeout=1800,
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--force-reinstall",
+                    f"{PACKAGE_NAME}=={meta_v}",
+                ],
+                capture_output=True,
+                timeout=1800,
             )
     except Exception:
         pass  # fail-open
@@ -483,8 +496,7 @@ def run_foreground_upgrade() -> int:
         return 1
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "--upgrade",
-             f"{PACKAGE_NAME}=={latest}"],
+            [sys.executable, "-m", "pip", "install", "--upgrade", f"{PACKAGE_NAME}=={latest}"],
         )
         if r.returncode == 0:
             _write_state({"last_result": "upgraded", "last_version": latest})

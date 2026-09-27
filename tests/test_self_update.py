@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
 
-import pytest
 
 from codewiki.utils import self_update
 from codewiki.utils.self_update import (
@@ -62,9 +60,7 @@ class TestEligibility:
 
     def test_config_disables(self, monkeypatch, tmp_path):
         monkeypatch.setattr(self_update, "STATE_DIR", tmp_path)
-        (tmp_path / "config.json").write_text(
-            json.dumps({"autoupdate": False}), encoding="utf-8"
-        )
+        (tmp_path / "config.json").write_text(json.dumps({"autoupdate": False}), encoding="utf-8")
         assert self_update._autoupdate_disabled() is True
 
     def test_config_enabled_by_default(self, monkeypatch, tmp_path):
@@ -205,7 +201,9 @@ class TestMaybeSelfUpdate:
         monkeypatch.delenv("CODEWIKI_NO_AUTOUPDATE", raising=False)
         monkeypatch.setattr(self_update, "_eligible", lambda: True)
         monkeypatch.setattr(
-            self_update, "_health_check_if_needed", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+            self_update,
+            "_health_check_if_needed",
+            lambda: (_ for _ in ()).throw(RuntimeError("boom")),
         )
         self_update.maybe_self_update()  # 不应抛出
 
@@ -231,8 +229,6 @@ class TestHealthCheck:
         monkeypatch.setattr(self_update, "STATE_DIR", tmp_path)
         monkeypatch.setattr(self_update, "STATE_FILE", tmp_path / "autoupdate.json")
         self_update._write_state({"last_result": "upgraded"})
-        monkeypatch.setattr(
-            "subprocess.run", lambda *a, **kw: type("R", (), {"returncode": 0})()
-        )
+        monkeypatch.setattr("subprocess.run", lambda *a, **kw: type("R", (), {"returncode": 0})())
         self_update._health_check_if_needed()
         assert self_update._read_state()["last_result"] == "checked"

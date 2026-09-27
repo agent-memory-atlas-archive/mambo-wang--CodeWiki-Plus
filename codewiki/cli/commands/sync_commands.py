@@ -151,10 +151,18 @@ def _render_all(lang: str) -> list[tuple[str, str, str]]:
 
 
 @click.command(name="sync-commands")
-@click.option("--lang", type=click.Choice(["zh", "en"]), default=None,
-              help="命令文件语言（文件名+标题/描述）；默认按 i18n 解析（config.lang > CODEWIKI_LANG > OS locale > zh）")
-@click.option("--ide", type=str, default=None,
-              help="显式指定宿主 IDE（如 qoder/trae）；默认枚举仓库根 IDE 配置目录，排除 codebuddy")
+@click.option(
+    "--lang",
+    type=click.Choice(["zh", "en"]),
+    default=None,
+    help="命令文件语言（文件名+标题/描述）；默认按 i18n 解析（config.lang > CODEWIKI_LANG > OS locale > zh）",
+)
+@click.option(
+    "--ide",
+    type=str,
+    default=None,
+    help="显式指定宿主 IDE（如 qoder/trae）；默认枚举仓库根 IDE 配置目录，排除 codebuddy",
+)
 @click.option("--dry-run", is_flag=True, help="只预览目标与文件清单，不写盘")
 @click.argument("repo", required=False, default=".")
 def sync_commands(lang: Optional[str], ide: Optional[str], dry_run: bool, repo: str) -> None:
@@ -175,8 +183,10 @@ def sync_commands(lang: Optional[str], ide: Optional[str], dry_run: bool, repo: 
 
     click.echo()
     click.secho(f"Target repo: {repo_path}", fg="blue", bold=True)
-    click.echo(f"Language: {current} | Prompts: {len(rendered)} | "
-               f"Targets: {', '.join(targets)}" + (" | DRY-RUN" if dry_run else ""))
+    click.echo(
+        f"Language: {current} | Prompts: {len(rendered)} | "
+        f"Targets: {', '.join(targets)}" + (" | DRY-RUN" if dry_run else "")
+    )
 
     for target in targets:
         target_dir = _host_commands_dir(str(repo_path), target)

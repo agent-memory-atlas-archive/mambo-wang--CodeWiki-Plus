@@ -29,8 +29,10 @@ def test_rerun_preserves_customized_schema(tmp_path):
 
     # 用户自定义 purpose（模拟已填写）
     schema = repo / "repowiki" / "schema.yaml"
-    customized = "purpose: \"my custom purpose 自定义\""
-    schema.write_text(schema.read_text(encoding="utf-8").replace("purpose: \"\"", customized, 1), encoding="utf-8")
+    customized = 'purpose: "my custom purpose 自定义"'
+    schema.write_text(
+        schema.read_text(encoding="utf-8").replace('purpose: ""', customized, 1), encoding="utf-8"
+    )
 
     # 重跑 init_wiki —— 必须保留自定义，不得被模板覆盖
     r = _run(repo)
@@ -43,7 +45,7 @@ def test_initialize_wiki_tree_overwrite_flag(tmp_path):
     dest = tmp_path / "repowiki"
     dest.mkdir()
     # 预置一个"已自定义"的 schema.yaml
-    (dest / "schema.yaml").write_text("purpose: \"keep me\"\n", encoding="utf-8")
+    (dest / "schema.yaml").write_text('purpose: "keep me"\n', encoding="utf-8")
 
     tree = initialize_wiki_tree(tmp_path, dest)  # 默认 overwrite_schema=False
     assert "(already exists, skipped)" in tree["schema_yaml"]
