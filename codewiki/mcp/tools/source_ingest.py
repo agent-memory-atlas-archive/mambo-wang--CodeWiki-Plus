@@ -328,6 +328,8 @@ def _convert_to_markdown(src: Path, name: str) -> Tuple[Dict[str, Any], Optional
     converted_text)``; ``derived_text`` is filled in by the caller at persist
     time.
     """
+
+
 def _convert_to_markdown(src: Path, name: str) -> Tuple[Dict[str, Any], Optional[str]]:
     """Convert a binary source to Markdown text via markitdown (ADR-0018).
 

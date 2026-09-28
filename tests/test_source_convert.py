@@ -13,14 +13,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 
 from codewiki.mcp.session import SessionStore
 from codewiki.mcp.tools.source_ingest import (
     _CONVERTIBLE_SUFFIXES,
-    _convert_to_markdown,
     _plain_text,
     handle_ingest_source,
     handle_retract_source,
@@ -191,9 +188,7 @@ def test_cross_format_version_sibling(tmp_path, monkeypatch):
 
     # 先注册一个 md 源
     md_src = tmp_path / "design.md"
-    md_src.write_text(
-        "# 转换标题\n\n这是从 PDF 转换出的正文内容。\n", encoding="utf-8"
-    )
+    md_src.write_text("# 转换标题\n\n这是从 PDF 转换出的正文内容。\n", encoding="utf-8")
     r = _ingest(tmp_path, md_src, "design-md")
     assert r["status"] == "ingested"
 
@@ -220,9 +215,7 @@ def test_cross_format_version_sibling(tmp_path, monkeypatch):
     # 不落盘
     assert "design-docx" not in _registry(tmp_path)["sources"]
     # 门拦下时不得留下孤儿 sidecar（评审修复回归）
-    assert not (
-        tmp_path / "repowiki" / "raw" / "sources" / "design-docx.converted.md"
-    ).exists()
+    assert not (tmp_path / "repowiki" / "raw" / "sources" / "design-docx.converted.md").exists()
 
 
 # --------------------------------------------------------------------------- #
