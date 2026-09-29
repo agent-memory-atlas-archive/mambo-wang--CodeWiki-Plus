@@ -124,16 +124,16 @@ codewiki --version
 在 CodeBuddy 的 MCP 设置中添加以下配置（通常在设置界面的"工具"或"MCP"板块）：
 
 ```json
-{
-  "mcpServers": {
     "codewiki": {
-      "command": "codewiki",
-      "args": ["mcp"],
+      "command": "python",
+      "args": [
+        "-m",
+        "codewiki.mcp.server"
+      ],
       "maxOutputLength": 500000,
-      "timeout": 36000000
+      "timeout": 36000000,
+      "disabled": false
     }
-  }
-}
 ```
 
 配置完成后，CodeBuddy 的 MCP 工具列表中应出现 `codewiki` 相关的 53 个工具。
@@ -146,8 +146,11 @@ CodeWiki-Plus 开箱即用，**默认无需设置任何环境变量**。少数�
 {
   "mcpServers": {
     "codewiki": {
-      "command": "codewiki",
-      "args": ["mcp"],
+      "command": "python",
+      "args": [
+        "-m",
+        "codewiki.mcp.server"
+      ],
       "maxOutputLength": 500000,
       "timeout": 36000000,
       "env": {
@@ -980,8 +983,11 @@ Add the following to your CodeBuddy MCP settings:
 {
   "mcpServers": {
     "codewiki": {
-      "command": "codewiki",
-      "args": ["mcp"]
+      "command": "python",
+      "args": [
+        "-m",
+        "codewiki.mcp.server"
+      ],
     }
   }
 }
