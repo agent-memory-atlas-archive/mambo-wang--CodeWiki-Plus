@@ -279,6 +279,7 @@ def _prompt_init_wiki(args: dict[str, str]) -> str:
         mode_note = """
 **档位自动判定**：接线档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（如 QwenWork）走 prompt 档（只写注入文件，不建配置目录、不拷脚本、不改 settings），无手动覆盖参数。"""
         hook_block = f"""## 步骤 2: 启用任务管理（跨会话任务记忆 + 对话采集）
+**用户意愿闸门**：本步骤默认执行；但若用户调用本命令时已明确表达不启用任务管理（如回答「否」/「不要」），跳过本步骤，并告知用户可随时用 team-memory-hook 命令启用。
 为支持跨会话任务记忆，启用 SessionEnd hook 使会话结束时自动把原始对话捕获到 repowiki/raw/（仅采集、不蒸馏；蒸馏由后台 distill_conversation 完成），并向 AGENTS.md 写入任务引导段，使新建会话时 Agent 提示用户关联已有任务或输入任务名新建。
 {mode_note}
 **本步骤与 team-memory-hook 启用的逻辑完全一致**：注册 SessionStart/SessionEnd 事件 + 从 codewiki 包强制拷贝采集脚本与 distill-worker subagent 定义到目标项目。**只为项目根目录已存在配置目录的智能体接线（自动检测到哪些目录才为哪些接线），绝不主动新建 `.qoder`/`.claude` 等配置目录**——用户明确点名要接未检测到的智能体时，先向用户确认，并提示需先初始化该工具的配置目录。
@@ -316,7 +317,7 @@ def _prompt_init_wiki(args: dict[str, str]) -> str:
 - **代码分析**：使用 code-analysis prompt 仅做结构分析不生成文档
 
 ## 编译宿主命令文件
-调用 `codewiki sync-commands`，把全部工作流提示词编译为当前宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。非 Trae/codebuddy 宿主（如 Qoder）不会自动把 MCP prompt 映射为命令，本步骤为它们提供可见入口；Trae 会自动转化，跳过也无妨。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。
+调用 `codewiki sync-commands`，把全部工作流提示词编译为宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。已知只有 codebuddy 会自动把 MCP prompt 映射为命令，其余宿主（Qoder/Claude Code/TRAE 等）都依赖本步骤生成命令入口。CLI 自动判定目标宿主（枚举仓库根 IDE 配置目录，排除 codebuddy；无任何目录时兜底写 `.trae/commands/codewiki/`），无需用户选择。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。
 
 ## 注意事项
 - init_wiki 是幂等的：重复执行不会破坏已有内容
@@ -339,6 +340,7 @@ def _prompt_init_workspace(args: dict[str, str]) -> str:
         mode_note = """
 **档位自动判定**：接线档位由 `codewiki/hooks.yaml` 注册表自动判定——支持 SessionStart 的宿主走 hook 档，不支持的（如 QwenWork）走 prompt 档（只写注入文件，不建配置目录、不拷脚本、不改 settings），无手动覆盖参数。"""
         hook_block = f"""## 步骤 4: 启用任务管理（跨会话任务记忆 + 对话采集）
+**用户意愿闸门**：本步骤默认执行；但若用户调用本命令时已明确表达不启用任务管理（如回答「否」/「不要」），跳过本步骤，并告知用户可随时用 team-memory-hook 命令启用。
 为支持跨会话任务记忆，启用 SessionEnd hook 使会话结束时自动把原始对话捕获到工作区 repowiki/raw/（仅采集、不蒸馏；蒸馏由后台 distill_conversation 完成），并向工作区根 AGENTS.md 写入任务引导段，使新建会话时 Agent 提示用户关联已有任务或输入任务名新建。
 {mode_note}
 **接线目标恒为工作区根（harness 仓），业务仓不接线**——任务管理是工作区级能力：AGENTS.md（任务引导段宿主）与 repowiki/raw/（采集落盘地）都在工作区根，会话按 harness 模型开在工作区根；colocated 与 centralized 两种布局行为一致，无例外。**只为工作区根已存在配置目录的智能体接线（自动检测到哪些目录才为哪些接线），绝不主动新建 `.qoder`/`.claude` 等配置目录**——用户明确点名要接未检测到的智能体时，先向用户确认，并提示需先初始化该工具的配置目录。
@@ -380,7 +382,7 @@ def _prompt_init_workspace(args: dict[str, str]) -> str:
 - 后续新增/移除业务仓分别用 `add_workspace_repo` / `remove_workspace_repo` prompt 或工具，不要手工改四个文件
 
 ## 编译宿主命令文件
-调用 `codewiki sync-commands`，把全部工作流提示词编译为当前宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。非 Trae/codebuddy 宿主（如 Qoder）不会自动把 MCP prompt 映射为命令，本步骤为它们提供可见入口；Trae 会自动转化，跳过也无妨。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。"""
+调用 `codewiki sync-commands`，把全部工作流提示词编译为宿主 IDE 的斜杠命令文件（`<宿主配置目录>/commands/codewiki/`）。已知只有 codebuddy 会自动把 MCP prompt 映射为命令，其余宿主（Qoder/Claude Code/TRAE 等）都依赖本步骤生成命令入口。CLI 自动判定目标宿主（枚举仓库根 IDE 配置目录，排除 codebuddy；无任何目录时兜底写 `.trae/commands/codewiki/`），无需用户选择。命令文件是命令薄壳（只写如何获取全文），权威仍在 MCP `get_prompt`。"""
 
 
 def _prompt_add_workspace_repo(args: dict[str, str]) -> str:
