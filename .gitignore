@@ -144,3 +144,9 @@ repowiki/.meta/locks/
 
 # 本机专用 qoder 覆盖配置（python3 路径），不提交
 .qoder/settings.local.json
+
+# .scratch 一次性产物不入库：内部工单按 feature 建子目录（.scratch/<feature>/issues/*.md，
+# 见 docs/agents/issue-tracker.md，那些子目录照旧跟踪）；顶层散文件都是发布脚本、命令
+# 输出、迁移备份这类一次性的东西。下面的反选保留子目录，git 才会继续往工单目录里走。
+.scratch/*
+!.scratch/*/
