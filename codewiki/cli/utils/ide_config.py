@@ -130,35 +130,26 @@ AGENT_FILE = "distill-worker.md"
 # 即失效；各宿主的 $*_PROJECT_DIR 变量展开经实测不可靠，故不用占位符。
 # 脚本本体经 __file__ 定位仓库，不依赖工作目录。
 #
-# 解释器名按平台解析：Windows 只保证 `python`（`py` 启动器是另一回事），
-# mac/Linux 的系统 Python 普遍只有 `python3`——写死 `python` 会让 hook 以
-# exit 127 (command not found) 静默失败，任务关联弹框与对话采集全不触发
-# （2026-09-30 Qoder CN 实测定案）。命令仍不含路径，随仓库共享可移植。
-#
-# 代价要认下来：命令是**安装机解释器的快照**，而 settings.json 随仓库共享——
-# 谁最后跑 install-hooks，提交的 hook 命令就跟谁的机器走（mac 生成 python3，
-# Windows 同事拉取后须自己重跑一次 install-hooks 才迁回 python，否则同样 127）。
-# 换机/克隆后重跑 install-hooks 是每机一次的固定动作，不是可选优化。
-def _resolve_python_cmd() -> str:
-    """Pick the interpreter name hook commands should invoke on this platform."""
-    if os.name == "nt":
-        return "python"
-    for name in ("python3", "python"):
-        if shutil.which(name):
-            return name
-    return "python"
-
-
-_PYTHON_CMD = _resolve_python_cmd()
-START_HOOK_CMD = f'{_PYTHON_CMD} "{{ide_dir}}/hooks/task_session_start.py"'
-END_HOOK_CMD = f'{_PYTHON_CMD} "{{ide_dir}}/hooks/capture_session_end.py"'
+# 解释器名跨平台回退：Windows 只保证 `python`、mac/Linux 普遍只有 `python3`，
+# 写死任一端都会让另一端以 exit 127 (command not found) 静默失败，任务关联弹框
+# 与对话采集全不触发（2026-09-30 Qoder CN 实测定案）。历史上曾「按安装机平台快照
+# 单一解释器」（谁最后跑 install-hooks，提交的命令就跟谁的机器走），代价是
+# settings.json 随仓库共享后跨机器反复 127、每机须重跑 install-hooks 才迁回。
+# 现改为 `python3 X || python X` 双解释器回退：命令仍是项目相对路径、首 token 不
+# 含路径分隔符（可移植性不变），且两端一次写死永久生效——先试 python3（mac 命中
+# 即 exit 0、|| 短路不再跑 python），缺则落 127 触发 python（Windows 命中）。三个
+# hook 脚本皆 fail-open（main 恒返回 0），故回退段不会二次执行、不产生重复注册。
+START_HOOK_CMD = 'python3 "{ide_dir}/hooks/task_session_start.py" || python "{ide_dir}/hooks/task_session_start.py"'
+END_HOOK_CMD = 'python3 "{ide_dir}/hooks/capture_session_end.py" || python "{ide_dir}/hooks/capture_session_end.py"'
 
 # UserPromptSubmit（技能草稿提示，skill-creator §10）：走包内入口 `-m` 而非物理
 # 脚本——IDE 以项目根为工作目录执行 hook 命令，cwd 在 sys.path 上，checkout 内或
 # 已 pip 安装的 codewiki 包即可 import。命令不含任何路径，settings.json 随仓库
 # 共享天然可移植。脚本同步读 stdin 事件，内部按 containment 阈值过滤，命中
 # `status: draft` 草稿才输出 hookSpecificOutput（advisory：只提示、不自动 install）。
-PROMPT_HOOK_CMD = f"{_PYTHON_CMD} -m codewiki.mcp._ide_hook --enable"
+PROMPT_HOOK_CMD = (
+    "python3 -m codewiki.mcp._ide_hook --enable || python -m codewiki.mcp._ide_hook --enable"
+)
 # 我们这条 UserPromptSubmit 命令的识别特征（解释器名可变，尾部恒定）：
 # 解释器口径切换（python → python3）后，历史注册项必须仍被认作「我们自己的」，
 # 否则去重/摘除都会漏掉它，同一 hook 被 IDE 双重触发。

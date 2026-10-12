@@ -2906,7 +2906,10 @@ _register(
             "in get_task_context); the retired entry keeps its text, gains a "
             "superseded marker, and is skipped by injection/search. A write "
             "check rejects near-duplicates (difflib > 0.85) — supersede or "
-            "merge instead of re-adding."
+            "merge instead of re-adding. Echoes 'user' (the shard written) and "
+            "'user_source' (which rung of the identity chain resolved it: "
+            "env|pin|git-email|git-name|cache|login|local) — an unexpected "
+            "source means this channel drifted from the others."
         ),
         inputSchema={
             "type": "object",
@@ -2948,9 +2951,14 @@ _register(
             "distill_conversation(mode='prepare', task_id=<this task>) to catch up "
             "BEFORE answering the user's question. compaction_due=true means the "
             "HOT layer exceeded the compaction thresholds (40 entries / 24KB) "
-            "with entries beyond the keep window — run compact_task_memories to "
-            "compress old entries into a summary. Use this at session start to "
-            "resume a task."
+            "with entries beyond the keep window: the response then carries "
+            "compaction_action — dispatch the async worker subagent it describes "
+            "(prepare → summary → submit) WITHOUT asking the user; compaction is a "
+            "direct write, reversible via memories-archive. Also echoes 'user' "
+            "(the memory shard read here) with 'user_source' (env|pin|git-email|"
+            "git-name|cache|login|local) — identity drift between channels shows up there. "
+            "Use this at session "
+            "start to resume a task."
         ),
         inputSchema={
             "type": "object",
@@ -2991,7 +2999,10 @@ _register(
             "operation is reversible via the archive. No-op "
             "(compaction_needed=false) when below the thresholds (40 entries "
             "/ 24KB) or when nothing lies beyond the keep window. Trigger signal: "
-            "get_task_context returns compaction_due=true."
+            "get_task_context returns compaction_due=true plus a compaction_action "
+            "directive — the caller fulfils it by dispatching an async worker "
+            "subagent, which calls mode='prepare' itself so the entries to "
+            "compress never pass through the main agent's context."
         ),
         inputSchema={
             "type": "object",

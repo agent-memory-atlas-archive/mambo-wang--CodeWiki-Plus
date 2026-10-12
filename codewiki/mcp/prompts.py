@@ -1283,7 +1283,7 @@ claude 家族（CodeBuddy/Qoder/Claude Code/Gemini CLI 及理论支持工具）�
 
 ## 步骤 1: 检查当前状态
 依次检查项目根目录下**探测到的**每个智能体配置目录（如 `{repo_path}/.codebuddy/`、`{repo_path}/.qoder/`、`{repo_path}/.claude/` 等，以探测结果为准）：
-- 每个目录下读取家族对应的配置文件（claude 家族 `settings.json`；cursor/codex/trae 家族 `hooks.json`）：**已启用** = 存在 SessionEnd 与 SessionStart（或家族对应事件名，trae 家族为 Stop）两个条目，且对应目录 `hooks/` 下 `capture_session_end.py` 与 `task_session_start.py` 两个脚本文件都物理存在（claude 家族 command 用项目相对路径如 `python3 ".qoder/hooks/task_session_start.py"`——解释器名由 `install-hooks` 按本机平台解析（Windows 为 `python`），判「已启用」只看脚本相对路径后缀、不看解释器名；宿主以项目根为工作目录执行命令；不写机器相关绝对路径、也不用 `$*_PROJECT_DIR` 变量（实测不可靠）；历史绝对路径条目可视为已启用，但建议重跑接线迁移为相对路径形式）
+- 每个目录下读取家族对应的配置文件（claude 家族 `settings.json`；cursor/codex/trae 家族 `hooks.json`）：**已启用** = 存在 SessionEnd 与 SessionStart（或家族对应事件名，trae 家族为 Stop）两个条目，且对应目录 `hooks/` 下 `capture_session_end.py` 与 `task_session_start.py` 两个脚本文件都物理存在（claude 家族 command 用项目相对路径并带跨平台解释器回退，如 `python3 ".qoder/hooks/task_session_start.py" || python ".qoder/hooks/task_session_start.py"`——python3/python 双解释器写死、不随安装机变化，判「已启用」只看脚本相对路径后缀、不看解释器名；宿主以项目根为工作目录执行命令；不写机器相关绝对路径、也不用 `$*_PROJECT_DIR` 变量（实测不可靠）；历史绝对路径条目可视为已启用，但建议重跑接线迁移为相对路径形式）
 - 向用户报告哪些智能体已启用、哪些未启用
 
 ## 步骤 2A: 启用
@@ -1378,6 +1378,7 @@ def _prompt_task_workflow(args: dict[str, str]) -> str:
    - 主 Agent **不等 subagent 完成，直接回答用户提问**；在自然停顿点（任务里程碑、话题切换、收尾轮）重新 `get_task_context` 拉取最新记忆，并向用户展示待确认的草稿笔记
    - subagent 失败/超时不重试——未蒸馏的 raw 留在 raw/ 等下次会话再补
    - 向用户展示待确认的草稿笔记：`confirm_note` 确认后才正式落盘（任务记忆已直写，无需确认）
+6. **记忆压缩（异步 subagent，无确认闸门）**：同一次返回里 `compaction_due=true`（red：热层超 40 条/24KB 且有超出保留窗口的旧条目）会带 `compaction_action` 派发指令。**不要向用户征求同意**，也不要自己读待压缩的条目正文——立即用 Task 工具 spawn **异步**内置 general-purpose 子代理（本宿主自定义子代理拿不到 MCP 权限），按 `compaction_action.dispatch` 的三步配方执行（配方里的 `repo_path` 已带好，照抄即可；子代理没有会话上下文，缺 repo_path 工具会直接报错）：`compact_task_memories(mode="prepare", repo_path="{repo_path}", task_id=<选中任务>)` 取待压条目与 instruction → 按 instruction 写「早期记忆（摘要）」（不超过 `summary_max_chars`）→ `compact_task_memories(mode="submit", repo_path="{repo_path}", task_id=<选中任务>, summary=...)` 直写落盘。主 Agent 不等待、不阻塞当前工作；子代理回报后向用户一句话同步压缩条目数与 `memories_total` 变化。压缩全程可回溯（原文全量进 `memories-archive/`，ADR-0002 延伸——这就是它不设确认闸门的理由）；orange/yellow 档只报数不派发；文件域压缩，永不动他人文件。
 
 ## 会话进行中
 - 采集对话时带上 `task_id`（capture_conversation 的 task_id 参数，或经 set_session_task 绑定后自动带）
@@ -1404,6 +1405,7 @@ def _prompt_task_workflow(args: dict[str, str]) -> str:
 - `codewiki/mcp/tools/task_manager.py` — `create_task` / `list_tasks` / `get_task` / `complete_task` / `delete_task` / `set_session_task` / `add_task_memory` / `get_task_context` / `compact_task_memories`
 - 存储：`repowiki/tasks/.index.json`（可重建缓存：目录扫描为准，失配/损坏时自动重建）+ `<task_id>/task.md` + `<task_id>/memories/<user_id>.md`（每人只写自己的文件，多人 git 冲突隔离；条目带 `### YYYY-MM-DD HH:MM` 时间戳头；压缩后头部有「早期记忆（摘要）」段）+ `<task_id>/memories-archive/<user_id>.md`（压缩归档，append-only、永不自动加载）；`<task_id>/memories.md` 为存量单文件（只读兼容，热层，首次压缩并入当前用户文件后移除）；会话绑定在 `repowiki/.meta/task_bindings/`
 - `capture_conversation` / `distill_conversation` / `ingest_note` / `query_wiki` 均接受 `task_id`；蒸馏时 LLM 双轨产出 `notes`(通用知识，draft 待确认) 与 `memories`(任务进度，直写落盘——任务记忆不做确认闸门)
+- **`<user_id>` 由 `config.resolve_user_id(output_dir)` 解析**：`CODEWIKI_USER` env > 仓库本地身份钉 `repowiki/.meta/user_id`（gitignored、可重建）> `git -C <output_dir> config user.email` > `user.name` > 机器缓存 > 登录名。**只有 git 当场验证过的身份允许写钉/写缓存**——缓存只是过去某次派生的记忆化，那次派生可能就是退化通道（IDE 服务态 MCP：无 APPDATA/HOME，git 读不到 `~/.gitconfig`）的登录名兜底，让它升级为克隆身份会把错误固化。同一台机器上两条通道早先会解析成两个 uid 从而切出两个分片；身份钉把所有人绑回同一个分片。`get_task_context` / `add_task_memory` 回显 `user` + `user_source`，分片异常先看这两个字段；换身份就删钉文件。
 
 **关键设计约束(实现时务必遵守)：**
 - task_id 由标题 slugify 生成且**不可变**；同名任务被拒绝；**无重命名**(删除后重建)。
@@ -1411,7 +1413,7 @@ def _prompt_task_workflow(args: dict[str, str]) -> str:
 - **绑定文件是一次性消费凭证**：`set_session_task` 写入 `repowiki/.meta/task_bindings/<session_id>.json` 后，首次 `capture_conversation` 成功落盘即退役到 `task_bindings/consumed/`（凭证不再生效，但 `task_id` 保留）；显式传 `task_id` 不消费绑定。同会话再次捕获（supersede）继承旧 raw 的 task_id；若旧 raw 已被蒸馏、无 pending 条目可继承，则回退读退役凭证（`task_source=binding-archived`），归属不丢。
 - `query_wiki` 不校验任务存在性(幽灵 `task_id` 允许)。
 - `memories/<user_id>.md` 追加式原子写(临时文件 + `os.replace`)，并发串行；**每人只写自己的文件**(文件所有权即 git 级互斥原语)；条目带 `### YYYY-MM-DD HH:MM` 时间戳头(保持 markdown 不迁 JSONL，时间戳头是切条/截断/压缩的解析边界，存量无头文件运行时空行回退解析)。
-- `get_task_context`/`get_task` 的 memories 返回**分层有界**：热层=自己(+存量 legacy)文件取最近 20/5 条全量；温层=其他成员仅注入摘要+最近 2 条(超预算降级为一行线索)；`memories_total`/`memories_truncated` 标记截断、`max_memories` 参数翻页；`compaction_due=true` 表示热层超压缩阈值(40 条/24KB)且超出保留窗口，应跑 `compact_task_memories`(两段式无状态：`mode="prepare"` 取待压条目由调用方写摘要 → `mode="submit"` 落盘；**文件域压缩，只压自己的文件(+legacy 并入)，永不动他人文件**；原文按归属归档 `memories-archive/<user_id>.md` 不删，直写不走 confirm 闸门)。"""
+- `get_task_context`/`get_task` 的 memories 返回**分层有界**：热层=自己(+存量 legacy)文件取最近 20/5 条全量；温层=其他成员仅注入摘要+最近 2 条(超预算降级为一行线索)；`memories_total`/`memories_truncated` 标记截断、`max_memories` 参数翻页；`compaction_due=true`(red，热层超 40 条/24KB 且有超出保留窗口的旧条目)时返回值携带 **`compaction_action` 派发指令**（**不含**待压缩条目正文——正文只由 `compact_task_memories(mode="prepare")` 交给子代理，不进主 Agent 上下文）：主 Agent 按指令异步 spawn 子代理跑 prepare→写摘要→submit，**全程无需用户确认**（直写语义，原文全量进 `memories-archive/` 可回溯，ADR-0002 延伸）；orange/yellow 档只报数不派发。**文件域压缩，只压自己的文件(+legacy 并入)，永不动他人文件**。"""
 
 
 def _prompt_consolidate_knowledge(args: dict[str, str]) -> str:

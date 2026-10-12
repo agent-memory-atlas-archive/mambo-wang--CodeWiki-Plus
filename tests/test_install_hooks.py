@@ -11,9 +11,7 @@ Covered:
 """
 
 import json
-import os
 import re
-import shutil
 from pathlib import Path
 
 import pytest
@@ -724,45 +722,29 @@ def test_cli_auto_detect_skips_qwenwork_hint(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# 解释器口径：命令里写死 `python` 时，mac/Linux（只有 python3）上三个 hook 全部
-# 以 exit 127 静默失败——任务关联弹框与对话采集都不触发（2026-09-30 Qoder CN
-# 日志实测定案）。命令仍不得含路径，保持随仓库共享可移植。
+# 解释器跨平台回退：命令写成 `python3 X || python X`——先试 python3，缺则落 exit
+# 127 由 || 触发 python 兜底。mac（只有 python3）与 Windows（只有 python）一次写死
+# 都生效，不再依赖 install-hooks 按安装机快照单一解释器（该历史设计会让另一端的
+# 三个 hook 全部 127 静默失败，2026-09-30 Qoder CN 日志实测定案）。命令仍不得含
+# 路径，保持随仓库共享可移植；脚本 fail-open 恒返回 0，故回退段不会二次执行。
 # ---------------------------------------------------------------------------
 
 
-def test_hook_commands_use_this_platform_interpreter():
-    expected = "python"
-    if os.name != "nt":
-        expected = "python3" if shutil.which("python3") else "python"
+def test_hook_commands_fall_back_across_interpreters():
     for cmd in (
         START_HOOK_CMD.format(ide_dir=".qoder"),
         END_HOOK_CMD.format(ide_dir=".qoder"),
         PROMPT_HOOK_CMD,
     ):
-        assert cmd.split()[0] == expected, cmd
-        assert "/" not in cmd.split()[0] and "\\" not in cmd.split()[0], cmd
-
-
-@pytest.mark.parametrize(
-    "os_name,available,expected",
-    [
-        ("nt", {}, "python"),
-        ("nt", {"python3": 1}, "python"),
-        ("posix", {"python3": 1}, "python3"),
-        ("posix", {"python": 1}, "python"),
-        ("posix", {}, "python"),
-    ],
-)
-def test_resolve_python_cmd_platform_matrix(monkeypatch, os_name, available, expected):
-    from codewiki.cli.utils import ide_config
-
-    monkeypatch.setattr(ide_config.os, "name", os_name)
-    monkeypatch.setattr(
-        ide_config.shutil,
-        "which",
-        lambda name: f"/usr/bin/{name}" if name in available else None,
-    )
-    assert ide_config._resolve_python_cmd() == expected
+        left, sep, right = cmd.partition("||")
+        assert sep, cmd  # 必须含 || 回退
+        # 首选 python3、兜底 python，两端都在
+        assert left.strip().split()[0] == "python3", cmd
+        assert right.strip().split()[0] == "python", cmd
+        # 可移植：每段首 token 皆为裸解释器名，不含路径分隔符或盘符
+        for side in (left, right):
+            head = side.strip().split()[0]
+            assert "/" not in head and "\\" not in head and ":" not in head, cmd
 
 
 def test_merge_migrates_legacy_interpreter_prompt_cmd():
