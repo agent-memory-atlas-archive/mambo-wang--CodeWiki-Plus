@@ -15,7 +15,7 @@
 
 ## 前置条件
 
-wrapper 通过 `<python> -m codewiki.mcp._ide_hook` 调起采集脚本（`install-hooks` 生成的解释器名按本机平台解析：Windows 为 `python`，mac/Linux 一般为 `python3`），因此要求该解释器能导入 `codewiki` 包。满足其一即可：
+wrapper 通过 `<python> -m codewiki.mcp._ide_hook` 调起采集脚本（`install-hooks` 生成的命令用 `python3 X || python X` 跨平台回退：先试 `python3`，缺则落 127 由 `||` 触发 `python`，两端一次写死都生效），因此要求两者之一能导入 `codewiki` 包。满足其一即可：
 
 1. `codewiki` 已通过 pip 安装（如 `pip install codewiki-plus`）；
 2. hook 位于 CodeWiki 源码仓库内（`.codebuddy/` 随仓库分发，子进程以仓库为 cwd 运行，本地包直接可导入）；

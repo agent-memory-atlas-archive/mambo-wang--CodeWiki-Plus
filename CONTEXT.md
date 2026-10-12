@@ -105,9 +105,9 @@ _Avoid_: 把案卷写成普通 note（污染检索语料）、双向 `conflict_w
 「按关键词找回被截断/压缩的旧条目」。条目级颗粒度（`### 日期` 一条一记录），检索时
 内存直算（永远新鲜、零持久化，不与 wiki 索引互作），archive 参与召回（压缩与检索
 正交：压缩省注入成本，检索是主动付费的找回）。默认只搜本人，搜索侧隐私姿态不宽于
-读取侧。自动压缩由 get_task_context 携带 compaction_work 驱动（与 compact 的
-prepare 同一构造点），Agent 顺手 submit，无需用户确认（ADR-0002 直写语义延伸，
-可逆操作）。
+读取侧。自动压缩由 get_task_context 携带 compaction_action 派发指令驱动（red 档才派发；
+待压条目正文只由 compact 的 prepare 交给子代理，不进主 Agent 上下文），异步子代理跑
+prepare→写摘要→submit，无需用户确认（ADR-0002 直写语义延伸，可逆操作）。
 _Avoid_: 把任务记忆并进 query_wiki 语料（分轨）、为检索持久化索引（wiki 全量重建
 会静默清掉且污染语料统计）、为索引加后台进程（成本不可见）。
 
