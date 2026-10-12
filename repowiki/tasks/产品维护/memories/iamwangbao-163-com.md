@@ -129,3 +129,15 @@ D + 草稿处置完成，但压缩那一段的结论需修正（2026-10-10，sup
 ### 2026-10-10 18:16 #mrvt
 
 OCR 委托评审完成（2026-10-10，工作区 13 个可审文件，覆盖率 13/13=100%，未做任何修改——用户只要求「审查代码」）。发现 1 中 2 低：①**Medium/bug**：压缩派发指令缺 repo_path——`task_manager.py:1164 _compaction_action(task_id)` 的三步配方和 `prompts.py:1381` 步骤 6 的示例调用都只带 task_id，而 `handle_compact_task_memories:1260-1265` 在无 session 且无 repo_path 时直接返回 `repo_path is required` 错误；异步子代理是全新上下文、唯一信息来源就是这条指令，按字面执行必失败（本轮我自己派发时是手工补的 repo_path，即旁证）。修法：`_compaction_action(output_dir, task_id)` 带上仓库根（output_dir.parent），配方写 `repo_path=<仓库根>`，prompts.py 用现成的 `{repo_path}` 插值同步。②Low：`config.py:226-233` `_read_user_id_cache` docstring 仍称「避免每次冷启动跑 git 子进程」，新链路里缓存已降到 git 之后（只在 git 不可用时兜底），注释与行为矛盾。③Low（未复现，需确认）：`ide_config.py:142-147` 的 `python3 X || python X`——Windows 上 python3 若命中 Microsoft Store 执行别名，横幅走 stdout 且非零退出，UserPromptSubmit 分支（stdout 被宿主机器解析）会拼接噪声；本机根本无 python3 故无法复现。核验通过的点：三个 JSON 的 9 处 command 与常量逐字一致（不产生重复注册）；.gitignore 的 repowiki/.meta/user_id 与 gitignore_entries() 生成式一致且 check-ignore 命中；删掉的 _resolve_python_cmd/_PYTHON_CMD 全仓无残留、os/shutil 非死导入；_relative_hook_suffix 与 _is_codewiki_prompt_cmd 对新命令仍能识别并迁移历史条目；task_manager 引用的 SUMMARY_HEADING/_COMPACTION_* 常量全部存在（不会 NameError），_prepare_compaction_payload 仍被 :1297 使用（非死代码）；全仓已无 user_id() 无参调用点。越界提示（md 不在 OCR 范围）：docs/任务记忆退役与写入检查设计方案.md:23 仍写内联 compaction_work 与旧行号。
+
+### 2026-10-12 11:09 #fho7
+
+提交完成（2026-10-10，用户批准「先修 Medium 再提交」+「按主题拆 3 个提交」）：develop 上三个本地提交，**未推送**。f285ec2 feat: 压缩免确认异步派发 + 身份解析接仓库本地钉（17 files，+542/-178：9 个 codewiki py + 4 tests + 3 宿主 settings + .gitignore）；2a06db6 docs: 设计文档同步口径（8 files：CONTEXT/README + 6 个设计文档）；65a7a66 chore(repowiki): 知识沉淀（15 files，含6 条新 note 入库、memories/Administrator.md 删除）。提交前提交后实证：ruff check/format 全干净；两个相关测试文件 71 passed；全量 pytest 1244 passed / 2 skipped（12m28s，exit 0）——skip 数比早前记录多 1，但在我未改动的文件里（这两个文件本次 0 skip）。Medium 修法落地：_compaction_action(task_id, repo_path) 把调用方自己的 repo_path 回显进配方①③两处 + 一句「子代理无会话上下文」说明，prompts 步骤 6 用 {repo_path} 插值同步，测试加 4 条断言钉住。遗留未入库（等用户点头）：uv.lock +879/-3（markitdown 可选依赖 43 个包的补锁，pyproject 未变，建议单独 chore 提交便于单独 revert）；.scratch/ 47 个未忽略的一次性发布脚本与结果文件（含两份身份备份）——选项是删或加 .gitignore 规则；docs/articles/终结篇.md + images/ 约 20 张图（更早遗留）；repowiki/conversations/ 3 个未蒸馏 raw。代码改动需用户 /mcp reload 才在 MCP 通道生效。
+
+### 2026-10-12 11:25 #is5r
+
+遗留两项已按用户口径处置（2026-10-12）：dfb88b3 chore: .gitignore 忽略 .scratch **顶层散文件**——不能整目录忽略！本仓约定 .scratch/<feature>/issues/*.md 是内部工单区呓 18 个文件已跟踪，故规则为 `.scratch/*` + 反选 `!.scratch/*/`（磁盘已验：18 个工单文件不受影响、子目录新建文件仍显示未跟踪、顶层 47 个 ?? 归 0）。e3ec267 chore: uv.lock 补齐 markitdown 可选 extra 的 43 个传递依赖（pyproject 未变）。develop 现共 5 个本地提交未推送。工作区仍剩 3 个 repowiki 待提交项：子代理派发自包含草稿（**待用户 confirm/reject，确认前不入库**）、#fho7 后的分片增量、wiki log。
+
+### 2026-10-12 11:26 #26g3
+
+收尾（2026-10-12）：上一条 #is5r 里“待提交 3 项”已按用户「提交」入库——子代理派发自包含 lesson 草稿仍为 status: draft（文件入库不等于晋升，待用户 confirm/reject）、任务分片含 #fho7/#is5r 本轮新增、wiki log 同步。commit 后 develop 共 6 个本地提交未推送；工作区只剩 3 个未跟踪 raw 对话与 docs/articles 终结篇旧遗留（都按用户口径不动）。
