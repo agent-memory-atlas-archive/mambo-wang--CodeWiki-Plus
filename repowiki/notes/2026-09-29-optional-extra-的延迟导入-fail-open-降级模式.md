@@ -1,22 +1,33 @@
 ---
 type: procedure
-title: "optional extra 的延迟导入 + fail-open 降级模式"
-tags: ["importerror", "markitdown", "procedure"]
+title: optional extra 的延迟导入 + fail-open 降级模式
+tags:
+- importerror
+- markitdown
+- procedure
 metadata:
   date: 2026-09-29
-  confidence_level: weak
+  confidence_level: strong
   task_id: 产品维护
-  source_session: "21f92d273a7c47e597c547a2cd0beb1f"
-  related_modules: ["source_ingest", "pyproject"]
+  source_session: 21f92d273a7c47e597c547a2cd0beb1f
+  related_modules:
+  - source_ingest
+  - pyproject
   severity: medium
-  source_ref: "conversations/conv-user_command-commands-codewiki-外部文档知识抽取-请导入外部文档并从中抽取结构化知识。采用-8bc161.md"
-  scene: "ingest_source 二进制源转换"
-status: draft
+  source_ref: conversations/conv-user_command-commands-codewiki-外部文档知识抽取-请导入外部文档并从中抽取结构化知识。采用-8bc161.md
+  scene: ingest_source 二进制源转换
+  verification:
+    test_ref: tests/test_source_convert.py
+status: stable
 author: iamwangbao-163-com
-generated: { by: codewiki/5.14.1, at: 2026-09-29T01:56:16Z }
-stale_after: 2027-03-28
+generated:
+  by: codewiki/5.14.1
+  at: 2026-09-29 01:56:16+00:00
+stale_after: '2027-04-08'
 origin: conversation
-
+verified:
+- by: human:mambo-wang
+  at: '2026-10-10T09:48:44Z'
 ---
 
 ## Background
