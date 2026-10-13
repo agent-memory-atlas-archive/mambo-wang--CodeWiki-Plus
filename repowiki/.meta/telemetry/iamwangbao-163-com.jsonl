@@ -1679,3 +1679,4 @@
 {"t": "hit", "doc": "notes/2026-09-26-新功能落地后立即狗粮自评审用刚实施的功能评审自己的变更当场抓到实施-bug.md", "at": "2026-10-12", "n": 1}
 {"t": "hit", "doc": "wiki/modules/DocVisualizer.md", "at": "2026-10-12", "n": 1}
 {"t": "hit", "doc": "notes/2026-09-19-mcp-工具-annotations-挂起待搭车sdk-已支持判定标准采用-memos-覆盖既有状态说.md", "at": "2026-10-12", "n": 1}
+{"t": "adopted", "doc": "notes/2026-10-13-trae-windows-hook-命令勿用-兜底powershell-51-解析期报错导致-hook-静默不执行.md", "at": "2026-10-13T10:39:53", "key": "iamwangbao-163-com/fd5b56bf5153404e808144ba42e59655"}

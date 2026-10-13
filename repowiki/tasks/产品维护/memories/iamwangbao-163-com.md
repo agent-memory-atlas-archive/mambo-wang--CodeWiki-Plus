@@ -141,3 +141,7 @@ OCR 委托评审完成（2026-10-10，工作区 13 个可审文件，覆盖率 1
 ### 2026-10-12 11:26 #26g3
 
 收尾（2026-10-12）：上一条 #is5r 里“待提交 3 项”已按用户「提交」入库——子代理派发自包含 lesson 草稿仍为 status: draft（文件入库不等于晋升，待用户 confirm/reject）、任务分片含 #fho7/#is5r 本轮新增、wiki log 同步。commit 后 develop 共 6 个本地提交未推送；工作区只剩 3 个未跟踪 raw 对话与 docs/articles 终结篇旧遗留（都按用户口径不动）。
+
+### 2026-10-12 11:34 #nqvc
+
+本轮 OCR 委托评审闭环已推送：6 个提交（f285ec2..99e4ec0）push 到 origin/develop（81c5004..99e4ec0，fast-forward），Medium 缺陷「压缩派发指令缺 repo_path」的修复随之上线；工作区已跟踪改动归 0，未跟踪仅剩 3 个 repowiki/conversations raw 暂存件。另记一笔待决事项：未跟踪的 docs/articles/CodeWiki-Plus终结篇….md、docs/articles/images/、根目录 vibe_images/ 于 2026-10-12 11:24 被移入 Windows 回收站（非 git 动作，git 从未跟踪过这三者，IDE 本地历史零命中），回收站里仍在、可整件还原，是否恢复待用户决定。
