@@ -72,3 +72,14 @@ jobs:
         run: |
           xargs -0 -r uv run ruff format --check \
             < "$RUNNER_TEMP/changed-python-files"
+
+      # Phase-in mypy: only check changed Python files so existing type debt
+      # does not block every PR. Full-project baseline has ~650 errors (see
+      # .qoder/mypy-baseline.txt); tighten once the baseline is cleaned up.
+      # continue-on-error: changed files may still carry legacy errors, so
+      # report first and flip to blocking after the debt is burned down.
+      - name: Mypy type check changed files
+        continue-on-error: true
+        run: |
+          xargs -0 -r uv run python -m mypy --follow-imports=silent \
+            < "$RUNNER_TEMP/changed-python-files"
