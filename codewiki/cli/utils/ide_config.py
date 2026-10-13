@@ -139,6 +139,8 @@ AGENT_FILE = "distill-worker.md"
 # 含路径分隔符（可移植性不变），且两端一次写死永久生效——先试 python3（mac 命中
 # 即 exit 0、|| 短路不再跑 python），缺则落 127 触发 python（Windows 命中）。三个
 # hook 脚本皆 fail-open（main 恒返回 0），故回退段不会二次执行、不产生重复注册。
+# TRAE 家族不适用本模板：TRAE Windows 用 PowerShell 5.1 跑 hook，`||` 是解析期
+# 错误、整条命令不执行（2026-10-13 本仓实证），其三命令见 _trae_hook_commands。
 START_HOOK_CMD = 'python3 "{ide_dir}/hooks/task_session_start.py" || python "{ide_dir}/hooks/task_session_start.py"'
 END_HOOK_CMD = 'python3 "{ide_dir}/hooks/capture_session_end.py" || python "{ide_dir}/hooks/capture_session_end.py"'
 
@@ -154,6 +156,30 @@ PROMPT_HOOK_CMD = (
 # 解释器口径切换（python → python3）后，历史注册项必须仍被认作「我们自己的」，
 # 否则去重/摘除都会漏掉它，同一 hook 被 IDE 双重触发。
 _PROMPT_HOOK_TAIL = "-m codewiki.mcp._ide_hook --enable"
+
+# TRAE 家族命令模板：单解释器按安装机平台快照（Windows `python`、mac/Linux
+# `python3`）。TRAE Windows 用 PowerShell 5.1 跑 hook，`||` 是解析期错误——整条
+# 命令不执行、hook 静默全灭（2026-10-13 本仓 .trae/hooks.json 实证），claude 家族
+# 的 POSIX 语义双解释器兜底在 TRAE 上不成立。代价：hooks.json 随仓共享后，跨平台
+# 机器须重跑 install-hooks 迁回本机解释器——迁移按相对脚本后缀命中，自动完成。
+_TRAE_START_HOOK_CMD = '{py} "{ide_dir}/hooks/task_session_start.py"'
+_TRAE_END_HOOK_CMD = '{py} "{ide_dir}/hooks/capture_session_end.py"'
+_TRAE_PROMPT_HOOK_CMD = "{py} -m codewiki.mcp._ide_hook --enable"
+
+
+def _trae_hook_commands(ide_dir: str) -> tuple:
+    """TRAE 家族的三条 hook 命令（start/end/prompt），解释器按安装机平台快照。
+
+    Windows 只保证 `python`、mac/Linux 普遍只有 `python3`（与 claude 家族同一
+    平台口径），但 TRAE Windows 的 hook shell 是 PowerShell 5.1，
+    `python3 X || python X` 的 `||` 会让整条命令解析失败，故退回单解释器快照。
+    """
+    py = "python" if os.name == "nt" else "python3"
+    return (
+        _TRAE_START_HOOK_CMD.format(py=py, ide_dir=ide_dir),
+        _TRAE_END_HOOK_CMD.format(py=py, ide_dir=ide_dir),
+        _TRAE_PROMPT_HOOK_CMD.format(py=py),
+    )
 
 # hook 事件注册骨架，command 运行时补全为相对路径命令。matcher 语义：
 # SessionStart 的 "startup" 匹配会话启动；SessionEnd 的 "other" 匹配任意原因；
@@ -221,6 +247,7 @@ def merge_settings_json(
     end_cmd: str,
     spec: Optional[dict] = None,
     capture: bool = True,
+    prompt_cmd: str = PROMPT_HOOK_CMD,
 ) -> dict:
     """幂等合并 CodeWiki 的 hook 注册到现有 settings.json / hooks.json 配置。
 
@@ -228,7 +255,8 @@ def merge_settings_json(
     数组按 command 去重后合并 CodeWiki 注册项，避免重复注册。历史旧格式条目
     （绝对路径、反斜杠路径或 ``$*_PROJECT_DIR`` 占位符形式）指向同一相对脚本
     路径时，原地迁移为相对路径命令（保留原 timeout），重跑接线不产生重复条目。
-    UserPromptSubmit（advisory 技能提示）走常量命令 ``PROMPT_HOOK_CMD``——
+    UserPromptSubmit（advisory 技能提示）走 ``prompt_cmd``（默认常量
+    ``PROMPT_HOOK_CMD``，TRAE 家族传平台快照单解释器变体）——
     ``python -m`` 入口不含路径，无从迁移；matcher 空串 = 每条指令都过匹配器，
     由脚本内部 containment 阈值把关。返回合并结果，由调用方原子写回。
 
@@ -264,7 +292,7 @@ def merge_settings_json(
             # TRAE 无 SessionEnd：Stop 每轮 Query 结束触发，无 transcript_path，
             # _ide_hook 仅 stderr 诊断、不落盘（对话捕获走 Agent 收尾 norm）。
             ("SessionStart", None, start_cmd, 15),
-            ("UserPromptSubmit", None, PROMPT_HOOK_CMD, 10),
+            ("UserPromptSubmit", None, prompt_cmd, 10),
         ]
         if capture:
             registrations.insert(1, ("Stop", None, end_cmd, 30))
@@ -274,7 +302,7 @@ def merge_settings_json(
             # matcher 空串：UserPromptSubmit 的匹配对象是用户指令文本，空串 =
             # 每条都触发（区别于 SessionStart 的 "startup" 只匹配会话启动）。
             # 同步执行（IDE 要等 stdout 的 hookSpecificOutput），timeout 10 足够。
-            ("UserPromptSubmit", "", PROMPT_HOOK_CMD, 10),
+            ("UserPromptSubmit", "", prompt_cmd, 10),
         ]
         if capture:
             registrations.insert(1, ("SessionEnd", "other", end_cmd, 30))
@@ -319,7 +347,7 @@ def merge_settings_json(
             if not old or old == norm(command):
                 continue
             ours_script = bool(suffix) and old.endswith(suffix)
-            ours_prompt = command == PROMPT_HOOK_CMD and _is_codewiki_prompt_cmd(old)
+            ours_prompt = command == prompt_cmd and _is_codewiki_prompt_cmd(old)
             if ours_script or ours_prompt:
                 h["command"] = command
 
@@ -698,9 +726,17 @@ def install_for_ide(
             raise IdeWiringError(f"Cannot parse {settings_path}: {e}")
     # command 用项目相对路径，不写机器相关绝对路径
     # （见 START_HOOK_CMD / END_HOOK_CMD 注释）
-    start_cmd = START_HOOK_CMD.format(ide_dir=spec["dir"])
-    end_cmd = END_HOOK_CMD.format(ide_dir=spec["dir"])
-    merged = merge_settings_json(existing, start_cmd, end_cmd, spec=spec, capture=capture_on)
+    if spec.get("format") == "trae":
+        # TRAE 家族：PowerShell 5.1 视 `||` 为解析期错误，双解释器兜底会
+        # 静默全灭——退回安装机平台快照单解释器（见 _trae_hook_commands）。
+        start_cmd, end_cmd, prompt_cmd = _trae_hook_commands(spec["dir"])
+    else:
+        start_cmd = START_HOOK_CMD.format(ide_dir=spec["dir"])
+        end_cmd = END_HOOK_CMD.format(ide_dir=spec["dir"])
+        prompt_cmd = PROMPT_HOOK_CMD
+    merged = merge_settings_json(
+        existing, start_cmd, end_cmd, spec=spec, capture=capture_on, prompt_cmd=prompt_cmd
+    )
     settings_changed = merged != existing
     try:
         safe_write(
