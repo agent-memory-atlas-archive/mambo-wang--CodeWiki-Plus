@@ -195,7 +195,7 @@ def _load_active_tasks(repo_path: str) -> list:
 # ---------------------------------------------------------------------------
 # CodeBuddy 的 ask_followup_question 只受 schema「建议 2-4 个 options」这种软约束，
 # 注入文案历来硬性压过它、要求一框列全（多框是用户明确反对过的行为）。
-# Qoder（含 Qoder CN）的 AskUserQuestion 是硬约束：单题 2-4 个 options、最多 4 题、
+# Qoder（含 Qoder CN）与 Trae 的 AskUserQuestion 是硬约束：单题 2-4 个 options、最多 4 题、
 # header ≤12 字符、label 建议 1-5 词——进行中任务一多就物理放不下，硬凑会让弹框调用
 # 直接失败。故按宿主分档：截断到选项上限，其余任务写进问题正文，由该工具自带的
 # 「其他」自由输入承接（输入列表内任务名 → 关联该任务；列表外 → 新建）。
@@ -205,7 +205,7 @@ _QODER_LABEL_MAX = 12  # 中文长标题截断为 label，完整标题与 task_i
 
 def _chooser_channel() -> dict:
     """Return the host's structured-question channel."""
-    if IDE_DIR_NAME == ".qoder":
+    if IDE_DIR_NAME in (".qoder", ".trae"):
         return {"tool": "AskUserQuestion", "option_cap": _QODER_OPTION_CAP}
     return {"tool": "ask_followup_question", "option_cap": None}
 
@@ -513,9 +513,10 @@ def _build_message(event: dict, repo_path: str) -> str:
         )
         if rest:
             lines.append(
-                f"  - 进行中共 {len(active)} 个任务，未进选项的 {len(rest)} 个写进 question 正文"
-                "（下面「正文任务清单」），并在正文里写明：想要列表里没有的任务时选「其他」"
-                "输入任务名即可。"
+                f"  - 进行中共 {len(active)} 个任务，Qoder 弹框 options 硬上限 {cap} 个，"
+                f"因此只把最近的 {len(shown)} 个任务放进选项；其余 {len(rest)} 个任务列在"
+                "下方「正文任务清单」。请把这段说明写进 question 正文，并告诉用户："
+                "想选清单里的任务时，点「其他」输入任务名或 task_id 即可关联。"
             )
         lines.append(
             "  - label 要短（工具建议 1-5 词），完整标题与 task_id 放 description；"
@@ -531,6 +532,10 @@ def _build_message(event: dict, repo_path: str) -> str:
         if rest:
             lines.append("  正文任务清单（未进选项，写进 question 正文供用户选「其他」输入）：")
             lines.extend(_option_lines(rest, capped=False))
+            lines.append(
+                "  操作提示：选「其他」后输入上面任一任务名、task_id 或关键字，"
+                "命中即关联；未命中则视为新建任务。"
+            )
         lines.append("")
         lines.append(
             "【结果判定】用户点选某个任务选项 → 取该选项 description 里的 task_id 调用 "
