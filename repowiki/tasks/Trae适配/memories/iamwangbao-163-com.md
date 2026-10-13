@@ -15,3 +15,7 @@
 ### 2026-10-13 10:36 #xnie
 
 【Trae 命令模板修复完成】方案选定「平台快照单解释器」并落地：ide_config.py 新增 _trae_hook_commands()（os.name=='nt'→python，否则 python3；_TRAE_START/END/PROMPT_HOOK_CMD 三模板），merge_settings_json 加 prompt_cmd 参数（默认 PROMPT_HOOK_CMD，claude 家族行为不变），wire_ide 按 spec.format=='trae' 分档。迁移/识别逻辑零改动即可兼容：_relative_hook_suffix 锚定命令尾部相对脚本路径、_is_codewiki_prompt_cmd 按 -m 尾部特征，历史 || 毒命令重跑 install-hooks 自动原地迁移（保留 timeout）。测试：test_install_trae_writes_hooks_json 改钉 trae 三命令、新增 test_trae_hook_commands_single_interpreter_no_shell_fallback（monkeypatch os.name 双平台）与 test_merge_trae_migrates_shell_fallback_commands_in_place、test_wiring_matrix 的 prompt 断言改尾部特征；82 全过。真实仓库 install-hooks --ide trae 幂等 no-change。prompts.py 无需改（TRAE 变体示例本就是单解释器按平台替换）。遗留：①.trae/hooks.json 跨平台共享时 mac 机需重跑 install-hooks 迁回 python3（已知代价，迁移自动）；②Trae Stop 无 transcript_path 采集空跑问题未动；③.qoder/.codebuddy 安装副本与包内源副本是否整体同源未核对。
+
+### 2026-10-13 11:43 #t7cj
+
+完成今日 3 提交（dc962ed/9dc4035/1620d10，HEAD~3..HEAD）的变更评估与代码评审。核心变更：Trae Windows hook 命令修复（ide_config.py 平台适配生成纯 python 命令）+ hook 四副本同步（SHA256 一致已验证）+ schema.yaml 笔记类型晋升/合并扩展。回归测试 142 个全绿。评审结论：无 blocker；2 个遗留问题——R1(minor) schema.yaml 头部注释块被 round-trip 序列化静默丢失（语义对比确认无值删除，纯增量），R2(nit) 全文件重排造成 575 行噪声 diff，同根因。建议后续排查是哪个工具用 yaml load→dump 重写了 schema.yaml。报告已存 .codewiki/workspace/review_reports/20261013-114340-*.json。
