@@ -181,6 +181,7 @@ def _trae_hook_commands(ide_dir: str) -> tuple:
         _TRAE_PROMPT_HOOK_CMD.format(py=py),
     )
 
+
 # hook 事件注册骨架，command 运行时补全为相对路径命令。matcher 语义：
 # SessionStart 的 "startup" 匹配会话启动；SessionEnd 的 "other" 匹配任意原因；
 # UserPromptSubmit 的空串 matcher 让每条用户指令都过一遍匹配器，是否提示由

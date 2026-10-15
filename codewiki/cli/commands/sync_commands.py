@@ -48,15 +48,11 @@ _PATH_ARGS = {"repo_path", "workspace_path"}
 # opt-out 默认值照常生效（2026-09-29 实锤事故：用户答「否」仍被接线）。
 _SWITCH_HINTS = {
     "enable_task_management": (
-        '- enable_task_management：默认启用任务管理接线；'
+        "- enable_task_management：默认启用任务管理接线；"
         '用户明确表示不启用任务管理（如回答「否」/「不要」）时传 "false"'
     ),
-    "capture": (
-        '- capture：默认 on；用户明确表示关闭对话采集时传 "off"'
-    ),
-    "clone": (
-        '- clone：默认 true；用户明确表示只登记不克隆时传 "false"'
-    ),
+    "capture": ('- capture：默认 on；用户明确表示关闭对话采集时传 "off"'),
+    "clone": ('- clone：默认 true；用户明确表示只登记不克隆时传 "false"'),
 }
 
 _STUB_TEMPLATE = """# {title}

@@ -1,5 +1,16 @@
 <!-- CodeWiki LLM Wiki -->
 
+## 验证入口（改完 Python 代码必跑的检查）
+
+安装依赖：`uv sync --frozen`（Python 3.12+）。**命令统一用 `uv run python -m <pkg>` 形式**：本机实测 `uv run pytest --version` 报 `uv trampoline failed to canonicalize script path`（exit 1），`uv run python -m pytest --version` 才通。
+
+- **聚焦检查**（改完先跑，秒级）：`uv run python -m pytest tests/test_<对应模块>.py -q -p no:cacheprovider`
+- **全量测试**（约 11 分钟）：`uv run python -m pytest -q`
+- **lint / 格式**：`uv run python -m ruff check <files>`、`uv run python -m ruff format <files>`
+- **类型检查**：`uv run python -m mypy --follow-imports=silent <files>` — 全量基线有 519 个存量错误（`.qoder/mypy-baseline.txt`），故只查变更文件、CI 里非阻塞
+- **MCP handler 契约**（126 项断言，入口是 `main()` 而不是 `test_*`，**pytest 永远收集不到它**）：`uv run python tests/okf_regression_test.py`。CI 的 test job 已显式运行，但因 6 条断言落后于产品变更（当前 120 通过 / 6 失败）而暂为 `continue-on-error`。
+- ⚠️ **不要直接跑 `tests/smoke_test_mcp.py`**：它把本仓真实路径传给 `analyze_repo`，而 `codewiki/mcp/tools/analysis.py:57-64` 已把 output_dir 收敛为 `repo_path` 的纯函数（忽略调用方覆盖），运行它会写入真实 `repowiki/` 并在 `analysis.py:74` 触发 `session_ff_only` git 操作。
+
 ## CodeWiki LLM Wiki
 
 本项目已使用 [CodeWiki](https://github.com/mambo-wang/CodeWiki-Plus) 生成 LLM Wiki 文档，位于 `repowiki/` 目录。
