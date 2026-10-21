@@ -21,6 +21,7 @@ setup command for CodeWiki CLI — 三段式一键装机。
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Optional
 
@@ -35,12 +36,17 @@ _MCP_SERVER_KEY = "codewiki"
 
 
 def _build_server_config(lang: Optional[str]) -> dict[str, Any]:
-    """codewiki MCP server 配置块（对齐 README 手工配置口径）；--lang 显式传入时才写 env.CODEWIKI_LANG。"""
+    """codewiki MCP server 配置块；--lang 显式传入时才写 env.CODEWIKI_LANG。
+
+    timeout 对齐 README 手工配置口径（36000000）；解释器按平台快照（与 TRAE
+    hook 命令同口径）：Windows 只保证 ``python``，mac/Linux 普遍只有
+    ``python3``，而 MCP 配置无法表达 ``||`` 双解释器回退。
+    """
     server: dict[str, Any] = {
-        "command": "python",
+        "command": "python" if os.name == "nt" else "python3",
         "args": ["-m", "codewiki.mcp.server"],
         "maxOutputLength": 500000,
-        "timeout": 600000,
+        "timeout": 36000000,
         "disabled": False,
     }
     if lang:
@@ -152,6 +158,8 @@ def setup(
     current = i18n.lang()
 
     repo = Path(repo_path).resolve()
+    if not repo.is_dir():
+        raise click.UsageError(f"目标仓库路径不存在或不是目录：{repo}")
     failures: list[str] = []
 
     click.echo()

@@ -338,6 +338,30 @@ def test_prune_ignores_missing_dir(tmp_path):
     assert _prune_stale_skills(tmp_path / "nope", keep=set(), dry_run=False) == []
 
 
+def test_prune_skips_symlinked_dirs(tmp_path):
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    target = tmp_path / "outside"
+    target.mkdir()
+    link = skills_dir / "codewiki-stale"
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("当前环境不支持创建符号链接")
+
+    assert _prune_stale_skills(skills_dir, keep=set(), dry_run=False) == []
+    assert link.is_symlink()
+    assert target.is_dir()
+
+
+def test_sync_skills_nonexistent_repo_fails_fast(tmp_path):
+    target = tmp_path / "typo-path"
+    result = CliRunner().invoke(sync_skills, [str(target)])
+    assert result.exit_code != 0
+    assert "不存在" in result.output
+    assert not target.exists()
+
+
 # ---------------------------------------------------------------------------
 # 产物可被 skill 解析器读取（round-trip）+ 无 status 键约定
 # ---------------------------------------------------------------------------

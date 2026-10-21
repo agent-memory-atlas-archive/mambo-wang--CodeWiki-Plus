@@ -271,7 +271,12 @@ def _prune_stale_skills(target_dir: Path, keep: set[str], dry_run: bool) -> list
         return []
     pruned = []
     for entry in sorted(target_dir.iterdir()):
-        if entry.is_dir() and entry.name.startswith(_SKILL_PREFIX) and entry.name not in keep:
+        if (
+            entry.is_dir()
+            and not entry.is_symlink()
+            and entry.name.startswith(_SKILL_PREFIX)
+            and entry.name not in keep
+        ):
             pruned.append(entry.name)
             if not dry_run:
                 shutil.rmtree(entry)
@@ -342,6 +347,8 @@ def sync_skills(lang: Optional[str], ide: Optional[str], dry_run: bool, repo: st
     current = i18n.lang()
 
     repo_path = Path(repo).resolve()
+    if not repo_path.is_dir():
+        raise click.UsageError(f"目标仓库路径不存在或不是目录：{repo_path}")
 
     click.echo()
     click.secho(f"Target repo: {repo_path}", fg="blue", bold=True)

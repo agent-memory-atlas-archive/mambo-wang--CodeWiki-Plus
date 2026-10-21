@@ -1,6 +1,7 @@
 """Tests for the `setup` CLI command（三段式一键装机，2026-10-20 设计定案）。"""
 
 import json
+import os
 
 import pytest
 from click.testing import CliRunner
@@ -12,12 +13,13 @@ from codewiki.mcp.prompts import _PROMPT_REGISTRY
 
 SKILL_COUNT = len(_PROMPT_REGISTRY) + len(_STATIC_SKILL_NAMES)
 
-# README 手工配置口径的 server 配置块（_build_server_config 无 lang 形态）
+# README 手工配置口径的 server 配置块（_build_server_config 无 lang 形态；
+# 解释器按平台快照，对齐 hooks 的 python/python3 平台口径）
 EXPECTED_SERVER = {
-    "command": "python",
+    "command": "python" if os.name == "nt" else "python3",
     "args": ["-m", "codewiki.mcp.server"],
     "maxOutputLength": 500000,
-    "timeout": 600000,
+    "timeout": 36000000,
     "disabled": False,
 }
 
@@ -54,6 +56,14 @@ def test_setup_fresh_repo_no_ide(tmp_path):
     assert len(dirs) == SKILL_COUNT
     assert "codewiki-setup" in dirs
     assert "codewiki-init-wiki" in dirs
+
+
+def test_setup_nonexistent_repo_path_fails_fast(tmp_path):
+    target = tmp_path / "typo-path"
+    result = CliRunner().invoke(setup, ["--repo-path", str(target)])
+    assert result.exit_code != 0
+    assert "不存在" in result.output
+    assert not target.exists()
 
 
 def test_setup_lang_en_injects_env_and_english_skills(tmp_path):
