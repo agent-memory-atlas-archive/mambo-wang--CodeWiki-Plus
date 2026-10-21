@@ -24,6 +24,8 @@ origin: conversation
 verified:
 - by: human:iamwangbao-163-com
   at: '2026-10-21T03:59:03Z'
+source_conversations: ['conversations/conv-system-reminder-The-user-selected-the-following-plugins-that.md']
+
 ---
 
 ## Pitfall
@@ -40,3 +42,21 @@ MCP server 会话里不传 `repo_path` 时，布局推导失败且**不报错**�
 - `add_task_memory` 直写可靠（返回 entry_id 与 hot_entries 计数），任务记忆无需确认闸门（ADR-0002）。
 
 与既有笔记 `notes/2026-10-12-子代理派发指令必须自包含寻址参数要烘进指令文本不能依赖主-agent-会话态.md` 互补：那条讲派发指令要自包含的原则，本条是 repo_path 缺省的具体症状与诊断路径。
+
+## codewiki MCP 写入工具缺 repo_path 会静默落到服务器安装目录而非项目 repowiki
+
+> 合并自蒸馏候选：codewiki MCP 写入工具缺 repo_path 会静默落到服务器安装目录而非项目 repowiki
+
+## 症状
+
+`ingest_note` 调用成功并返回 `note_path`，但笔记落在了 `C:\Users\<user>\AppData\Local\Programs\Qoder CN\.qoder-versions\<ver>\repowiki\notes\`——MCP 服务器自己的安装目录，而不是项目的 `repowiki/notes/`。原因：调用时省略了 `repo_path` 参数，服务器回退到自身默认 output_dir。
+
+## 规避
+
+1. codewiki MCP 的写入类工具（ingest_note / write_doc_file / confirm_note 等）**每次调用都显式传 repo_path**，不依赖会话态兜底——子代理、新会话、跨宿主场景下 session 缓存不可用；
+2. 落盘后用 `ls -t <repo>/repowiki/notes/` 磁盘核验返回的 note_path 是否在项目内；
+3. 误落后只删自己创建的那个文件——那个目录里可能有历史会话回退写入的其他内容（task bindings、wiki），不能整目录删。
+
+## 依据
+
+2026-10-14 会话实测：首次 ingest 返回的 note_path 指向 .qoder-versions 目录，带 repo_path 重投后落到项目内，误落副本已清理。

@@ -192,11 +192,7 @@ def test_find_frontmatter_end_ignores_dashes_inside_values():
     from codewiki.src.frontmatter import find_frontmatter_end
 
     text = (
-        "---\n"
-        'title: "聚合写场景块时超长笔记文件名含 --- 折行落行首"\n'
-        "status: draft\n"
-        "---\n"
-        "正文。\n"
+        '---\ntitle: "聚合写场景块时超长笔记文件名含 --- 折行落行首"\nstatus: draft\n---\n正文。\n'
     )
     end = find_frontmatter_end(text)
     assert end > 0
@@ -222,16 +218,10 @@ def test_apply_status_to_file_survives_dashes_in_title(tmp_path):
 
     note = tmp_path / "note.md"
     note.write_text(
-        "---\n"
-        'title: "标题含 --- 三连字符的笔记"\n'
-        "status: draft\n"
-        "---\n"
-        "正文。\n",
+        '---\ntitle: "标题含 --- 三连字符的笔记"\nstatus: draft\n---\n正文。\n',
         encoding="utf-8",
     )
-    result = json.loads(
-        _apply_status_to_file(note, tmp_path, "stable", verified_by="human:test")
-    )
+    result = json.loads(_apply_status_to_file(note, tmp_path, "stable", verified_by="human:test"))
     assert result.get("status") == "stable", result
     text = note.read_text(encoding="utf-8")
     assert re.search(r"^status:\s*stable\s*$", text, re.MULTILINE)
