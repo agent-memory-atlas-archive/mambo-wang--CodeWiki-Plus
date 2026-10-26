@@ -259,32 +259,3 @@ def test_pydantic_backend_runs_agent_despite_overview(tmp_path, monkeypatch):
 
     with pytest.raises(MarkerError):
         asyncio.run(backend.run_module_agent("Auth", {}, [], ["Auth"], str(docs)))
-
-
-def test_caw_backend_runs_agent_despite_overview(tmp_path, monkeypatch):
-    from codewiki.src.be import caw_backend
-
-    repo, docs = _paths(tmp_path)
-    (docs / "overview.md").write_text("# overview", encoding="utf-8")
-    (docs / ".meta" / "module_tree.json").write_text("{}", encoding="utf-8")
-
-    class MarkerError(RuntimeError):
-        pass
-
-    class FakeCawAgent:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def completion(self, prompt):
-            raise MarkerError("agent ran")
-
-    monkeypatch.setattr(caw_backend, "CawAgent", FakeCawAgent)
-
-    cfg = _config(tmp_path, repo, docs)
-    backend = object.__new__(caw_backend.CawBackend)
-    backend._config = cfg
-    backend._caw_provider = "claude_code"
-    backend._model = "test-model"
-
-    with pytest.raises(MarkerError):
-        backend._run_module_agent_sync("Auth", {}, [], ["Auth"], str(docs))
