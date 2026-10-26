@@ -18,6 +18,7 @@ Provider selection happens in one place: :func:`get_backend`.
 from __future__ import annotations
 
 import abc
+import os
 from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
@@ -30,6 +31,17 @@ CAW_PROVIDERS = frozenset({"claude-code", "codex"})
 def is_caw_provider(provider: str) -> bool:
     """Return True if *provider* uses caw (CLI subscription mode)."""
     return provider in CAW_PROVIDERS
+
+
+def module_page_present(working_dir: str, module_name: str) -> bool:
+    """Return True when *module_name*'s own page already exists on disk.
+
+    Skip granularity is the page, never the run (ADR-0020 decision 2).
+    ``overview.md`` must not be used as a global shortcut: it exists after any
+    completed run, so gating on it would make a missing module page
+    unfillable. Each backend calls this before spawning its module agent.
+    """
+    return os.path.exists(os.path.join(working_dir, f"{module_name}.md"))
 
 
 class LLMBackend(abc.ABC):

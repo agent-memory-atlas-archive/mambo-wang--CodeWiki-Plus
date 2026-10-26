@@ -29,7 +29,7 @@ from caw import Agent as CawAgent
 from caw import ToolGroup
 
 from codewiki.src.be.agent_tools.deps import CodeWikiDeps
-from codewiki.src.be.backend import LLMBackend
+from codewiki.src.be.backend import LLMBackend, module_page_present
 from codewiki.src.be.cluster_modules import format_potential_core_components
 from codewiki.src.be.dependency_analyzer.models.core import Node
 from codewiki.src.be.prompt_template import (
@@ -38,7 +38,7 @@ from codewiki.src.be.prompt_template import (
     format_user_prompt,
 )
 from codewiki.src.be.utils import count_tokens, is_complex_module, set_main_loop
-from codewiki.src.config import MODULE_TREE_FILENAME, OVERVIEW_FILENAME, Config
+from codewiki.src.config import MODULE_TREE_FILENAME, Config
 from codewiki.src.utils import file_manager
 
 logger = logging.getLogger(__name__)
@@ -229,13 +229,13 @@ class CawBackend(LLMBackend):
         if module_tree is None:
             module_tree = file_manager.load_json(module_tree_path)
 
-        overview_docs_path = os.path.join(working_dir, OVERVIEW_FILENAME)
-        if os.path.exists(overview_docs_path):
-            logger.info("✓ Overview docs already exists at %s", overview_docs_path)
-            return module_tree
-        docs_path = os.path.join(working_dir, f"{module_name}.md")
-        if os.path.exists(docs_path):
-            logger.info("✓ Module docs already exists at %s", docs_path)
+        # Page-level skip only (ADR-0020 decision 2): overview.md existing says
+        # nothing about *this* module's page, so it must not short-circuit.
+        if module_page_present(working_dir, module_name):
+            logger.info(
+                "✓ Module docs already exists at %s",
+                os.path.join(working_dir, f"{module_name}.md"),
+            )
             return module_tree
 
         custom_instructions = config.get_prompt_addition()
